@@ -16,13 +16,14 @@ public class GAS_Project : ModuleRules
 			"InputCore",
 			"EnhancedInput",
 			"GameplayAbilities",
+			"GameplayTasks",
 			"GameplayTags",
-			"GameplayTasks"
+			"UMG",
+			"AIModule",
 			
 		});
 		
-//		PublicIncludePaths.Add("GAS_Project");
-		PrivateIncludePaths.Add("GAS_Project");
+		//PrivateIncludePaths.Add("GAS_Project");
 
 
 		PrivateDependencyModuleNames.AddRange(new string[] {  });

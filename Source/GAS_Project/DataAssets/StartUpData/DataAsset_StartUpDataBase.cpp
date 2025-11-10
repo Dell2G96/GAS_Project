@@ -2,8 +2,8 @@
 
 
 #include "DataAsset_StartUpDataBase.h"
-#include "GAS/CAbilitySystemComponent.h"
-#include "GAS/Abilities/CGameplayAbility.h"
+#include "GAS_Project/GAS/CAbilitySystemComponent.h"
+#include "GAS_Project/GAS/Abilities/CGameplayAbility.h"
 #include "GameplayAbilitySpec.h"
 
 

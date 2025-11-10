@@ -1,7 +1,5 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
+// CWeapon.h
 #pragma once
-
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 #include "CWeapon.generated.h"
@@ -12,21 +10,18 @@ class GAS_PROJECT_API ACWeapon : public AActor
 	GENERATED_BODY()
 
 public:
-	// Sets default values for this actor's properties
-	ACWeapon();
+	ACWeapon(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 protected:
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="A|Weapons")
-	class USkeletalMeshComponent* WeaponMesh;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Weapon")
+	USceneComponent* Root;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="A|Weapons")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Weapon")
+	USkeletalMeshComponent* WeaponMesh;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Weapon")
 	class UBoxComponent* WeaponCollisionBox;
 
 public:
-	FORCEINLINE UBoxComponent* GetWeaponCollisionBox() const { return WeaponCollisionBox;}
-
-
-
-public:
-
+	FORCEINLINE UBoxComponent* GetWeaponCollisionBox() const { return WeaponCollisionBox; }
 };

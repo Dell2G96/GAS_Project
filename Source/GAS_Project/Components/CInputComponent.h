@@ -4,7 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "EnhancedInputComponent.h"
-#include "DataAssets/Input/DataAsset_InputConfig.h"
+#include "GAS_Project/DataAssets/Input/DataAsset_InputConfig.h"
 #include "CInputComponent.generated.h"
 
 
