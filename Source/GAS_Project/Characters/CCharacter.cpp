@@ -1,40 +1,79 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
-
 #include "CCharacter.h"
-
 #include "GAS_Project/GAS/CAbilitySystemComponent.h"
 #include "GAS_Project/GAS/CAttributeSet.h"
 #include "GAS_Project/GAS/Abilities/CGameplayAbility.h"
+#include "Net/UnrealNetwork.h"
 
 
-// Sets default values
+
 ACCharacter::ACCharacter()
 {
-	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = false;
-	PrimaryActorTick.bStartWithTickEnabled = false;
 
-	GetMesh()->bReceivesDecals = false;
+	//렌더링 여부와 관계없이 본(뼈대) 트랜스폼을 틱(tick)하고 새로 고침 — Dedicate 서버에서 본 업데이트를 수행하기 위함
+	GetMesh()->VisibilityBasedAnimTickOption = EVisibilityBasedAnimTickOption::AlwaysTickPoseAndRefreshBones;
+}
 
-	AbilitySystemComponent = CreateDefaultSubobject<UCAbilitySystemComponent>("AbilitySystemComponent");
-	AttributeSet = CreateDefaultSubobject<UCAttributeSet>("AttributeSet");
+void ACCharacter::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+	DOREPLIFETIME(ThisClass, bAlive)
 }
 
 UAbilitySystemComponent* ACCharacter::GetAbilitySystemComponent() const
 {
-	return GetAbilitySystemComponent();
+	return nullptr;
+
 }
 
-void ACCharacter::PossessedBy(AController* NewController)
+void ACCharacter::GiveStartUpAbilities()
 {
-	Super::PossessedBy(NewController);
+	if (!IsValid(GetAbilitySystemComponent())) return;
 
-	if (AbilitySystemComponent)
+	for (const auto& Ability : StartupAbilities)
 	{
-		AbilitySystemComponent->InitAbilityActorInfo(this, this);
-		
+		FGameplayAbilitySpec AbilitySpec = FGameplayAbilitySpec(Ability);
+		GetAbilitySystemComponent()->GiveAbility(AbilitySpec);
 	}
 }
 
+void ACCharacter::InitAttributes() const
+{
+	checkf(IsValid(InitializeAttributesEffects), TEXT("InitializeAttributeEffect not Set"));
 
+	FGameplayEffectContextHandle ContextHandle = GetAbilitySystemComponent()->MakeEffectContext();
+	FGameplayEffectSpecHandle SpecHandle = GetAbilitySystemComponent()->MakeOutgoingSpec(InitializeAttributesEffects, 1.f,ContextHandle);
+	GetAbilitySystemComponent()->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
+}
+
+void ACCharacter::OnHealthChanged(const struct FOnAttributeChangeData& AttributeChangeData)
+{
+	if (AttributeChangeData.NewValue <= 0.f)
+	{
+		HandleDeath();
+	}
+}
+
+void ACCharacter::HandleRespawn()
+{
+	bAlive = true;
+
+}
+
+void ACCharacter::HandleDeath()
+{
+	bAlive = false;
+	if (IsValid(GEngine))
+	{
+		GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Red, FString::Printf(TEXT("%s has died!"), *GetName()));
+	}
+}
+
+void ACCharacter::ResetAttributes()
+{
+	checkf(IsValid(ResetAttributesEffects), TEXT("InitializeAttributeEffect not Set"));
+
+	FGameplayEffectContextHandle ContextHandle = GetAbilitySystemComponent()->MakeEffectContext();
+	FGameplayEffectSpecHandle SpecHandle = GetAbilitySystemComponent()->MakeOutgoingSpec(ResetAttributesEffects, 1.f,ContextHandle);
+	GetAbilitySystemComponent()->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
+}
