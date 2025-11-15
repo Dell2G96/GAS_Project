@@ -17,29 +17,34 @@ protected:
 	virtual void SetupInputComponent() override;
 
 private:
-	UPROPERTY(EditDefaultsOnly, Category="Crash|Input")
+	UPROPERTY(EditDefaultsOnly, Category="A|Input")
 	TArray<TObjectPtr<class UInputMappingContext>> InputMappingContexts;
 
-	UPROPERTY(EditDefaultsOnly, Category = "Crash|Input|Movement")
+	UPROPERTY(EditDefaultsOnly, Category = "A|Input|Movement")
 	TObjectPtr<class UInputAction> JumpAction;
 
-	UPROPERTY(EditDefaultsOnly, Category = "Crash|Input|Movement")
+	UPROPERTY(EditDefaultsOnly, Category = "A|Input|Movement")
+	TObjectPtr<class UInputAction> RunAction;
+
+	UPROPERTY(EditDefaultsOnly, Category = "A|Input|Movement")
 	TObjectPtr<class UInputAction> MoveAction;
 
-	UPROPERTY(EditDefaultsOnly, Category = "Crash|Input|Movement")
+	UPROPERTY(EditDefaultsOnly, Category = "A|Input|Movement")
 	TObjectPtr<class UInputAction> LookAction;
 
-	UPROPERTY(EditDefaultsOnly, Category = "Crash|Input|Abilities")
+	UPROPERTY(EditDefaultsOnly, Category = "A|Input|Abilities")
 	TObjectPtr<class UInputAction> PrimaryAction;
 	
-	UPROPERTY(EditDefaultsOnly, Category = "Crash|Input|Abilities")
+	UPROPERTY(EditDefaultsOnly, Category = "A|Input|Abilities")
 	TObjectPtr<class UInputAction> SecondaryAction;
 	
-	UPROPERTY(EditDefaultsOnly, Category = "Crash|Input|Abilities")
+	UPROPERTY(EditDefaultsOnly, Category = "A|Input|Abilities")
 	TObjectPtr<class UInputAction> TertiaryAction;
 
 	void Jump();
 	void StopJumping();
+	void Run();
+	void StopRuning();
 	void Move(const struct FInputActionValue& Value);
 	void Look(const struct FInputActionValue& Value);
 	void Primary();
