@@ -36,9 +36,9 @@ void ACPlayerController::SetupInputComponent()
 	EnhancedInputComponent->BindAction(RunAction,ETriggerEvent::Completed, this, &ThisClass::StopRuning);
 
 
-	EnhancedInputComponent->BindAction(PrimaryAction, ETriggerEvent::Started, this, &ThisClass::Primary);
-	EnhancedInputComponent->BindAction(SecondaryAction, ETriggerEvent::Started, this, &ThisClass::Secondary);
-	EnhancedInputComponent->BindAction(TertiaryAction, ETriggerEvent::Started, this, &ThisClass::Tertiary);
+	EnhancedInputComponent->BindAction(BasicAttackAction, ETriggerEvent::Started, this, &ThisClass::BasicAttack);
+	EnhancedInputComponent->BindAction(HeavyAttackAction, ETriggerEvent::Started, this, &ThisClass::HeavyAttack);
+	
 }
 
 void ACPlayerController::Jump()
@@ -97,15 +97,18 @@ void ACPlayerController::Look(const FInputActionValue& Value)
 	AddPitchInput(LookAxisVector.Y);
 }
 
-void ACPlayerController::Primary()
+void ACPlayerController::BasicAttack()
 {
-	ActivateAbility(MyTags::Abilities::Primary);
+	UE_LOG(LogTemp, Warning, TEXT("Is Acvtivate Primary Ability"));
+	ActivateAbility(MyTags::Abilities::BasicAttack);
 }
 
-void ACPlayerController::Tertiary()
+void ACPlayerController::HeavyAttack()
 {
-	ActivateAbility(MyTags::Abilities::Secondary);
+	ActivateAbility(MyTags::Abilities::HeavyAttack);
+
 }
+
 
 void ACPlayerController::Secondary()
 {

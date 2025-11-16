@@ -33,13 +33,13 @@ private:
 	TObjectPtr<class UInputAction> LookAction;
 
 	UPROPERTY(EditDefaultsOnly, Category = "A|Input|Abilities")
-	TObjectPtr<class UInputAction> PrimaryAction;
+	TObjectPtr<class UInputAction> BasicAttackAction;
 	
 	UPROPERTY(EditDefaultsOnly, Category = "A|Input|Abilities")
 	TObjectPtr<class UInputAction> SecondaryAction;
 	
 	UPROPERTY(EditDefaultsOnly, Category = "A|Input|Abilities")
-	TObjectPtr<class UInputAction> TertiaryAction;
+	TObjectPtr<class UInputAction> HeavyAttackAction;
 
 	void Jump();
 	void StopJumping();
@@ -47,8 +47,8 @@ private:
 	void StopRuning();
 	void Move(const struct FInputActionValue& Value);
 	void Look(const struct FInputActionValue& Value);
-	void Primary();
-	void Tertiary();
+	void BasicAttack();
+	void HeavyAttack();
 	void Secondary();
 	void ActivateAbility(const struct FGameplayTag& AbilityTag) const;
 

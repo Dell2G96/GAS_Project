@@ -18,8 +18,8 @@ namespace MyTags
 	{
 		UE_DEFINE_GAMEPLAY_TAG_COMMENT(ActivateOnGiven, "MyTags.Abilities.ActivateOnGiven", "Tag for Abilities that should activate immediately once given.")
 	
-		UE_DEFINE_GAMEPLAY_TAG_COMMENT(Primary, "MyTags.Abilities.Primary", "Tag for the Primary Ability")
-		UE_DEFINE_GAMEPLAY_TAG_COMMENT(Secondary, "MyTags.Abilities.Secondary", "Tag for the Secondary Ability")
+		UE_DEFINE_GAMEPLAY_TAG_COMMENT(BasicAttack, "MyTags.Abilities.BasicAttack", "Tag for the Primary Ability")
+		UE_DEFINE_GAMEPLAY_TAG_COMMENT(HeavyAttack, "MyTags.Abilities.HeavyAttack", "Tag for the Secondary Ability")
 		UE_DEFINE_GAMEPLAY_TAG_COMMENT(Tertiary, "MyTags.Abilities.Tertiary", "Tag for the Tertiary Ability")
 
 		namespace Enemy

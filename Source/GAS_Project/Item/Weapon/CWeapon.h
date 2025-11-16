@@ -10,12 +10,10 @@ class GAS_PROJECT_API ACWeapon : public AActor
 	GENERATED_BODY()
 
 public:
-	ACWeapon(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	ACWeapon();
+	// ACWeapon(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 protected:
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Weapon")
-	USceneComponent* Root;
-
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Weapon")
 	USkeletalMeshComponent* WeaponMesh;
 
