@@ -2,35 +2,41 @@
 
 #include "GAS_Project/Item/Weapon/CWeapon.h"
 
+
 void UCWeaponComponent::RegisterSpawnedWeapon(struct FGameplayTag InWeaponTag, class ACWeapon* InWeapon, bool bRegister)
 {
-	WeaponMap.Emplace(InWeaponTag, InWeapon);
+
+
+	WeaponMap.Emplace(InWeaponTag,InWeapon);
+
+	// InWeaponTag->OnWeaponHitTarget.BindUObject(this,&ThisClass::OnHitTargetActor);
+	// InWeaponTag->OnWeaponPulledFromTarget.BindUObject(this,&ThisClass::OnWeaponPulledFromTargetActor);
 
 	if (bRegister)
 	{
-		CurrentWeaponTag = InWeaponTag;
+		CurrentEquippedWeaponTag = InWeaponTag;
 	}
-	
 }
 
-class ACWeapon* UCWeaponComponent::GetWeaponByTag(struct FGameplayTag InWeaponTag) const
+ACWeapon* UCWeaponComponent::GetCharacterCarriedWeaponByTag(FGameplayTag InWeaponTagToGet) const
 {
-	if (WeaponMap.Contains(InWeaponTag))
+	if (WeaponMap.Contains(InWeaponTagToGet))
 	{
-		if (ACWeapon* const* FoundWeapon = WeaponMap.Find(InWeaponTag))
+		if (ACWeapon* const* FoundWeapon = WeaponMap.Find(InWeaponTagToGet))
 		{
 			return *FoundWeapon;
 		}
 	}
+
 	return nullptr;
 }
 
-class ACWeapon* UCWeaponComponent::GetCurrentWeapon() const
+ACWeapon* UCWeaponComponent::GetCharacterCurrentEquippedWeapon() const
 {
-	if (!CurrentWeaponTag.IsValid())
+	if (!CurrentEquippedWeaponTag.IsValid())
 	{
 		return nullptr;
 	}
-	return GetWeaponByTag(CurrentWeaponTag);
+ 
+	return GetCharacterCarriedWeaponByTag(CurrentEquippedWeaponTag);
 }
-

@@ -1,26 +1,30 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "CPlayerAniminstance.h"
+#include "CCharacterAniminstance.h"
 
+#include "KismetAnimationLibrary.h"
+#include "KismetAnimationLibrary.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GAS_Project/Characters/CCharacter.h"
 #include "GAS_Project/Characters/Player/CPlayerCharacter.h"
 
-void UCPlayerAniminstance::NativeInitializeAnimation()
+void UCCharacterAniminstance::NativeInitializeAnimation()
 {
     OwningCharacter = Cast<ACCharacter>(TryGetPawnOwner());
     if (OwningCharacter)
     {
+        
         OwningMovementComp = OwningCharacter->GetCharacterMovement();
     }
 }
 
-void UCPlayerAniminstance::NativeThreadSafeUpdateAnimation(float DeltaSeconds)
+void UCCharacterAniminstance::NativeThreadSafeUpdateAnimation(float DeltaSeconds)
 {
     if(!OwningCharacter || !OwningMovementComp) return;
 
     GroundSpeed = OwningMovementComp->Velocity.Size2D();
 	bHasAcceleration = OwningMovementComp->GetCurrentAcceleration().SizeSquared2D() > 0.f;
     bIsJumping = OwningMovementComp->IsFalling();
+    LocomotionDirection = UKismetAnimationLibrary::CalculateDirection(OwningCharacter->GetVelocity(), OwningCharacter->GetActorRotation());
 }

@@ -11,7 +11,6 @@ class GAS_PROJECT_API ACWeapon : public AActor
 
 public:
 	ACWeapon();
-	// ACWeapon(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Weapon")

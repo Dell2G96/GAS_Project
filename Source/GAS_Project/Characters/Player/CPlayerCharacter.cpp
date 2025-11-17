@@ -6,6 +6,7 @@
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/SpringArmComponent.h"
+#include "GAS_Project/Components/CPlayerWeaponComponent.h"
 #include "GAS_Project/Components/CWeaponComponent.h"
 #include "GAS_Project/GAS/CAttributeSet.h"
 
@@ -38,7 +39,7 @@ ACPlayerCharacter::ACPlayerCharacter()
 	Camera->SetupAttachment(CameraBoom, USpringArmComponent::SocketName);
 	Camera->bUsePawnControlRotation = false;
 
-	WeaponComponent = CreateDefaultSubobject<UCWeaponComponent>("WeaponComponent");
+	WeaponComponent = CreateDefaultSubobject<UCPlayerWeaponComponent>(TEXT("WeaponComponent"));
 	
 }
 

@@ -9,6 +9,8 @@ namespace MyTags
 	/** Input Tags **/
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(InputTag_Look)
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(InputTag_Move)
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(InputTag_EquipKnife)
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(InputTag_UnEquipKnife)
 	
 	namespace SetByCaller
 	{
@@ -17,7 +19,18 @@ namespace MyTags
 	namespace Abilities
 	{
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(ActivateOnGiven);
-	
+
+		namespace Equip
+		{
+			UE_DECLARE_GAMEPLAY_TAG_EXTERN(EquipKnife);
+
+		}
+		namespace UnEquip
+		{
+			
+			UE_DECLARE_GAMEPLAY_TAG_EXTERN(UnEquipKnife);
+		}
+
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(BasicAttack);
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(HeavyAttack);
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Tertiary);

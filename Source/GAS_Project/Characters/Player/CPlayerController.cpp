@@ -36,6 +36,7 @@ void ACPlayerController::SetupInputComponent()
 	EnhancedInputComponent->BindAction(RunAction,ETriggerEvent::Completed, this, &ThisClass::StopRuning);
 
 
+	EnhancedInputComponent->BindAction(EquipAction, ETriggerEvent::Triggered, this, &ThisClass::Equip);
 	EnhancedInputComponent->BindAction(BasicAttackAction, ETriggerEvent::Started, this, &ThisClass::BasicAttack);
 	EnhancedInputComponent->BindAction(HeavyAttackAction, ETriggerEvent::Started, this, &ThisClass::HeavyAttack);
 	
@@ -109,10 +110,9 @@ void ACPlayerController::HeavyAttack()
 
 }
 
-
-void ACPlayerController::Secondary()
+void ACPlayerController::Equip()
 {
-	ActivateAbility(MyTags::Abilities::Tertiary);
+	ActivateAbility(MyTags::Abilities::Equip::EquipKnife);
 }
 
 void ACPlayerController::ActivateAbility(const FGameplayTag& AbilityTag) const

@@ -4,13 +4,13 @@
 
 #include "CoreMinimal.h"
 #include "CAniminstance.h"
-#include "CPlayerAniminstance.generated.h"
+#include "CCharacterAniminstance.generated.h"
 
 /**
  * 
  */
 UCLASS()
-class GAS_PROJECT_API UCPlayerAniminstance : public UCAniminstance
+class GAS_PROJECT_API UCCharacterAniminstance : public UCAniminstance
 {
 	GENERATED_BODY()
 public:
@@ -35,6 +35,9 @@ protected:
 
 	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "LocomotionData")
 	bool bHasAcceleration;
+
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "LocomotionData")
+	float LocomotionDirection;
 
 	bool bIsJumping;
 	bool bIsGrounded;

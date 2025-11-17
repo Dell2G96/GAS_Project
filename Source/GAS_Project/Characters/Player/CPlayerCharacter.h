@@ -18,14 +18,14 @@ public:
 	virtual void PossessedBy(AController* NewController) override;
 	virtual void OnRep_PlayerState() override;
 
-	FORCEINLINE  class UCWeaponComponent* GetWeaponComponent() const { return WeaponComponent; }
+	FORCEINLINE  class UCPlayerWeaponComponent* GetWeaponComponent() const { return WeaponComponent; }
 private:
-	UPROPERTY(VisibleAnywhere,Category="A|Camera")
+	UPROPERTY(VisibleAnywhere,Category="A|Camera",meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<class USpringArmComponent> CameraBoom;
 
-	UPROPERTY(VisibleAnywhere,Category="A|Camera")
+	UPROPERTY(VisibleAnywhere,Category="A|Camera",meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<class UCameraComponent> Camera;
 
-	UPROPERTY(VisibleAnywhere,Category="A|Comp")
-	TObjectPtr<class UCWeaponComponent> WeaponComponent;
+	UPROPERTY(VisibleAnywhere,BlueprintReadOnly, Category="A|Comp",meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<class UCPlayerWeaponComponent> WeaponComponent;
 };

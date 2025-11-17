@@ -27,8 +27,28 @@ public:
 	AbilityActivationPolicy ActivationPolicy = AbilityActivationPolicy::OnTriggered;
 
 	UFUNCTION(BlueprintPure, Category="A|Ability")
-	class UCWeaponComponent* GetWeaponComp();
-	
+	class UCWeaponComponent* GetPawnWeaponComp();
 
-	
+	UFUNCTION(BlueprintPure, Category="A|Ability")
+	virtual class UAbilitySystemComponent* GetAbilitySystemComponent() const;
+
+
+	/********************************************/
+	/*                 Player                   */
+	/********************************************/
+	UFUNCTION(BlueprintPure, Category="A|Ability")
+	class UCPlayerWeaponComponent* GetHeroAvatarWeaponComp() ;
+
+	UFUNCTION(BlueprintPure, Category="A|Ability")
+	class ACPlayerController* GetHeroPlayerController() ;
+
+	UFUNCTION(BlueprintPure, Category="A|Ability")
+	class ACPlayerCharacter* GetHeroPlayerCharacter() ;
+
+private:
+	TWeakObjectPtr<class ACPlayerCharacter> CachedPlayerCharacter;
+	TWeakObjectPtr<class ACPlayerController> CachedPlayerController;
+
+	UPROPERTY()
+	class UCAbilitySystemComponent* CAbilitySystemComponent;
 };

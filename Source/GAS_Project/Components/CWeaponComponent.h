@@ -17,14 +17,14 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Comp")
 	void RegisterSpawnedWeapon(struct FGameplayTag InWeaponTag, class ACWeapon* InWeapon , bool bRegister = false);
 
-	UFUNCTION(BlueprintCallable, Category="Comp")
-	class ACWeapon* GetWeaponByTag(struct FGameplayTag InWeaponTag) const;
+	UFUNCTION(BlueprintCallable, Category = "Warrior|Combat")
+	ACWeapon* GetCharacterCarriedWeaponByTag(FGameplayTag InWeaponTagToGet) const;
 
-	UFUNCTION(BlueprintCallable, Category="Comp")
-	class ACWeapon* GetCurrentWeapon() const;
+	UPROPERTY(BlueprintReadWrite, Category = "Warrior|Combat")
+	FGameplayTag CurrentEquippedWeaponTag;
 
-	UPROPERTY(BlueprintReadOnly, Category="Comp")
-	FGameplayTag CurrentWeaponTag;
+	UFUNCTION(BlueprintCallable, Category = "Warrior|Combat")
+	ACWeapon* GetCharacterCurrentEquippedWeapon() const;
 	
 private:
 	TMap<struct FGameplayTag, class ACWeapon*> WeaponMap;

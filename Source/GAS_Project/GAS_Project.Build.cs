@@ -15,6 +15,7 @@ public class GAS_Project : ModuleRules
 			"Engine",
 			"InputCore",
 			"EnhancedInput",
+			"AnimGraphRuntime",
 			"GameplayAbilities",
 			"GameplayTasks",
 			"GameplayTags",
@@ -26,7 +27,7 @@ public class GAS_Project : ModuleRules
 		//PrivateIncludePaths.Add("GAS_Project");
 
 
-		PrivateDependencyModuleNames.AddRange(new string[] {  });
+		PrivateDependencyModuleNames.AddRange(new string[] { "AnimGraphRuntime", "AnimGraphRuntime" });
 
 		// Uncomment if you are using Slate UI
 		// PrivateDependencyModuleNames.AddRange(new string[] { "Slate", "SlateCore" });
