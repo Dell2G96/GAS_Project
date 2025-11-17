@@ -3,6 +3,8 @@
 
 #include "CGameplayAbility.h"
 #include "AbilitySystemComponent.h"
+#include "GAS_Project/Characters/CCharacter.h"
+#include "GAS_Project/Characters/Player/CPlayerCharacter.h"
 
 void UCGameplayAbility::OnGiveAbility(const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilitySpec& Spec)
 {
@@ -29,4 +31,10 @@ void UCGameplayAbility::EndAbility(const FGameplayAbilitySpecHandle Handle, cons
 			ActorInfo->AbilitySystemComponent->ClearAbility(Handle);
 		}
 	}
+}
+
+class UCWeaponComponent* UCGameplayAbility::GetWeaponComp()
+{
+	ACPlayerCharacter* Avatar = Cast<ACPlayerCharacter>(GetAvatarActorFromActorInfo());
+	return Avatar->GetWeaponComponent();
 }

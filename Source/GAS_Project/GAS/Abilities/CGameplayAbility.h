@@ -23,8 +23,11 @@ public:
 	virtual void OnGiveAbility(const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilitySpec& Spec) override;
 	virtual void EndAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, bool bReplicateEndAbility, bool bWasCancelled) override;
 
-	UPROPERTY(EditDefaultsOnly, Category="A_|Ability")
+	UPROPERTY(EditDefaultsOnly, Category="A|Ability")
 	AbilityActivationPolicy ActivationPolicy = AbilityActivationPolicy::OnTriggered;
+
+	UFUNCTION(BlueprintPure, Category="A|Ability")
+	class UCWeaponComponent* GetWeaponComp();
 	
 
 	

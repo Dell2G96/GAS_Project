@@ -17,10 +17,15 @@ public:
 	virtual UAttributeSet* GetAttributeSet() const override;
 	virtual void PossessedBy(AController* NewController) override;
 	virtual void OnRep_PlayerState() override;
+
+	FORCEINLINE  class UCWeaponComponent* GetWeaponComponent() const { return WeaponComponent; }
 private:
 	UPROPERTY(VisibleAnywhere,Category="A|Camera")
 	TObjectPtr<class USpringArmComponent> CameraBoom;
 
 	UPROPERTY(VisibleAnywhere,Category="A|Camera")
 	TObjectPtr<class UCameraComponent> Camera;
+
+	UPROPERTY(VisibleAnywhere,Category="A|Comp")
+	TObjectPtr<class UCWeaponComponent> WeaponComponent;
 };

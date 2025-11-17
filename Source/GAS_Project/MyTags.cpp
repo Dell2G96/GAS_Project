@@ -30,8 +30,17 @@ namespace MyTags
 
 	namespace Events
 	{
-		UE_DEFINE_GAMEPLAY_TAG_COMMENT(KillScored, "MyTags.Events.KillScored", "Tag for the KillScored Event")
+		namespace Equip
+		{
+			UE_DEFINE_GAMEPLAY_TAG(Knife,"MyTags.Events.Equip.Knife")
+			
+		}
 
+		namespace UnEquip
+		{
+			UE_DEFINE_GAMEPLAY_TAG(Knife,"MyTags.Events.UnEquip.Knife")
+		}
+		
 		namespace Player
 		{
 			UE_DEFINE_GAMEPLAY_TAG_COMMENT(HitReact, "MyTags.Events.Player.HitReact", "Tag for the Player HitReact Event")
