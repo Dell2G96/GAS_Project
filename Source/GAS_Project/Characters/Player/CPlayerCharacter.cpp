@@ -146,20 +146,12 @@ void ACPlayerCharacter::PossessedBy(AController* NewController)
     Super::PossessedBy(NewController);
 
     ACPlayerState* PS = GetPlayerState<ACPlayerState>();
-    PS = GetPlayerState<ACPlayerState>();
-    
     check(PS);
     
-    if (UAbilitySystemComponent* ASC = PS->GetAbilitySystemComponent())
+    if (UCAbilitySystemComponent* ASC = PS->GetAbilitySystemComponent())
     {
         ASC->InitAbilityActorInfo(PS,this);
-        if (HasAuthority())
-        {
-            if (auto* MyASC = Cast<UCAbilitySystemComponent>(ASC))
-            {
-                //MyASC->ServerSideInit();
-            }
-        }
+        ASC->ServerSideInit();
     }
 }
 
@@ -169,7 +161,7 @@ void ACPlayerCharacter::OnRep_PlayerState()
     ACPlayerState* PS = GetPlayerState<ACPlayerState>();
     if (!PS) return;
 
-    if (UAbilitySystemComponent* ASC = PS->GetAbilitySystemComponent())
+    if (UCAbilitySystemComponent* ASC = PS->GetAbilitySystemComponent())
     {
         ASC->InitAbilityActorInfo(PS, this);   // 클라 동기화
     }

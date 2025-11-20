@@ -69,31 +69,52 @@ void UCAbilitySystemComponent::ApplyInitialEffects()
 	
 }
 
-// CAbilitySystemComponent.cpp - GiveInitialAbilities 수정
 void UCAbilitySystemComponent::GiveInitialAbilities()
 {
 	if (!GetOwner() || !GetOwner()->HasAuthority())
 		return;
 
-	UE_LOG(LogTemp, Error, TEXT("=== GiveInitialAbilities START ==="));
+    UE_LOG(LogTemp, Log, TEXT("=== GiveInitialAbilities START on %s ==="), *GetOwner()->GetName());
+	
+    // 2) 맵/배열 개수 로그
 
-	for (const TPair<ECabilityInputID, TSubclassOf<UGameplayAbility>>& AbilityPair : Abilities)
+
+    // 3) 일반 능력
+	for (const TPair<ECabilityInputID,TSubclassOf<UGameplayAbility>>& AbilityPair : Abilities)
 	{
-		FGameplayAbilitySpecHandle Handle = GiveAbility(FGameplayAbilitySpec(AbilityPair.Value, 1, (int32)AbilityPair.Key, nullptr));
+		if (!*AbilityPair.Value)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("[ASC] Abilities[%d] is null class."), (int32)AbilityPair.Key);
+			continue;
+		}
 		
+		GiveAbility(FGameplayAbilitySpec(AbilityPair.Value, 0, (int32)AbilityPair.Key, nullptr));
 	}
 
-	for (const TPair<ECabilityInputID, TSubclassOf<UGameplayAbility>>& AbilityPair : BasicAbilities)
+    // 4) 기본 능력
+	for (const TPair<ECabilityInputID,TSubclassOf<UGameplayAbility>>& AbilityPair : BasicAbilities)
 	{
-		FGameplayAbilitySpecHandle Handle = GiveAbility(FGameplayAbilitySpec(AbilityPair.Value, 1, (int32)AbilityPair.Key, nullptr));
-		
+		if (!*AbilityPair.Value)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("[ASC] BasicAbilities[%d] is null class."), (int32)AbilityPair.Key);
+			continue;
+		}
+		GiveAbility(FGameplayAbilitySpec(AbilityPair.Value, 1, (int32)AbilityPair.Key, nullptr));
+	}
+    // 5) 패시브 능력
+	if (!AbilitySystemGenerics)
+	{
+		UE_LOG(LogTemp, Error, TEXT("[ASC] AbilitySystemGenerics is NULL on %s. "
+			  "BP에서 UCAbilitySystemComponent의 AbilitySystemGenerics를 꼭 지정하세요."),
+			  *GetOwner()->GetName());
+		return;
 	}
 	for (const TSubclassOf<UGameplayAbility>& PassiveAbility : AbilitySystemGenerics->GetPassiveAbilities())
 	{
 		GiveAbility(FGameplayAbilitySpec(PassiveAbility, 1, -1, nullptr));
 	}
 
-	UE_LOG(LogTemp, Error, TEXT("=== GiveInitialAbilities END ==="));
+    UE_LOG(LogTemp, Log, TEXT("=== GiveInitialAbilities END on %s ==="), *GetOwner()->GetName());
 }
 
 
