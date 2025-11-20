@@ -1,39 +1,3 @@
-// // Fill out your copyright notice in the Description page of Project Settings.
-//
-// #pragma once
-//
-// #include "CoreMinimal.h"
-// #include "GAS_Project/Characters/CCharacter.h"
-// #include "CPlayerCharacter.generated.h"
-//
-// UCLASS()
-// class GAS_PROJECT_API ACPlayerCharacter : public ACCharacter
-// {
-// 	GENERATED_BODY()
-//
-// public:
-// 	ACPlayerCharacter();
-// 	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
-// 	virtual UAttributeSet* GetAttributeSet() const override;
-// 	virtual void PossessedBy(AController* NewController) override;
-// 	virtual void OnRep_PlayerState() override;
-//
-// 	FORCEINLINE  class UCPlayerWeaponComponent* GetWeaponComponent() const { return WeaponComponent; }
-// private:
-// 	UPROPERTY(VisibleAnywhere,Category="A|Camera",meta = (AllowPrivateAccess = "true"))
-// 	TObjectPtr<class USpringArmComponent> CameraBoom;
-//
-// 	UPROPERTY(VisibleAnywhere,Category="A|Camera",meta = (AllowPrivateAccess = "true"))
-// 	TObjectPtr<class UCameraComponent> Camera;
-//
-// 	UPROPERTY(VisibleAnywhere,BlueprintReadOnly, Category="A|Comp",meta = (AllowPrivateAccess = "true"))
-// 	TObjectPtr<class UCPlayerWeaponComponent> WeaponComponent;
-// };
-
-
-
-// CPlayerCharacter.h
-
 #pragma once
 
 #include "CoreMinimal.h"
@@ -48,23 +12,54 @@ class GAS_PROJECT_API ACPlayerCharacter : public ACCharacter
 public:
 	ACPlayerCharacter();
 
-	// ASC/AttributeSet은 PlayerState 보유 것을 사용
-	virtual class UAbilitySystemComponent* GetAbilitySystemComponent() const override;
-	virtual class UAttributeSet*         GetAttributeSet() const override;
-
+	// 서버: 소유권 확정 시 PS의 ASC를 Character(AVAtar) 와 연결
 	virtual void PossessedBy(AController* NewController) override;
+	// 클라 : PS 복제 도착 시 동일 초기화
 	virtual void OnRep_PlayerState() override;
 
+	// ASC/AttributeSet은 PlayerState 보유 것을 사용
+	virtual class UAbilitySystemComponent* GetAbilitySystemComponent() const override;
+	virtual class UAttributeSet* GetAttributeSet() const override;
+	
+	virtual void ServerSideInit() override; 
+	virtual void ClientSideInit() override;
+	
+	virtual void BeginPlay() override;
+	virtual void PawnClientRestart() override;
+	
 	// 무기 컴포넌트: 플레이어 전용 컴포넌트로 단일화
+	UFUNCTION(BlueprintCallable)
 	FORCEINLINE class UCWeaponComponent* GetWeaponComponent() const { return WeaponComponent; }
 
 private:
-	UPROPERTY(VisibleAnywhere, Category="A|Camera", meta=(AllowPrivateAccess="true"))
+	/********************************************************/
+	/*						Stun                            */
+	/********************************************************/
+	virtual void OnStun() override;
+	virtual void OnRecoverFromStun() override;
+
+	/********************************************************/
+	/*                     Death and Respawn                */
+	/********************************************************/
+	virtual void OnDead() override;
+	virtual void OnRespawn() override;
+	
+	/********************************************************/
+	/*                     Camera View		                */
+	/********************************************************/
+	
+	UPROPERTY(VisibleAnywhere, Category="GAS|Camera")
 	TObjectPtr<class USpringArmComponent> CameraBoom;
 
-	UPROPERTY(VisibleAnywhere, Category="A|Camera", meta=(AllowPrivateAccess="true"))
+	UPROPERTY(VisibleAnywhere, Category="GAS|Camera")
 	TObjectPtr<class UCameraComponent> Camera;
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="A|Comp", meta=(AllowPrivateAccess="true"))
+	
+	UPROPERTY(VisibleAnywhere, Category="GAS|Comp")
 	TObjectPtr<class UCWeaponComponent> WeaponComponent;
+
+	UPROPERTY(Transient)
+	class ACPlayerController* OwnerController = nullptr;
+
+	UPROPERTY(Transient)
+	class ACPlayerState* CachedPlayerState = nullptr;
 };

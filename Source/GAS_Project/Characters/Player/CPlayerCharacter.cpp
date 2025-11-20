@@ -2,12 +2,15 @@
 #include "CPlayerCharacter.h"
 
 #include "AbilitySystemComponent.h"
+#include "CPlayerController.h"
 #include "CPlayerState.h"
+#include "EnhancedInputSubsystems.h"
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "GAS_Project/Components/CWeaponComponent.h"
+#include "GAS_Project/GAS/CAbilitySystemComponent.h"
 #include "GAS_Project/GAS/CAttributeSet.h"
 
 ACPlayerCharacter::ACPlayerCharacter()
@@ -40,124 +43,155 @@ ACPlayerCharacter::ACPlayerCharacter()
     Camera->bUsePawnControlRotation = false;
 
     WeaponComponent = CreateDefaultSubobject<UCWeaponComponent>(TEXT("WeaponComponent"));
+    CAbilitySystemComponent = nullptr;
+    CAttributeSet = nullptr;
 }
+
+void ACPlayerCharacter::BeginPlay()
+{
+    Super::BeginPlay();
+
+    OwnerController = Cast<ACPlayerController>(GetController());
+    CachedPlayerState = GetPlayerState<ACPlayerState>();
+}
+
+void ACPlayerCharacter::ServerSideInit()
+{
+    if (bAbilitySystemInitialized)
+    {
+        return;
+    }
+    ACPlayerState* PS = GetPlayerState<ACPlayerState>();
+    if (!PS)
+    {
+        return;
+    }
+    if (UCAbilitySystemComponent* ASC = PS->GetAbilitySystemComponent())
+    {
+        //ASC->ServerSideInit();
+        ASC->InitAbilityActorInfo(PS,this);
+    }
+    
+}
+
+void ACPlayerCharacter::ClientSideInit()
+{
+    ACPlayerState* PS = GetPlayerState<ACPlayerState>();
+
+    if (!PS)
+    {
+        return;
+    }
+    if (UAbilitySystemComponent* ASC = PS->GetAbilitySystemComponent())
+    {
+        ASC->InitAbilityActorInfo(PS,this);
+    }
+ }
+
+void ACPlayerCharacter::PawnClientRestart()
+{
+    Super::PawnClientRestart();  // ✅ 부모 호출 (중요!)
+
+    // ✅ PS 할당
+    ACPlayerState* PS = GetPlayerState<ACPlayerState>();
+    
+    if (!PS)
+    {
+        UE_LOG(LogTemp, Error, TEXT("ClientSideInit: PlayerState is NULL!"));
+        return;
+    }
+    
+    // ✅ PlayerState의 ASC 사용
+    if (UAbilitySystemComponent* ASC = PS->GetAbilitySystemComponent())
+    {
+        ASC->InitAbilityActorInfo(PS, this);
+    }
+    
+    // ✅ 클라이언트 컨트롤러에서 Input 재설정
+    if (APlayerController* PC = Cast<APlayerController>(GetController()))
+    {
+        if (UEnhancedInputLocalPlayerSubsystem* Subsystem = 
+            ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PC->GetLocalPlayer()))
+        {
+            UE_LOG(LogTemp, Warning, TEXT("PawnClientRestart: Input subsystem ready"));
+        }
+    }
+}
+
 
 UAbilitySystemComponent* ACPlayerCharacter::GetAbilitySystemComponent() const
 {
-    if (const ACPlayerState* PS = Cast<ACPlayerState>(GetPlayerState()))
+    ACPlayerState* PS = GetPlayerState<ACPlayerState>();
+
+    if (PS)
     {
         return PS->GetAbilitySystemComponent();
     }
-    return nullptr;
+    return Super::GetAbilitySystemComponent();
 }
 
 UAttributeSet* ACPlayerCharacter::GetAttributeSet() const
 {
-    if (const ACPlayerState* PS = Cast<ACPlayerState>(GetPlayerState()))
+    ACPlayerState* PS = GetPlayerState<ACPlayerState>();
+
+    if (PS)
     {
         return PS->GetAttributeSet();
     }
-    return nullptr;
+    return Super::GetAttributeSet();
 }
 
-// ✅ 완전 수정: PossessedBy (서버)
 void ACPlayerCharacter::PossessedBy(AController* NewController)
 {
     Super::PossessedBy(NewController);
 
-    UE_LOG(LogTemp, Warning, TEXT(">>> PossessedBy: START"));
-
-    // ✅ 1단계: PlayerState 획득 및 체크
-    ACPlayerState* PS = Cast<ACPlayerState>(GetPlayerState());
-    if (!PS)
+    ACPlayerState* PS = GetPlayerState<ACPlayerState>();
+    PS = GetPlayerState<ACPlayerState>();
+    
+    check(PS);
+    
+    if (UAbilitySystemComponent* ASC = PS->GetAbilitySystemComponent())
     {
-        UE_LOG(LogTemp, Error, TEXT("PossessedBy: PlayerState is NULL!"));
-        return;
+        ASC->InitAbilityActorInfo(PS,this);
+        if (HasAuthority())
+        {
+            if (auto* MyASC = Cast<UCAbilitySystemComponent>(ASC))
+            {
+                //MyASC->ServerSideInit();
+            }
+        }
     }
-
-    // ✅ 2단계: ASC 획득
-    UAbilitySystemComponent* ASC = PS->GetAbilitySystemComponent();
-    if (!ASC)
-    {
-        UE_LOG(LogTemp, Error, TEXT("PossessedBy: ASC is NULL!"));
-        return;
-    }
-
-    // ✅ 3단계: 서버 검증
-    if (!HasAuthority())
-    {
-        UE_LOG(LogTemp, Warning, TEXT("PossessedBy: Not authority, skipping"));
-        return;
-    }
-
-    UE_LOG(LogTemp, Warning, TEXT(">>> PossessedBy: Initializing ASC"));
-
-    // ✅ 4단계: ASC 초기화 (중요: PlayerState를 Owner로!)
-    ASC->InitAbilityActorInfo(PS, this);
-    //                        ↑   ↑
-    //                    Owner Avatar
-    //              (PlayerState) (Character)
-
-    OnASCInitialized.Broadcast(ASC, GetAttributeSet());
-
-    // ✅ 5단계: 어빌리티 부여 (서버에서만)
-    UE_LOG(LogTemp, Warning, TEXT(">>> PossessedBy: Calling GiveStartUpAbilities"));
-    GiveStartUpAbilities();
-
-    // ✅ 6단계: 속성 초기화
-    InitAttributes();
-
-    // ✅ 7단계: Health 변화 이벤트 바인드
-    if (const UCAttributeSet* AS = Cast<UCAttributeSet>(GetAttributeSet()))
-    {
-        ASC->GetGameplayAttributeValueChangeDelegate(AS->GetHealthAttribute())
-            .AddUObject(this, &ACPlayerCharacter::OnHealthChanged);
-        
-        UE_LOG(LogTemp, Warning, TEXT(">>> PossessedBy: Health delegate bound"));
-    }
-
-    UE_LOG(LogTemp, Warning, TEXT(">>> PossessedBy: COMPLETE"));
 }
 
-// ✅ 완전 수정: OnRep_PlayerState (클라이언트)
 void ACPlayerCharacter::OnRep_PlayerState()
 {
     Super::OnRep_PlayerState();
+    ACPlayerState* PS = GetPlayerState<ACPlayerState>();
+    if (!PS) return;
 
-    UE_LOG(LogTemp, Warning, TEXT(">>> OnRep_PlayerState: START (Client)"));
-
-    // ✅ 1단계: PlayerState와 ASC 획득
-    ACPlayerState* PS = Cast<ACPlayerState>(GetPlayerState());
-    if (!PS)
+    if (UAbilitySystemComponent* ASC = PS->GetAbilitySystemComponent())
     {
-        UE_LOG(LogTemp, Error, TEXT("OnRep_PlayerState: PlayerState is NULL!"));
-        return;
+        ASC->InitAbilityActorInfo(PS, this);   // 클라 동기화
     }
+}
 
-    UAbilitySystemComponent* ASC = PS->GetAbilitySystemComponent();
-    if (!ASC)
-    {
-        UE_LOG(LogTemp, Error, TEXT("OnRep_PlayerState: ASC is NULL!"));
-        return;
-    }
 
-    UE_LOG(LogTemp, Warning, TEXT(">>> OnRep_PlayerState: Initializing ASC on client"));
+void ACPlayerCharacter::OnStun()
+{
+    //ToDo CPlayerController
+}
 
-    // ✅ 2단계: ASC 초기화 (클라이언트)
-    ASC->InitAbilityActorInfo(PS, this);
-    //                        ↑   ↑
-    //                    Owner Avatar
+void ACPlayerCharacter::OnRecoverFromStun()
+{
+    //ToDo CPlayerController
+}
 
-    OnASCInitialized.Broadcast(ASC, GetAttributeSet());
+void ACPlayerCharacter::OnDead()
+{
+    //ToDo CPlayerController
+}
 
-    // ✅ 3단계: Health 변화 이벤트 바인드
-    if (const UCAttributeSet* AS = Cast<UCAttributeSet>(GetAttributeSet()))
-    {
-        ASC->GetGameplayAttributeValueChangeDelegate(AS->GetHealthAttribute())
-            .AddUObject(this, &ACPlayerCharacter::OnHealthChanged);
-        
-        UE_LOG(LogTemp, Warning, TEXT(">>> OnRep_PlayerState: Health delegate bound"));
-    }
-
-    UE_LOG(LogTemp, Warning, TEXT(">>> OnRep_PlayerState: COMPLETE"));
+void ACPlayerCharacter::OnRespawn()
+{
+    //ToDo CPlayerController
 }

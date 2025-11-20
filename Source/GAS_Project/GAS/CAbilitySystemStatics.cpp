@@ -25,13 +25,13 @@ FGameplayTag UCAbilitySystemStatics::GetBasicAttackInputReleasedTag()
 
 FGameplayTag UCAbilitySystemStatics::GetDeadStatTag()
 {
-	return FGameplayTag::RequestGameplayTag("stats.dead");
+	return MyTags::Status::Dead;
 
 }
 
 FGameplayTag UCAbilitySystemStatics::GetStunStatTag()
 {
-	return FGameplayTag::RequestGameplayTag("stats.stun");
+	return MyTags::Status::Stun;
 
 }
 

@@ -2,21 +2,54 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "GenericTeamAgentInterface.h"
 #include "GameFramework/PlayerController.h"
 #include "InputActionValue.h"
 #include "GAS_Project/Utils/CStructTypes.h"
 #include "CPlayerController.generated.h"
-
-enum class ECabilityInputID : uint8;
 
 UCLASS()
 class GAS_PROJECT_API ACPlayerController : public APlayerController
 {
 	GENERATED_BODY()
 
+public:
+	virtual void BeginPlay() override;
+
+	// //Ability 입력 이벤트 전송(항상 Pawn/Character로 보냄)
+ //   void SendAbilityInputEvent(const FGameplayTag& EventTag, bool bPressed);
+	
+	virtual void OnPossess(APawn* InPawn) override;
+	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
+
 protected:
 	virtual void SetupInputComponent() override;
 
+private:
+	void Jump();
+	void StopJumping();
+	void Run();
+	void StopRuning();
+	void Move(const struct FInputActionValue& Value);
+	void Look(const struct FInputActionValue& Value);
+
+	// ✅ 추가: Started/Completed로 분리
+	void HandleAbilityInputPressed(ECabilityInputID InputId);
+	void HandleAbilityInputReleased(ECabilityInputID InputId);
+
+	void BasicAttack();
+	void HeavyAttack();
+	void Equip();
+	void UnEquipTest();
+
+	void ActivateAbility(const struct FGameplayTag& AbilityTag) const;
+
+	// Pawn(캐릭터)로 이벤트 전송
+	void SendEventToPawn(const struct FGameplayTag& Tag);
+
+	/*********************************************************************/
+	/*						Input Mapping                                */
+	/*********************************************************************/
 private:
 	UPROPERTY(EditDefaultsOnly, Category="GAS|Input")
 	TArray<TObjectPtr<class UInputMappingContext>> InputMappingContexts;
@@ -45,23 +78,19 @@ private:
 	UPROPERTY(EditDefaultsOnly, Category="GAS|Input")
 	TMap<ECabilityInputID, UInputAction*> GameplayAbilityInputActions;
 
+	/*********************************************************************/
+	/*								UI							        */
+	/*********************************************************************/
 private:
-	void Jump();
-	void StopJumping();
-	void Run();
-	void StopRuning();
-	void Move(const struct FInputActionValue& Value);
-	void Look(const struct FInputActionValue& Value);
+	UPROPERTY()
+	class ACPlayerCharacter* OwnerCharacter;
 
-	// ✅ 추가: Started/Completed로 분리
-	void HandleAbilityInputPressed(ECabilityInputID InputId);
-	void HandleAbilityInputReleased(ECabilityInputID InputId);
+	// UPROPERTY(EditDefaultsOnly, Category="GAS|Input")
+	// TSubclassOf<class UGameplaywidget> GameplayWidgetClass;
 
-	void BasicAttack();
-	void HeavyAttack();
-	void Equip();
-	void UnEquipTest();
-
-	void ActivateAbility(const struct FGameplayTag& AbilityTag) const;
-	bool IsAlive() const;
+	UPROPERTY(Replicated)
+	FGenericTeamId TeamID;
+	
 };
+
+

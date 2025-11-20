@@ -6,6 +6,8 @@
 #include "AbilitySystemInterface.h"
 #include "AttributeSet.h"
 #include "GameplayTagContainer.h"
+#include "GenericTeamAgentInterface.h"
+#include "GAS_Project/Utils/CStructTypes.h"
 #include "CCharacter.generated.h"
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FASCInitialized, UAbilitySystemComponent*, ASC, UAttributeSet*, AS);
@@ -14,55 +16,127 @@ UCLASS(Abstract)
 class GAS_PROJECT_API ACCharacter : public ACharacter, public IAbilitySystemInterface
 {
     GENERATED_BODY()
-
-public:
-    ACCharacter();
-
-    // 네트워킹
-    virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
-
-    // 생사 처리
-    bool IsAlive() const { return bAlive; }
-    void SetAlive(bool bAliveStatus) { bAlive = bAliveStatus; }
-
-    UFUNCTION(BlueprintCallable, Category="GAS|Death")
-    virtual void HandleRespawn();
-
-    UFUNCTION(BlueprintCallable, Category="GAS|Death")
-    void ResetAttributes();
-
 protected:
-    virtual void HandleDeath();
-    void OnHealthChanged(const struct FOnAttributeChangeData& AttributeChangeData);
-
+	ACCharacter();
 public:
-    UFUNCTION(Server, Reliable, WithValidation)
-    void Server_SendGameplayEventToSelf(const FGameplayTag& EventTag, const struct FGameplayEventData& EventData);
+	virtual void ServerSideInit() ; 
+	virtual void ClientSideInit();
+	bool IsLocallyControlledByPlayer() const ;
+	virtual  void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
+	const TMap<ECabilityInputID, TSubclassOf<class UGameplayAbility>>& GetAbilities() const;
 
+
+protected: 
+	virtual void BeginPlay() override;
+	virtual  void PossessedBy(AController* NewController) override;
+	bool bAbilitySystemInitialized = false;  // 플래그 추가
+
+
+public:	
+	virtual void Tick(float DeltaTime) override;
+	
+	/*********************************************************************/
+	/*						Gameplay Ability                             */
+	/*********************************************************************/
 public:
-    // ✅ 수정: 순수 가상 함수로 변경 (자식이 반드시 구현)
-    virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
-    virtual UAttributeSet* GetAttributeSet() const { return nullptr; }
+ 	virtual class UAbilitySystemComponent* GetAbilitySystemComponent() const ;
+	virtual class UAttributeSet* GetAttributeSet() const ;
 
-    // ASC 초기화 브로드캐스트
-    UPROPERTY(BlueprintAssignable)
-    FASCInitialized OnASCInitialized;
+	UFUNCTION(Server, Reliable,WithValidation)
+	void Server_SendGameplayEventToSelf(const FGameplayTag& EventTag,const FGameplayEventData& EventData);
+	
 
+private:
+	void BindGASChangeDelegate();
+	void DeathTagUpdated(const FGameplayTag Tag, int32 NewCount);
+	void StunTagUpdated(const FGameplayTag Tag, int32 NewCount);
+	//void AimTagUpdated(const FGameplayTag Tag, int32 NewCount);
+	// void SetIsAimming(bool bIsAimming);
+	// virtual void OnAimStateChanged(bool bIsAimming);
+	void MaxHealthUpdated(const struct FOnAttributeChangeData& Data);
+	void MaxManaUpdated(const struct FOnAttributeChangeData& Data);
 protected:
-    // 시작 능력/스탯 적용(서버 1회)
-    void GiveStartUpAbilities();
-    void InitAttributes() const;
+ 	UPROPERTY(VisibleDefaultsOnly, Category="Gameplay Ability")
+ 	class UCAbilitySystemComponent* CAbilitySystemComponent;
 
-protected:
-    UPROPERTY(EditDefaultsOnly, Category="GAS|Abilities")
-    TArray<TSubclassOf<class UGameplayAbility>> StartupAbilities;
+	UPROPERTY()
+	class UCAttributeSet* CAttributeSet;
 
-    UPROPERTY(EditDefaultsOnly, Category="GAS|Effects")
-    TSubclassOf<class UGameplayEffect> InitializeAttributesEffects;
+	/*********************************************************************/
+	/*						UI                                           */
+	/*********************************************************************/
+private:
+	UPROPERTY(VisibleDefaultsOnly, Category="Gameplay Ability")
+	class UWidgetComponent* OverHeadWidgetComponent;
+	void ConfigureOverHeadStatusWidget();
 
-    UPROPERTY(EditDefaultsOnly, Category="GAS|Effects")
-    TSubclassOf<class UGameplayEffect> ResetAttributesEffects;
+	UPROPERTY(EditDefaultsOnly, Category="UI")
+	float HeadStatuGaugeVisiblityCheckUpdateGap = 1.f;
 
-    UPROPERTY(BlueprintReadOnly, Replicated, Category="GAS|Attributes")
-    bool bAlive = true;
+	UPROPERTY(EditDefaultsOnly, Category="UI")
+	float HeadStatuGaugeVisiblityRangeSquared = 1000000.f;
+
+	FTimerHandle HeadStatGuageVisibilityUpdateTimerHandle;
+
+	
+	void UpdateHeadGuageVisibility();
+	void SetStatusGaugeEnable(bool bIsEnabled);
+	/*********************************************************************/
+	/*						Stun                                         */
+	/*********************************************************************/
+private:
+	UPROPERTY(EditDefaultsOnly, Category="Stun")
+	class UAnimMontage* StunMontage;
+
+	virtual void OnStun();
+	virtual void OnRecoverFromStun();
+	
+
+	/*********************************************************************/
+	/*						Death And Respawn                            */
+	/*********************************************************************/
+public:
+	bool IsDead() const;
+	void RespawnImmediately();
+
+private:
+	FTransform MeshRelativeTransform;
+	
+	UPROPERTY(EditDefaultsOnly, Category="Death")
+	float DeathMontageFinishTimerShift = -0.8f;
+	
+	UPROPERTY(EditDefaultsOnly, Category="Death")
+	UAnimMontage* DeathMontage;
+
+	FTimerHandle DeathMontageTimerHandle;
+	void DeathMontageFinished();
+	void SetRagdollEnabled(bool bIsEnabled);
+	
+	void PlayDeathAnim();
+	void StartDeathSequence();
+	void Respawn();
+	
+	virtual void OnDead();
+	virtual void OnRespawn();
+	/*********************************************************************/
+	/*						Team ID			                             */
+	/*********************************************************************/
+public:
+	virtual void SetGenericTeamId(const FGenericTeamId& NewTeamID);
+	virtual FGenericTeamId GetGenericTeamId() const;
+private:
+	UPROPERTY(ReplicatedUsing= OnRep_TeamID)
+	FGenericTeamId TeamID;
+
+	UFUNCTION()
+	virtual void OnRep_TeamID();
+
+	/*********************************************************************/
+	/*						  AI			                             */
+	/*********************************************************************/
+private:
+	
 };
+
+
+	

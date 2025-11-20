@@ -34,5 +34,8 @@ private:
 
 	UPROPERTY(EditDefaultsOnly, Category = "GAS|Gameplay Abilitys")
 	TMap<ECabilityInputID, TSubclassOf<UGameplayAbility>> BasicAbilities;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Gameplay Ability")
+	class UDA_AbilitySystemGenerics* AbilitySystemGenerics;
 	
 };

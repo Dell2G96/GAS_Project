@@ -21,6 +21,8 @@ public class GAS_Project : ModuleRules
 			"GameplayTags",
 			"UMG",
 			"AIModule",
+			"SlateCore",
+			"Slate"
 			
 		});
 		

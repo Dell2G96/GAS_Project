@@ -4,6 +4,37 @@
 #include "GameplayEffectExtension.h"
 #include "Net/UnrealNetwork.h"
 
+
+
+void UCAttributeSet::PreAttributeChange(const FGameplayAttribute& Attribute, float& NewValue)
+{
+	Super::PreAttributeChange(Attribute, NewValue);
+}
+
+void UCAttributeSet::RescaleHealth()
+{
+	if (!GetOwningActor()->HasAuthority())
+	{
+		return;
+	}
+	if (GetCachedHealthPercent() != 0 && GetHealth() != 0)
+	{
+		SetHealth(GetMaxHealth() * GetCachedHealthPercent());
+	}
+}
+
+void UCAttributeSet::RescaleMana()
+{
+	if (!GetOwningActor()->HasAuthority())
+	{
+		return;
+	}
+	if (GetCachedManaPercent() != 0 && GetMana() != 0)
+	{
+		SetMana(GetMaxMana() * GetCachedManaPercent());
+	}
+}
+
 void UCAttributeSet::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
@@ -14,34 +45,24 @@ void UCAttributeSet::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLi
 	DOREPLIFETIME_CONDITION_NOTIFY(ThisClass, Mana, COND_None, REPNOTIFY_Always);
 	DOREPLIFETIME_CONDITION_NOTIFY(ThisClass, MaxMana, COND_None, REPNOTIFY_Always);
 	
-	// ✅ 수정: bAttributesInitialized도 동일한 패턴으로 등록
-	DOREPLIFETIME_CONDITION_NOTIFY(ThisClass, bAttributesInitialized, COND_None, REPNOTIFY_Always);
+	
 }
 
 void UCAttributeSet::PostGameplayEffectExecute(const FGameplayEffectModCallbackData& Data)
 {
 	Super::PostGameplayEffectExecute(Data);
 
-	// 죽였을때 플레이어 경험치 증가 등 로직
-	// if (Data.EvaluatedData.Attribute == GetHealthAttribute() && GetHealth() <= 0.f)
-	// {
-	// 	FGameplayEventData Payload;
-	// 	Payload.Instigator = Data.Target.GetAvatarActor();
-	// 	UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(Data.EffectSpec.GetEffectContext().GetInstigator(), MyTags::Events::KillScored, Payload);
-	// }
+	Super::PostGameplayEffectExecute(Data);
 
-	if (!bAttributesInitialized)
+	if (Data.EvaluatedData.Attribute == GetHealthAttribute())
 	{
-		bAttributesInitialized = true;
-		OnAttributesInitialized.Broadcast();
+		SetHealth(FMath::Clamp(GetHealth(),0.f,GetMaxHealth()));
+		SetCachedHealthPercent(GetHealth()/GetMaxHealth());
 	}
-}
-
-void UCAttributeSet::OnRep_AttributesInitialized()
-{
-	if (bAttributesInitialized)
+	if (Data.EvaluatedData.Attribute == GetHealthAttribute())
 	{
-		OnAttributesInitialized.Broadcast();
+		SetMana(FMath::Clamp(GetMana(),0.f,GetMaxMana()));
+		SetCachedHealthPercent(GetMana()/GetMaxMana());
 	}
 }
 

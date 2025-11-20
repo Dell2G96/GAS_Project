@@ -79,5 +79,7 @@ namespace MyTags
 	{
 		UE_DEFINE_GAMEPLAY_TAG(Equip, "MyTags.Status.Equip")
 		UE_DEFINE_GAMEPLAY_TAG(UnEquip, "MyTags.Status.UnEquip")
+		UE_DEFINE_GAMEPLAY_TAG(Dead, "MyTags.Status.Dead")
+		UE_DEFINE_GAMEPLAY_TAG(Stun, "MyTags.Status.Stun")
 	}
 }

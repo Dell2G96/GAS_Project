@@ -6,95 +6,171 @@
 #include "CPlayerCharacter.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
+#include "InputMappingContext.h"
 #include "GameFramework/Character.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GAS_Project/MyTags.h"
 #include "GAS_Project/Characters/CCharacter.h"
 #include "GAS_Project/GAS/CAbilitySystemStatics.h"
 #include "GAS_Project/Utils/CStructTypes.h"
+#include "Net/UnrealNetwork.h"
+
+void ACPlayerController::BeginPlay()
+{
+    Super::BeginPlay();
+    FInputModeGameOnly Mode;
+    SetInputMode(Mode);
+    bShowMouseCursor = false;
+    
+}
+
+// void ACPlayerController::SendAbilityInputEvent(const FGameplayTag& EventTag, bool bPressed)
+// {
+//     return;
+// }
+
+void ACPlayerController::OnPossess(APawn* InPawn)
+{
+    Super::OnPossess(InPawn);
+
+    OwnerCharacter = Cast<ACPlayerCharacter>(InPawn);
+    if (OwnerCharacter)
+    {
+        // 팀아이디는 빙의 되기전에 실행되어야한다
+        OwnerCharacter->SetGenericTeamId(TeamID);
+        OwnerCharacter->ServerSideInit();
+    }
+    
+}
+
+void ACPlayerController::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
+{
+    Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+    DOREPLIFETIME(ACPlayerController, TeamID);
+}
 
 void ACPlayerController::SetupInputComponent()
 {
-    Super::SetupInputComponent();
-
-    // ✅ InputMappingContext 등록 (필수!)
-    UEnhancedInputLocalPlayerSubsystem* InputSubsystem = 
-        ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(GetLocalPlayer());
-    
-    if (InputSubsystem)
-    {
-        for (UInputMappingContext* Context : InputMappingContexts)
-        {
-            if (Context)
-            {
-                InputSubsystem->AddMappingContext(Context, 0);
-            }
-        }
-    }
-
+    Super::SetupInputComponent(); 
+    // ✅ 1. Enhanced Input Component 캐스팅 확인
     UEnhancedInputComponent* EnhancedInputComp = Cast<UEnhancedInputComponent>(InputComponent);
     if (!EnhancedInputComp)
     {
         UE_LOG(LogTemp, Error, TEXT("SetupInputComponent: Failed to cast to UEnhancedInputComponent"));
         return;
     }
+    
+    // ✅ 2. LocalPlayer 체크 (클라이언트에서만 유효)
+    if (!IsLocalPlayerController())
+    {
+        UE_LOG(LogTemp, Warning, TEXT("SetupInputComponent: Not a local player controller, skipping input setup"));
+        return;
+    }
+    
+    ULocalPlayer* LocalPlayer = GetLocalPlayer();
+    if (!LocalPlayer)
+    {
+        UE_LOG(LogTemp, Error, TEXT("SetupInputComponent: LocalPlayer is NULL!"));
+        return;
+    }
+    
+    // ✅ 3. InputMappingContext 등록 (안전하게)
+    UEnhancedInputLocalPlayerSubsystem* InputSubsystem =
+        ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(LocalPlayer);
+    
+    if (InputSubsystem)
+    {
+        // ✅ 기존 컨텍스트 모두 제거 (중복 방지)
+        InputSubsystem->ClearAllMappings();
+        
+        // ✅ 새 컨텍스트 등록
+        for (UInputMappingContext* Context : InputMappingContexts)
+        {
+            if (Context)
+            {
+                InputSubsystem->AddMappingContext(Context, 0);
+                UE_LOG(LogTemp, Warning, TEXT("Added InputMappingContext: %s"), *Context->GetName());
+            }
+        }
+    }
+    else
+    {
+        UE_LOG(LogTemp, Error, TEXT("SetupInputComponent: InputSubsystem is NULL!"));
+        return;
+    }
 
-    // 기본 입력
-    EnhancedInputComp->BindAction(JumpAction, ETriggerEvent::Started, this, &ACPlayerController::Jump);
-    EnhancedInputComp->BindAction(JumpAction, ETriggerEvent::Completed, this, &ACPlayerController::StopJumping);
-    EnhancedInputComp->BindAction(MoveAction, ETriggerEvent::Triggered, this, &ACPlayerController::Move);
-    EnhancedInputComp->BindAction(LookAction, ETriggerEvent::Triggered, this, &ACPlayerController::Look);
-    EnhancedInputComp->BindAction(RunAction, ETriggerEvent::Started, this, &ACPlayerController::Run);
-    EnhancedInputComp->BindAction(RunAction, ETriggerEvent::Completed, this, &ACPlayerController::StopRuning);
+    // ✅ 4. 기본 입력 바인딩
+    if (JumpAction)
+    {
+        EnhancedInputComp->BindAction(JumpAction, ETriggerEvent::Started, this, &ACPlayerController::Jump);
+        EnhancedInputComp->BindAction(JumpAction, ETriggerEvent::Completed, this, &ACPlayerController::StopJumping);
+        UE_LOG(LogTemp, Warning, TEXT("Bound JumpAction"));
+    }
+    
+    if (MoveAction)
+    {
+        EnhancedInputComp->BindAction(MoveAction, ETriggerEvent::Triggered, this, &ACPlayerController::Move);
+        UE_LOG(LogTemp, Warning, TEXT("Bound MoveAction"));
+    }
+    
+    if (LookAction)
+    {
+        EnhancedInputComp->BindAction(LookAction, ETriggerEvent::Triggered, this, &ACPlayerController::Look);
+        UE_LOG(LogTemp, Warning, TEXT("Bound LookAction"));
+    }
+    
+    if (RunAction)
+    {
+        EnhancedInputComp->BindAction(RunAction, ETriggerEvent::Started, this, &ACPlayerController::Run);
+        EnhancedInputComp->BindAction(RunAction, ETriggerEvent::Completed, this, &ACPlayerController::StopRuning);
+        UE_LOG(LogTemp, Warning, TEXT("Bound RunAction"));
+    }
 
-    // ✅ 어빌리티 입력: Started/Completed로 변경 (중요!)
+    // ✅ 5. Ability 입력 바인딩
     for (const TPair<ECabilityInputID, UInputAction*>& InputActionPair : GameplayAbilityInputActions)
     {
         if (InputActionPair.Value)
         {
-            // Started (누를 때)
-            EnhancedInputComp->BindAction(InputActionPair.Value, ETriggerEvent::Started, 
+            EnhancedInputComp->BindAction(InputActionPair.Value, ETriggerEvent::Started,
                 this, &ACPlayerController::HandleAbilityInputPressed, InputActionPair.Key);
-            
-            // Completed (뗄 때)
-            EnhancedInputComp->BindAction(InputActionPair.Value, ETriggerEvent::Completed, 
+            EnhancedInputComp->BindAction(InputActionPair.Value, ETriggerEvent::Completed,
                 this, &ACPlayerController::HandleAbilityInputReleased, InputActionPair.Key);
+            
+            UE_LOG(LogTemp, Warning, TEXT("Bound Ability InputAction: InputID=%d"), (int32)InputActionPair.Key);
         }
     }
+    
+    UE_LOG(LogTemp, Warning, TEXT("=== SetupInputComponent COMPLETED ==="));
 }
 
 void ACPlayerController::Jump()
 {
     if (!IsValid(GetCharacter())) return;
-    if (!IsAlive()) return;
+    
     GetCharacter()->Jump();
 }
 
 void ACPlayerController::Run()
 {
     if (!IsValid(GetCharacter())) return;
-    if (!IsAlive()) return;
     GetCharacter()->GetCharacterMovement()->MaxWalkSpeed = 600.f;
 }
 
 void ACPlayerController::StopRuning()
 {
     if (!IsValid(GetCharacter())) return;
-    if (!IsAlive()) return;
     GetCharacter()->GetCharacterMovement()->MaxWalkSpeed = 400.f;
 }
 
 void ACPlayerController::StopJumping()
 {
     if (!IsValid(GetCharacter())) return;
-    if (!IsAlive()) return;
     GetCharacter()->StopJumping();
 }
 
 void ACPlayerController::Move(const FInputActionValue& Value)
 {
     if (!IsValid(GetPawn())) return;
-    if (!IsAlive()) return;
 
     const FVector2D MovementVector = Value.Get<FVector2D>();
 
@@ -108,7 +184,6 @@ void ACPlayerController::Move(const FInputActionValue& Value)
 
 void ACPlayerController::Look(const FInputActionValue& Value)
 {
-    if (!IsAlive()) return;
     
     const FVector2D LookAxisVector = Value.Get<FVector2D>();
 
@@ -119,7 +194,7 @@ void ACPlayerController::Look(const FInputActionValue& Value)
 // ✅ 함수 분리: Pressed
 void ACPlayerController::HandleAbilityInputPressed(ECabilityInputID InputId)
 {
-    ACPlayerCharacter* OwnerCharacter = Cast<ACPlayerCharacter>(GetPawn());
+    OwnerCharacter = Cast<ACPlayerCharacter>(GetPawn());
     if (!IsValid(OwnerCharacter))
     {
         UE_LOG(LogTemp, Error, TEXT("HandleAbilityInputPressed: OwnerCharacter is NULL!"));
@@ -142,7 +217,9 @@ void ACPlayerController::HandleAbilityInputPressed(ECabilityInputID InputId)
         FGameplayTag BasicAttackTag = UCAbilitySystemStatics::GetBasicAttackInputPressedTag();
         UE_LOG(LogTemp, Warning, TEXT(">>> Sending GameplayEvent: %s"), *BasicAttackTag.ToString());
 
-        UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(GetPawn(), BasicAttackTag, FGameplayEventData());
+        SendEventToPawn(BasicAttackTag);
+
+        // UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(GetPawn(), BasicAttackTag, FGameplayEventData());
         OwnerCharacter->Server_SendGameplayEventToSelf(BasicAttackTag, FGameplayEventData());
     }
 }
@@ -150,7 +227,7 @@ void ACPlayerController::HandleAbilityInputPressed(ECabilityInputID InputId)
 // ✅ 함수 분리: Released
 void ACPlayerController::HandleAbilityInputReleased(ECabilityInputID InputId)
 {
-    ACPlayerCharacter* OwnerCharacter = Cast<ACPlayerCharacter>(GetPawn());
+    OwnerCharacter = Cast<ACPlayerCharacter>(GetPawn());
     if (!IsValid(OwnerCharacter)) return;
 
     UAbilitySystemComponent* ASC = OwnerCharacter->GetAbilitySystemComponent();
@@ -165,7 +242,8 @@ void ACPlayerController::HandleAbilityInputReleased(ECabilityInputID InputId)
         FGameplayTag BasicAttackTag = UCAbilitySystemStatics::GetBasicAttackInputReleasedTag();
         UE_LOG(LogTemp, Warning, TEXT(">>> Sending GameplayEvent: %s"), *BasicAttackTag.ToString());
 
-        UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(GetPawn(), BasicAttackTag, FGameplayEventData());
+        SendEventToPawn(BasicAttackTag);
+        // UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(GetPawn(), BasicAttackTag, FGameplayEventData());
         OwnerCharacter->Server_SendGameplayEventToSelf(BasicAttackTag, FGameplayEventData());
     }
 }
@@ -183,10 +261,9 @@ void ACPlayerController::HeavyAttack()
 
 void ACPlayerController::Equip()
 {
-    ACPlayerCharacter* PlayerCharacter = Cast<ACPlayerCharacter>(GetPawn());
-    if (!IsValid(PlayerCharacter)) return;
+    if (!IsValid(OwnerCharacter)) return;
 
-    UAbilitySystemComponent* ASC = PlayerCharacter->GetAbilitySystemComponent();
+    UAbilitySystemComponent* ASC = OwnerCharacter->GetAbilitySystemComponent();
     if (!IsValid(ASC)) return;
 
     if (ASC->HasMatchingGameplayTag(MyTags::Abilities::Equip::EquipKnife))
@@ -204,7 +281,6 @@ void ACPlayerController::UnEquipTest()
 
 void ACPlayerController::ActivateAbility(const FGameplayTag& AbilityTag) const
 {
-    if (!IsAlive()) return;
 
     UAbilitySystemComponent* ASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(GetPawn());
     if (!IsValid(ASC)) return;
@@ -212,10 +288,12 @@ void ACPlayerController::ActivateAbility(const FGameplayTag& AbilityTag) const
     ASC->TryActivateAbilitiesByTag(AbilityTag.GetSingleTagContainer());
 }
 
-bool ACPlayerController::IsAlive() const
+void ACPlayerController::SendEventToPawn(const struct FGameplayTag& Tag)
 {
-    ACCharacter* BaseCharacter = Cast<ACCharacter>(GetPawn());
-    if (!IsValid(BaseCharacter)) return false;
+    Owner = GetPawn();
+    if (!Owner || !Tag.IsValid()) return;
 
-    return BaseCharacter->IsAlive();
+    FGameplayEventData Data;   // 필요 시 Payload 채워넣기
+    UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(Owner, Tag, Data);
 }
+

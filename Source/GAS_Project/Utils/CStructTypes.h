@@ -21,3 +21,23 @@ enum class ECabilityInputID : uint8
 	Confirm							UMETA(DisplayName="Confirm"),
 	Cancel							UMETA(DisplayName="Cancel")
 };
+
+USTRUCT(BlueprintType)
+struct FHeroBaseStats : public FTableRowBase
+{
+	GENERATED_BODY()
+
+public:
+	FHeroBaseStats();
+
+	UPROPERTY(EditAnywhere)
+	TSubclassOf<AActor> Class;
+	
+	UPROPERTY(EditAnywhere)
+	float BaseMaxHealth;
+
+	UPROPERTY(EditAnywhere)
+	float BaseMaxMana;
+	
+	
+};

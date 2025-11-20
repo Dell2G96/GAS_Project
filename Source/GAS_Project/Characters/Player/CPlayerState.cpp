@@ -8,15 +8,11 @@
 
 ACPlayerState::ACPlayerState()
 {
-	AbilitySystemComponent = CreateDefaultSubobject<UCAbilitySystemComponent>("AbilitySystemComponent");
+	// 커스텀 Ability System Component 생성
+	AbilitySystemComponent = CreateDefaultSubobject<UCAbilitySystemComponent>(TEXT("AbilitySystemComponent"));
 	AbilitySystemComponent->SetIsReplicated(true);
 	AbilitySystemComponent->SetReplicationMode(EGameplayEffectReplicationMode::Mixed);
-
-	AttributeSet = CreateDefaultSubobject<UCAttributeSet>("AttributeSet");
-}
-
-UAbilitySystemComponent* ACPlayerState::GetAbilitySystemComponent() const
-{
-	return AbilitySystemComponent;
-
+    
+	// Attribute Set 생성
+	AttributeSet = CreateDefaultSubobject<UCAttributeSet>(TEXT("AttributeSet"));
 }

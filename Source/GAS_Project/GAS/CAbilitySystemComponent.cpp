@@ -7,6 +7,7 @@
 #include "CAbilitySystemStatics.h"
 #include "CAttributeSet.h"
 #include "GameplayEffectExtension.h"
+#include "GAS_Project/DataAssets/DA_AbilitySystemGenerics.h"
 #include "GAS_Project/Utils/CStructTypes.h"
 
 
@@ -19,8 +20,18 @@ UCAbilitySystemComponent::UCAbilitySystemComponent()
 
 void UCAbilitySystemComponent::InitializeBaseAttributes()
 {
-	return;
+	if (!AbilitySystemGenerics || !GetOwner())
+	{
+		return;
+	}
+
+	const FHeroBaseStats* BaseStats = nullptr;
 	
+	if (BaseStats)
+	{
+		SetNumericAttributeBase(UCAttributeSet::GetMaxHealthAttribute(), BaseStats->BaseMaxHealth);
+		SetNumericAttributeBase(UCAttributeSet::GetMaxManaAttribute(), BaseStats->BaseMaxMana);
+	}
 }
 
 void UCAbilitySystemComponent::ServerSideInit()
@@ -46,6 +57,15 @@ void UCAbilitySystemComponent::ApplyInitialEffects()
 	// 오너가 없거나 서버가 아니라면 리턴 종료
 	if (!GetOwner() || !GetOwner()->HasAuthority())
 		return;
+
+	if (!AbilitySystemGenerics)
+		return;
+
+	for (const TSubclassOf<UGameplayEffect>& EffectClass : AbilitySystemGenerics->GetInitialEffects())
+	{
+		FGameplayEffectSpecHandle EffectSpecHandle = MakeOutgoingSpec(EffectClass, 1, MakeEffectContext());
+		ApplyGameplayEffectSpecToSelf(*EffectSpecHandle.Data.Get());
+	}
 	
 }
 
@@ -59,18 +79,18 @@ void UCAbilitySystemComponent::GiveInitialAbilities()
 
 	for (const TPair<ECabilityInputID, TSubclassOf<UGameplayAbility>>& AbilityPair : Abilities)
 	{
-		FGameplayAbilitySpecHandle Handle = GiveAbility(FGameplayAbilitySpec(AbilityPair.Value, 0, (int32)AbilityPair.Key, nullptr));
-		UE_LOG(LogTemp, Error, TEXT("  [Abilities] InputID=%d | Ability=%s"), 
-			(int32)AbilityPair.Key, 
-			*AbilityPair.Value->GetName());
+		FGameplayAbilitySpecHandle Handle = GiveAbility(FGameplayAbilitySpec(AbilityPair.Value, 1, (int32)AbilityPair.Key, nullptr));
+		
 	}
 
 	for (const TPair<ECabilityInputID, TSubclassOf<UGameplayAbility>>& AbilityPair : BasicAbilities)
 	{
 		FGameplayAbilitySpecHandle Handle = GiveAbility(FGameplayAbilitySpec(AbilityPair.Value, 1, (int32)AbilityPair.Key, nullptr));
-		UE_LOG(LogTemp, Error, TEXT("  [BasicAbilities] InputID=%d | Ability=%s"), 
-			(int32)AbilityPair.Key, 
-			*AbilityPair.Value->GetName());
+		
+	}
+	for (const TSubclassOf<UGameplayAbility>& PassiveAbility : AbilitySystemGenerics->GetPassiveAbilities())
+	{
+		GiveAbility(FGameplayAbilitySpec(PassiveAbility, 1, -1, nullptr));
 	}
 
 	UE_LOG(LogTemp, Error, TEXT("=== GiveInitialAbilities END ==="));

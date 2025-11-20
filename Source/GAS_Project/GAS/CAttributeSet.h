@@ -19,18 +19,24 @@ class GAS_PROJECT_API UCAttributeSet : public UAttributeSet
 {
 	GENERATED_BODY()
 public:
+	ATTRIBUTE_ACCESSORS(ThisClass, Health);
+	ATTRIBUTE_ACCESSORS(ThisClass, MaxHealth);
+	ATTRIBUTE_ACCESSORS(UCAttributeSet, CachedHealthPercent)
+	ATTRIBUTE_ACCESSORS(ThisClass, Mana);
+	ATTRIBUTE_ACCESSORS(ThisClass, MaxMana);
+	ATTRIBUTE_ACCESSORS(UCAttributeSet, CachedManaPercent)
+
+	
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
-	virtual void PostGameplayEffectExecute(const FGameplayEffectModCallbackData& Data) override;
 
-	UPROPERTY(BlueprintAssignable)
-	FAttributesInitialized OnAttributesInitialized;
+	//사전 속성 변경
+	virtual void PreAttributeChange(const FGameplayAttribute& Attribute, float& NewValue) override;
+	//사후 게임 속성 변경
+	virtual void PostGameplayEffectExecute(const struct FGameplayEffectModCallbackData &Data)  override;
 
-	UPROPERTY(ReplicatedUsing = OnRep_AttributesInitialized)
-	bool bAttributesInitialized = false;
-
-	UFUNCTION()
-	void OnRep_AttributesInitialized();
-
+	void RescaleHealth();
+	void RescaleMana();
+	
 
 	UPROPERTY(BlueprintReadOnly, ReplicatedUsing = OnRep_Health)
 	struct FGameplayAttributeData Health;
@@ -44,6 +50,11 @@ public:
 	UPROPERTY(BlueprintReadOnly, ReplicatedUsing = OnRep_MaxMana)
 	struct FGameplayAttributeData MaxMana;
 
+	UPROPERTY()
+	FGameplayAttributeData CachedHealthPercent;
+	
+	UPROPERTY()
+	FGameplayAttributeData CachedManaPercent;
 	
 	UFUNCTION()
 	void OnRep_Health(const FGameplayAttributeData& OldValue);
@@ -57,10 +68,7 @@ public:
 	UFUNCTION()
 	void OnRep_MaxMana(const FGameplayAttributeData& OldValue);
 	
-	ATTRIBUTE_ACCESSORS(ThisClass, Health);
-	ATTRIBUTE_ACCESSORS(ThisClass, MaxHealth);
-	ATTRIBUTE_ACCESSORS(ThisClass, Mana);
-	ATTRIBUTE_ACCESSORS(ThisClass, MaxMana);
+
 
 	
 };
