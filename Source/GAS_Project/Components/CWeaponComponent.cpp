@@ -5,13 +5,8 @@
 
 void UCWeaponComponent::RegisterSpawnedWeapon(struct FGameplayTag InWeaponTag, class ACWeapon* InWeapon, bool bRegister)
 {
-
-
 	WeaponMap.Emplace(InWeaponTag,InWeapon);
-
-	// InWeaponTag->OnWeaponHitTarget.BindUObject(this,&ThisClass::OnHitTargetActor);
-	// InWeaponTag->OnWeaponPulledFromTarget.BindUObject(this,&ThisClass::OnWeaponPulledFromTargetActor);
-
+	
 	if (bRegister)
 	{
 		CurrentEquippedWeaponTag = InWeaponTag;

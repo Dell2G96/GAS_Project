@@ -1,4 +1,38 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+// // Fill out your copyright notice in the Description page of Project Settings.
+//
+// #pragma once
+//
+// #include "CoreMinimal.h"
+// #include "GAS_Project/Characters/CCharacter.h"
+// #include "CPlayerCharacter.generated.h"
+//
+// UCLASS()
+// class GAS_PROJECT_API ACPlayerCharacter : public ACCharacter
+// {
+// 	GENERATED_BODY()
+//
+// public:
+// 	ACPlayerCharacter();
+// 	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
+// 	virtual UAttributeSet* GetAttributeSet() const override;
+// 	virtual void PossessedBy(AController* NewController) override;
+// 	virtual void OnRep_PlayerState() override;
+//
+// 	FORCEINLINE  class UCPlayerWeaponComponent* GetWeaponComponent() const { return WeaponComponent; }
+// private:
+// 	UPROPERTY(VisibleAnywhere,Category="A|Camera",meta = (AllowPrivateAccess = "true"))
+// 	TObjectPtr<class USpringArmComponent> CameraBoom;
+//
+// 	UPROPERTY(VisibleAnywhere,Category="A|Camera",meta = (AllowPrivateAccess = "true"))
+// 	TObjectPtr<class UCameraComponent> Camera;
+//
+// 	UPROPERTY(VisibleAnywhere,BlueprintReadOnly, Category="A|Comp",meta = (AllowPrivateAccess = "true"))
+// 	TObjectPtr<class UCPlayerWeaponComponent> WeaponComponent;
+// };
+
+
+
+// CPlayerCharacter.h
 
 #pragma once
 
@@ -13,19 +47,24 @@ class GAS_PROJECT_API ACPlayerCharacter : public ACCharacter
 
 public:
 	ACPlayerCharacter();
-	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
-	virtual UAttributeSet* GetAttributeSet() const override;
+
+	// ASC/AttributeSet은 PlayerState 보유 것을 사용
+	virtual class UAbilitySystemComponent* GetAbilitySystemComponent() const override;
+	virtual class UAttributeSet*         GetAttributeSet() const override;
+
 	virtual void PossessedBy(AController* NewController) override;
 	virtual void OnRep_PlayerState() override;
 
-	FORCEINLINE  class UCPlayerWeaponComponent* GetWeaponComponent() const { return WeaponComponent; }
+	// 무기 컴포넌트: 플레이어 전용 컴포넌트로 단일화
+	FORCEINLINE class UCWeaponComponent* GetWeaponComponent() const { return WeaponComponent; }
+
 private:
-	UPROPERTY(VisibleAnywhere,Category="A|Camera",meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(VisibleAnywhere, Category="A|Camera", meta=(AllowPrivateAccess="true"))
 	TObjectPtr<class USpringArmComponent> CameraBoom;
 
-	UPROPERTY(VisibleAnywhere,Category="A|Camera",meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(VisibleAnywhere, Category="A|Camera", meta=(AllowPrivateAccess="true"))
 	TObjectPtr<class UCameraComponent> Camera;
 
-	UPROPERTY(VisibleAnywhere,BlueprintReadOnly, Category="A|Comp",meta = (AllowPrivateAccess = "true"))
-	TObjectPtr<class UCPlayerWeaponComponent> WeaponComponent;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="A|Comp", meta=(AllowPrivateAccess="true"))
+	TObjectPtr<class UCWeaponComponent> WeaponComponent;
 };

@@ -17,11 +17,6 @@ public:
 	virtual void NativeInitializeAnimation() override;
 	virtual void NativeThreadSafeUpdateAnimation(float DeltaSeconds) override;
 
-	UFUNCTION(BlueprintCallable, meta=(BlueprintThreadSafe))
-	FORCEINLINE bool GetIsJumping() const { return bIsJumping; }
-
-	UFUNCTION(BlueprintCallable, meta=(BlueprintThreadSafe))
-	FORCEINLINE bool GetIsGround() const { return !bIsJumping; }
 
 protected:
 	UPROPERTY(BlueprintReadOnly,Category="AnimData")
@@ -38,10 +33,6 @@ protected:
 
 	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "LocomotionData")
 	float LocomotionDirection;
-
-	bool bIsJumping;
-	bool bIsGrounded;
-
 	
 	
 };

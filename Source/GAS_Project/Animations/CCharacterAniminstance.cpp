@@ -23,8 +23,5 @@ void UCCharacterAniminstance::NativeThreadSafeUpdateAnimation(float DeltaSeconds
 {
     if(!OwningCharacter || !OwningMovementComp) return;
 
-    GroundSpeed = OwningMovementComp->Velocity.Size2D();
-	bHasAcceleration = OwningMovementComp->GetCurrentAcceleration().SizeSquared2D() > 0.f;
-    bIsJumping = OwningMovementComp->IsFalling();
-    LocomotionDirection = UKismetAnimationLibrary::CalculateDirection(OwningCharacter->GetVelocity(), OwningCharacter->GetActorRotation());
+  
 }

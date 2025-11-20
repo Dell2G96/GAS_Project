@@ -1,11 +1,11 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
+// CCharacter.h
 #pragma once
 
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
 #include "AbilitySystemInterface.h"
 #include "AttributeSet.h"
+#include "GameplayTagContainer.h"
 #include "CCharacter.generated.h"
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FASCInitialized, UAbilitySystemComponent*, ASC, UAttributeSet*, AS);
@@ -13,56 +13,56 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FASCInitialized, UAbilitySystemComp
 UCLASS(Abstract)
 class GAS_PROJECT_API ACCharacter : public ACharacter, public IAbilitySystemInterface
 {
-	GENERATED_BODY()
+    GENERATED_BODY()
 
 public:
-	ACCharacter();
+    ACCharacter();
 
-	/****************************************************************/
-	/*						GamePlay Basic							*/
-	/****************************************************************/
-	// 네트워크
-	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
-	bool IsAlive() const{return bAlive;}
-	void SetAlive(bool bAliveStatus){bAlive = bAliveStatus;};
+    // 네트워킹
+    virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+
+    // 생사 처리
+    bool IsAlive() const { return bAlive; }
+    void SetAlive(bool bAliveStatus) { bAlive = bAliveStatus; }
+
+    UFUNCTION(BlueprintCallable, Category="GAS|Death")
+    virtual void HandleRespawn();
+
+    UFUNCTION(BlueprintCallable, Category="GAS|Death")
+    void ResetAttributes();
+
 protected:
-	virtual void HandleDeath();
+    virtual void HandleDeath();
+    void OnHealthChanged(const struct FOnAttributeChangeData& AttributeChangeData);
+
 public:
-	UPROPERTY(BlueprintAssignable)
-	FASCInitialized OnASCInitialized;
+    UFUNCTION(Server, Reliable, WithValidation)
+    void Server_SendGameplayEventToSelf(const FGameplayTag& EventTag, const struct FGameplayEventData& EventData);
 
-	UFUNCTION(BlueprintCallable, Category="Crash|Death")
-	virtual void HandleRespawn();
-
-	UFUNCTION(BlueprintCallable, Category="Crash|Death")
-	void ResetAttributes();
-	
-	UPROPERTY(BlueprintReadOnly, Replicated)
-	bool bAlive = true;
-	
-	/****************************************************************/
-	/*						GamePlay Ability						*/
-	/****************************************************************/
 public:
-	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
-	virtual UAttributeSet* GetAttributeSet() const{return nullptr;};
-	
-protected:
-	void GiveStartUpAbilities(); // 서버에서 1회만
-	void InitAttributes() const; // 서버에서 1회만
+    // ✅ 수정: 순수 가상 함수로 변경 (자식이 반드시 구현)
+    virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
+    virtual UAttributeSet* GetAttributeSet() const { return nullptr; }
 
-	void OnHealthChanged(const struct FOnAttributeChangeData& AttributeChangeData);
-	
+    // ASC 초기화 브로드캐스트
+    UPROPERTY(BlueprintAssignable)
+    FASCInitialized OnASCInitialized;
 
 protected:
-	UPROPERTY(EditDefaultsOnly, Category="Crash|Abilities")
-	TArray<TSubclassOf<class UGameplayAbility>> StartupAbilities;
+    // 시작 능력/스탯 적용(서버 1회)
+    void GiveStartUpAbilities();
+    void InitAttributes() const;
 
-	UPROPERTY(EditDefaultsOnly, Category="Crash|Effects")
-	TSubclassOf<class UGameplayEffect> InitializeAttributesEffects;
+protected:
+    UPROPERTY(EditDefaultsOnly, Category="GAS|Abilities")
+    TArray<TSubclassOf<class UGameplayAbility>> StartupAbilities;
 
-	UPROPERTY(EditDefaultsOnly, Category="Crash|Effects")
-	TSubclassOf<class UGameplayEffect> ResetAttributesEffects;
-	
+    UPROPERTY(EditDefaultsOnly, Category="GAS|Effects")
+    TSubclassOf<class UGameplayEffect> InitializeAttributesEffects;
 
+    UPROPERTY(EditDefaultsOnly, Category="GAS|Effects")
+    TSubclassOf<class UGameplayEffect> ResetAttributesEffects;
+
+    UPROPERTY(BlueprintReadOnly, Replicated, Category="GAS|Attributes")
+    bool bAlive = true;
 };

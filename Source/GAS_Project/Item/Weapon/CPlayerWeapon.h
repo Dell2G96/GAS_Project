@@ -14,9 +14,6 @@ class GAS_PROJECT_API ACPlayerWeapon : public ACWeapon
 	GENERATED_BODY()
 
 public:
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="WeaponDatas")
-	FCWeaponData HeroWeapon;
-
 	UFUNCTION(BlueprintCallable)
 	void AssignGrantedAbilitySpecHandles(const TArray<FGameplayAbilitySpecHandle>& InSpecHandles);
 

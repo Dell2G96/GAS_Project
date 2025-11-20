@@ -16,5 +16,5 @@ class GAS_PROJECT_API UCLinkedAnimLayer : public UCAniminstance
 
 public:
 	UFUNCTION(BlueprintPure, meta=(BlueprintThreadSafe))
-	class UCPlayerAnim* GetPlayerAnimInstance() const;
+	class UCAniminstance* GetPlayerAnimInstance() const;
 };

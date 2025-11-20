@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "AbilitySystemComponent.h"
+#include "GAS_Project/Utils/CStructTypes.h"
 #include "CAbilitySystemComponent.generated.h"
 
 
@@ -12,8 +13,26 @@ class GAS_PROJECT_API UCAbilitySystemComponent : public UAbilitySystemComponent
 {
 	GENERATED_BODY()
 
-public:
-	UFUNCTION(BlueprintCallable, Category="Ability")
-	void GrantHeroWeaponAbilities(const TArray<struct FPlayerAbilitySet>& InAbilitySets,TArray<struct FGameplayAbilitySpecHandle>& OutGrantedAbilitySpecHandles , int32 ApplyLevel = 1);
 
+public:
+	UCAbilitySystemComponent();
+	void InitializeBaseAttributes();
+	void ServerSideInit();
+	void ApplyFullStatEffect();
+	
+	const TMap<ECabilityInputID, TSubclassOf<UGameplayAbility>>& GetAbilities() const;
+	
+private:
+	void ApplyInitialEffects();
+	void GiveInitialAbilities();
+	void AuthApplyGameplayEffect(TSubclassOf<UGameplayEffect> GameplayEffect, int Level = 1);
+	void HealthUpdate(const FOnAttributeChangeData& ChangeData);
+	void ManaUpdate(const FOnAttributeChangeData& ChangeData);
+
+	UPROPERTY(EditDefaultsOnly, Category = "GAS|Gameplay Abilitys")
+	TMap<ECabilityInputID, TSubclassOf<UGameplayAbility>> Abilities;
+
+	UPROPERTY(EditDefaultsOnly, Category = "GAS|Gameplay Abilitys")
+	TMap<ECabilityInputID, TSubclassOf<UGameplayAbility>> BasicAbilities;
+	
 };

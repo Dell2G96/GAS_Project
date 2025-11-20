@@ -18,7 +18,7 @@ public:
 	ACPlayerState();
 	virtual class UAbilitySystemComponent* GetAbilitySystemComponent() const override;
 	virtual class UAttributeSet* GetAttributeSet() const { return AttributeSet; }
-
+	
 private:
 	UPROPERTY(VisibleAnywhere, Category="Crash|Abilities")
 	TObjectPtr< UAbilitySystemComponent> AbilitySystemComponent;

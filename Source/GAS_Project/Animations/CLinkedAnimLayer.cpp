@@ -2,10 +2,9 @@
 
 
 #include "CLinkedAnimLayer.h"
+#include "Animation/AnimInstance.h"
 
-#include "CPlayerAnim.h"
-
-class UCPlayerAnim* UCLinkedAnimLayer::GetPlayerAnimInstance() const
+class UCAniminstance* UCLinkedAnimLayer::GetPlayerAnimInstance() const
 {
-	return Cast<UCPlayerAnim>(GetOwningComponent()->GetAnimInstance());
+	return Cast<UCAniminstance>(GetOwningComponent()->GetAnimInstance());
 }

@@ -11,14 +11,23 @@ namespace MyTags
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(InputTag_Move)
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(InputTag_EquipKnife)
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(InputTag_UnEquipKnife)
-	
+
 	namespace SetByCaller
 	{
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Projectile);
-	}	
+	}	// SetByCaller
+
+	
 	namespace Abilities
 	{
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(ActivateOnGiven);
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(ComboChange);
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Combo1);
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Combo2);
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Combo3);
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Combo4);
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(ComboChangeEnd);
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(ComboDamage);
 
 		namespace Equip
 		{
@@ -32,6 +41,8 @@ namespace MyTags
 		}
 
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(BasicAttack);
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(BasicAttackPressed);
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(BasicAttackReleased);
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(HeavyAttack);
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Tertiary);
 
@@ -39,8 +50,9 @@ namespace MyTags
 		{
 			UE_DECLARE_GAMEPLAY_TAG_EXTERN(Attack);
 		}
-	}
+	}	// Abilities
 
+	
 	namespace Events
 	{
 		namespace Equip
@@ -67,6 +79,22 @@ namespace MyTags
 			UE_DECLARE_GAMEPLAY_TAG_EXTERN(MeleeTraceHit);
 		}
 	}
-	
-	
+
+	namespace Status
+	{
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Equip);
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(UnEquip);
+	}
 }
+
+
+/*
+ *#pragma endregion
+
+#pragma region SetByCaller
+#pragma endregion
+
+#pragma region SetByCaller
+#pragma endregion
+
+*/
