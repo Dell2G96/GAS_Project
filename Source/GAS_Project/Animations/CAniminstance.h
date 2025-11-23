@@ -4,8 +4,10 @@
 
 #include "CoreMinimal.h"
 #include "Animation/AnimInstance.h"
+#include "GAS_Project/Utils/CStructTypes.h"
 #include "CAniminstance.generated.h"
 
+enum class EWeaponType : uint8;
 /**
  * 
  */
@@ -64,6 +66,14 @@ public:
 
 	// UFUNCTION(BlueprintCallable, meta=(BlueprintThreadSafe))
 	// bool ShouldDoFullBody() const;
+
+protected:
+	UPROPERTY(BlueprintReadOnly, EditAnywhere, Category="GAS|Weapon")
+	EWeaponType WeaponType = EWeaponType::None;
+
+	UFUNCTION()
+	void OnWeaponTypeChanged(EWeaponType InPrevType, EWeaponType InNewType);
+
 
 private:
 	UPROPERTY(VisibleDefaultsOnly ,Category="AnimData|References")

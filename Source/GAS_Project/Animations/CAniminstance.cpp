@@ -70,7 +70,14 @@ void UCAniminstance::NativeThreadSafeUpdateAnimation(float DeltaSeconds)
 {
 	Super::NativeThreadSafeUpdateAnimation(DeltaSeconds);
 }
-//
+
+void UCAniminstance::OnWeaponTypeChanged(EWeaponType InPrevType, EWeaponType InNewType)
+{
+	WeaponType = InNewType;
+
+}
+
+
 // bool UCAniminstance::ShouldDoFullBody() const
 // {
 // 	return (GetSpeed() <= 0 ) && !(GetIsAimming());

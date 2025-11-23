@@ -10,9 +10,12 @@ UENUM(BlueprintType)
 enum class ECabilityInputID : uint8
 {
 	None							UMETA(DisplayName="None"),
-	BasicAttack						UMETA(DisplayName="Basic Attack"),
 	Equip							UMETA(DisplayName="Equip"),
 	UnEquip							UMETA(DisplayName="UnEquip"),
+	BasicAttack						UMETA(DisplayName="Basic Attack"),
+	HeavyAttack						UMETA(DisplayName="Heavy Attack"),
+	Guard							UMETA(DisplayName="Guard"),
+	Avoid							UMETA(DisplayName="Avoid"),
 	AbilityOne						UMETA(DisplayName="Ability One"),
 	AbilityTwo						UMETA(DisplayName="Ability Two"),
 	AbilityThree					UMETA(DisplayName="Ability Three"),
@@ -21,6 +24,18 @@ enum class ECabilityInputID : uint8
 	AbilitySix						UMETA(DisplayName="Ability Six"),
 	Confirm							UMETA(DisplayName="Confirm"),
 	Cancel							UMETA(DisplayName="Cancel")
+};
+
+UENUM(BlueprintType)
+enum class EWeaponType : uint8
+{
+	None							UMETA(DisplayName="None"),
+	Knife							UMETA(DisplayName="Knife"),
+	Sword							UMETA(DisplayName="Sword"),
+	Axe								UMETA(DisplayName="Axe"),
+	Mace							UMETA(DisplayName="Mace"),
+	Bow								UMETA(DisplayName="Bow"),
+	Staff							UMETA(DisplayName="Staff")
 };
 
 USTRUCT(BlueprintType)

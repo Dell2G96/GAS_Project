@@ -1,13 +1,14 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "CGameplayAbility.h"
 #include "Abilities/GameplayAbility.h"
 #include "GA_Combo.generated.h"
 
 class UAnimMontage;
 
 UCLASS()
-class GAS_PROJECT_API UGA_Combo : public UGameplayAbility
+class GAS_PROJECT_API UGA_Combo : public UCGameplayAbility
 {
 	GENERATED_BODY()
 
@@ -39,6 +40,15 @@ protected:
 
 	UFUNCTION()
 	void OnInputPressed(float TimeWaited);
+
+	UPROPERTY(Transient)
+	class UAbilityTask_WaitInputPress* WaitInputTask = nullptr;
+
+	UPROPERTY(Transient)
+	class UAbilityTask_WaitGameplayEvent* WaitOpenTask = nullptr;
+
+	UPROPERTY(Transient)
+	class UAbilityTask_WaitGameplayEvent* WaitEndTask = nullptr;
 
 	// 유틸
 	void SetupWaitInputTask();

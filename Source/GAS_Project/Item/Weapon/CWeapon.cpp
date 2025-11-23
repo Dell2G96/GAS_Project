@@ -13,5 +13,9 @@ ACWeapon::ACWeapon()
 	WeaponCollisionBox->SetupAttachment(GetRootComponent());
 	WeaponCollisionBox->SetBoxExtent(FVector(20.f));
 	WeaponCollisionBox->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+
+	bReplicates = true;
+	SetReplicateMovement(true);
+	bNetUseOwnerRelevancy = true;
 }
 
