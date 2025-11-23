@@ -21,38 +21,24 @@ public:
 		const FGameplayAbilityActivationInfo ActivationInfo,
 		const FGameplayEventData* TriggerEventData) override;
 
-	virtual void EndAbility(const FGameplayAbilitySpecHandle Handle,
-		const FGameplayAbilityActorInfo* ActorInfo,
-		const FGameplayAbilityActivationInfo ActivationInfo,
-		bool bReplicateEndAbility, bool bWasCancelled) override;
 
 protected:
 	// 태그 헬퍼
 	FGameplayTag GetComboChangeEventTag() const;
 	FGameplayTag GetComboChangeEventEndTag() const;
 
-	// 이벤트 핸들러들
 	UFUNCTION()
-	void OnComboWindowOpened(FGameplayEventData Data);
+	void HandleInputPress(float TimeWaited);
 
-	UFUNCTION()
-	void OnComboWindowEnded(FGameplayEventData Data);
-
-	UFUNCTION()
-	void OnInputPressed(float TimeWaited);
-
-	UPROPERTY(Transient)
-	class UAbilityTask_WaitInputPress* WaitInputTask = nullptr;
-
-	UPROPERTY(Transient)
-	class UAbilityTask_WaitGameplayEvent* WaitOpenTask = nullptr;
-
-	UPROPERTY(Transient)
-	class UAbilityTask_WaitGameplayEvent* WaitEndTask = nullptr;
-
+	void TryCommitCombo();
+	
 	// 유틸
 	void SetupWaitInputTask();
-	class UAnimInstance* GetOwnerAnimInstance() const;
+	
+	UFUNCTION()
+	void ComboChangedEventReceived(FGameplayEventData Data);
+
+
 
 protected:
 	UPROPERTY(EditDefaultsOnly, Category="Combo")
