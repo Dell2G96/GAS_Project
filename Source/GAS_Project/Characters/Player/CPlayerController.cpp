@@ -97,32 +97,15 @@ void ACPlayerController::SetupInputComponent()
     }
 
     // ✅ 4. 기본 입력 바인딩
-    if (JumpAction)
     {
         EnhancedInputComp->BindAction(JumpAction, ETriggerEvent::Started, this, &ACPlayerController::Jump);
         EnhancedInputComp->BindAction(JumpAction, ETriggerEvent::Completed, this, &ACPlayerController::StopJumping);
-        UE_LOG(LogTemp, Warning, TEXT("Bound JumpAction"));
-    }
-    
-    if (MoveAction)
-    {
         EnhancedInputComp->BindAction(MoveAction, ETriggerEvent::Triggered, this, &ACPlayerController::Move);
-        UE_LOG(LogTemp, Warning, TEXT("Bound MoveAction"));
-    }
-    
-    if (LookAction)
-    {
         EnhancedInputComp->BindAction(LookAction, ETriggerEvent::Triggered, this, &ACPlayerController::Look);
-        UE_LOG(LogTemp, Warning, TEXT("Bound LookAction"));
-    }
-    
-    if (RunAction)
-    {
         EnhancedInputComp->BindAction(RunAction, ETriggerEvent::Started, this, &ACPlayerController::Run);
         EnhancedInputComp->BindAction(RunAction, ETriggerEvent::Completed, this, &ACPlayerController::StopRuning);
-        UE_LOG(LogTemp, Warning, TEXT("Bound RunAction"));
+     
     }
-
     // ✅ 5. Ability 입력 바인딩
     for (const TPair<ECabilityInputID, UInputAction*>& InputActionPair : GameplayAbilityInputActions)
     {
@@ -159,6 +142,8 @@ void ACPlayerController::StopRuning()
     GetCharacter()->GetCharacterMovement()->MaxWalkSpeed = 400.f;
 }
 
+
+
 void ACPlayerController::StopJumping()
 {
     if (!IsValid(GetCharacter())) return;
@@ -187,6 +172,7 @@ void ACPlayerController::Look(const FInputActionValue& Value)
     AddYawInput(LookAxisVector.X);
     AddPitchInput(LookAxisVector.Y);
 }
+
 
 // ✅ 함수 분리: Pressed
 void ACPlayerController::HandleAbilityInputPressed(ECabilityInputID InputId)
@@ -243,37 +229,6 @@ void ACPlayerController::HandleAbilityInputReleased(ECabilityInputID InputId)
         // UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(GetPawn(), BasicAttackTag, FGameplayEventData());
         OwnerCharacter->Server_SendGameplayEventToSelf(BasicAttackTag, FGameplayEventData());
     }
-}
-
-void ACPlayerController::BasicAttack()
-{
-    UE_LOG(LogTemp, Warning, TEXT("Is Activate Primary Ability"));
-    ActivateAbility(MyTags::Abilities::BasicAttack);
-}
-
-void ACPlayerController::HeavyAttack()
-{
-    ActivateAbility(MyTags::Abilities::HeavyAttack);
-}
-
-void ACPlayerController::Equip()
-{
-    if (!IsValid(OwnerCharacter)) return;
-
-    UAbilitySystemComponent* ASC = OwnerCharacter->GetAbilitySystemComponent();
-    if (!IsValid(ASC)) return;
-
-    if (ASC->HasMatchingGameplayTag(MyTags::Abilities::Equip::EquipKnife))
-    {
-        ActivateAbility(MyTags::Abilities::UnEquip::UnEquipKnife);
-        return;
-    }
-    ActivateAbility(MyTags::Abilities::Equip::EquipKnife);
-}
-
-void ACPlayerController::UnEquipTest()
-{
-    ActivateAbility(MyTags::Abilities::UnEquip::UnEquipKnife);
 }
 
 void ACPlayerController::ActivateAbility(const FGameplayTag& AbilityTag) const

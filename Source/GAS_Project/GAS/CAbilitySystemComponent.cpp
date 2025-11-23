@@ -7,6 +7,7 @@
 #include "CAbilitySystemStatics.h"
 #include "CAttributeSet.h"
 #include "GameplayEffectExtension.h"
+#include "GAS_Project/MyTags.h"
 #include "GAS_Project/DataAssets/DA_AbilitySystemGenerics.h"
 #include "GAS_Project/Utils/CStructTypes.h"
 
@@ -77,7 +78,6 @@ void UCAbilitySystemComponent::GiveInitialAbilities()
     UE_LOG(LogTemp, Log, TEXT("=== GiveInitialAbilities START on %s ==="), *GetOwner()->GetName());
 	
     // 2) 맵/배열 개수 로그
-
 
     // 3) 일반 능력
 	for (const TPair<ECabilityInputID,TSubclassOf<UGameplayAbility>>& AbilityPair : Abilities)

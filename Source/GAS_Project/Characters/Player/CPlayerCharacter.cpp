@@ -9,8 +9,10 @@
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/SpringArmComponent.h"
+#include "GAS_Project/MyTags.h"
 #include "GAS_Project/Components/CWeaponComponent.h"
 #include "GAS_Project/GAS/CAbilitySystemComponent.h"
+#include "GAS_Project/GAS/CAbilitySystemStatics.h"
 #include "GAS_Project/GAS/CAttributeSet.h"
 
 ACPlayerCharacter::ACPlayerCharacter()
@@ -154,6 +156,10 @@ void ACPlayerCharacter::PossessedBy(AController* NewController)
     {
         ASC->InitAbilityActorInfo(PS,this);
         ASC->ServerSideInit();
+        if (HasAuthority())
+        {
+            ASC->AddLooseGameplayTag(MyTags::Status::IdleMode);
+        }
     }
 }
 
@@ -166,6 +172,7 @@ void ACPlayerCharacter::OnRep_PlayerState()
     if (UCAbilitySystemComponent* ASC = PS->GetAbilitySystemComponent())
     {
         ASC->InitAbilityActorInfo(PS, this);   // 클라 동기화
+        
     }
 }
 

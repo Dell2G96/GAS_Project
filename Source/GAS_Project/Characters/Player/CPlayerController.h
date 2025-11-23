@@ -33,14 +33,10 @@ private:
 	void Move(const struct FInputActionValue& Value);
 	void Look(const struct FInputActionValue& Value);
 
+
 	// ✅ 추가: Started/Completed로 분리
 	void HandleAbilityInputPressed(ECabilityInputID InputId);
 	void HandleAbilityInputReleased(ECabilityInputID InputId);
-
-	void BasicAttack();
-	void HeavyAttack();
-	void Equip();
-	void UnEquipTest();
 
 	void ActivateAbility(const struct FGameplayTag& AbilityTag) const;
 
@@ -65,16 +61,7 @@ private:
 
 	UPROPERTY(EditDefaultsOnly, Category = "GAS|Input|Movement")
 	TObjectPtr<class UInputAction> LookAction;
-
-	UPROPERTY(EditDefaultsOnly, Category = "GAS|Input|Abilities")
-	TObjectPtr<class UInputAction> EquipAction;
-
-	UPROPERTY(EditDefaultsOnly, Category = "GAS|Input|Abilities")
-	TObjectPtr<class UInputAction> BasicAttackAction;
-
-	UPROPERTY(EditDefaultsOnly, Category = "GAS|Input|Abilities")
-	TObjectPtr<class UInputAction> HeavyAttackAction;
-
+	
 	UPROPERTY(EditDefaultsOnly, Category="GAS|Input")
 	TMap<ECabilityInputID, UInputAction*> GameplayAbilityInputActions;
 
