@@ -13,7 +13,7 @@ void UCWeaponComponent::RegisterSpawnedWeapon(struct FGameplayTag InWeaponTag, c
 	}
 }
 
-ACWeapon* UCWeaponComponent::GetCharacterCarriedWeaponByTag(FGameplayTag InWeaponTagToGet) const
+ACWeapon* UCWeaponComponent::GetCarriedWeaponByTag(FGameplayTag InWeaponTagToGet) const
 {
 	if (WeaponMap.Contains(InWeaponTagToGet))
 	{
@@ -33,5 +33,5 @@ ACWeapon* UCWeaponComponent::GetCharacterCurrentEquippedWeapon() const
 		return nullptr;
 	}
  
-	return GetCharacterCarriedWeaponByTag(CurrentEquippedWeaponTag);
+	return GetCarriedWeaponByTag(CurrentEquippedWeaponTag);
 }

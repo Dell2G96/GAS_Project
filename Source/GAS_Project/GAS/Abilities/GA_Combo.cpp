@@ -7,6 +7,7 @@
 #include "GameplayTagsManager.h"
 #include "GAS_Project/MyTags.h"
 #include "GAS_Project/GAS/CAbilitySystemStatics.h"
+#include "Kismet/GameplayStatics.h"
 
 UGA_Combo::UGA_Combo()
 {
@@ -22,6 +23,12 @@ UGA_Combo::UGA_Combo()
  
 	// ✅ NetExecutionPolicy 설정 (클라이언트도 예측 실행)
 	NetExecutionPolicy = EGameplayAbilityNetExecutionPolicy::LocalPredicted;
+
+	const FGameplayTag Tag_BattleMode = UCAbilitySystemStatics::GetBattleModeTag();
+	const FGameplayTag Tag_IdleMode = UCAbilitySystemStatics::GetIdleModeTag();
+
+    ActivationRequiredTags.AddTag(Tag_BattleMode);
+	ActivationBlockedTags.AddTag(Tag_IdleMode);
 }
 
 void UGA_Combo::ActivateAbility(const FGameplayAbilitySpecHandle Handle,

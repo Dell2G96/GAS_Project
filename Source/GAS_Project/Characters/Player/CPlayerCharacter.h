@@ -29,7 +29,7 @@ public:
 	
 	// 무기 컴포넌트: 플레이어 전용 컴포넌트로 단일화
 	UFUNCTION(BlueprintCallable)
-	FORCEINLINE class UCWeaponComponent* GetWeaponComponent() const { return WeaponComponent; }
+	FORCEINLINE class UCWeaponComponent* GetWeaponComponent() const { return WeaponComponent.Get(); }
 
 private:
 	/********************************************************/

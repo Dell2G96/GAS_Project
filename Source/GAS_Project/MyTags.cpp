@@ -79,6 +79,8 @@ namespace MyTags
 	{
 		UE_DEFINE_GAMEPLAY_TAG(Equip, "MyTags.Status.Equip")
 		UE_DEFINE_GAMEPLAY_TAG(UnEquip, "MyTags.Status.UnEquip")
+		UE_DEFINE_GAMEPLAY_TAG(BattleMode, "MyTags.Status.Battle")
+		UE_DEFINE_GAMEPLAY_TAG(IdleMode, "MyTags.Status.IdleMode")
 		UE_DEFINE_GAMEPLAY_TAG(Dead, "MyTags.Status.Dead")
 		UE_DEFINE_GAMEPLAY_TAG(Stun, "MyTags.Status.Stun")
 	}

@@ -23,6 +23,16 @@ enum class ECabilityInputID : uint8
 };
 
 USTRUCT(BlueprintType)
+struct FWeaponConfig
+{
+	GENERATED_BODY()
+public:
+	UPROPERTY(EditDefaultsOnly, Category="Weapon")
+	TSubclassOf<class UGameplayAbility> AbilitiesToGrant;
+	
+};
+
+USTRUCT(BlueprintType)
 struct FHeroBaseStats : public FTableRowBase
 {
 	GENERATED_BODY()
@@ -38,6 +48,5 @@ public:
 
 	UPROPERTY(EditAnywhere)
 	float BaseMaxMana;
-	
 	
 };

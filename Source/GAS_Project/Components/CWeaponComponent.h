@@ -18,7 +18,7 @@ public:
 	void RegisterSpawnedWeapon(struct FGameplayTag InWeaponTag, class ACWeapon* InWeapon , bool bRegister = false);
 
 	UFUNCTION(BlueprintCallable, Category = "Warrior|Combat")
-	ACWeapon* GetCharacterCarriedWeaponByTag(FGameplayTag InWeaponTagToGet) const;
+	ACWeapon* GetCarriedWeaponByTag(FGameplayTag InWeaponTagToGet) const;
 
 	UPROPERTY(BlueprintReadWrite, Category = "Warrior|Combat")
 	FGameplayTag CurrentEquippedWeaponTag;
@@ -28,6 +28,5 @@ public:
 	
 private:
 	TMap<struct FGameplayTag, class ACWeapon*> WeaponMap;
-
-		
+	
 };

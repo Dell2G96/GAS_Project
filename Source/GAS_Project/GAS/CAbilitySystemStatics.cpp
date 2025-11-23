@@ -23,6 +23,18 @@ FGameplayTag UCAbilitySystemStatics::GetBasicAttackInputReleasedTag()
 	return MyTags::Abilities::BasicAttackReleased;
 }
 
+
+FGameplayTag UCAbilitySystemStatics::GetBattleModeTag()
+{
+	return MyTags::Status::BattleMode;
+
+}
+
+FGameplayTag UCAbilitySystemStatics::GetIdleModeTag()
+{
+	return MyTags::Status::IdleMode;
+}
+
 FGameplayTag UCAbilitySystemStatics::GetDeadStatTag()
 {
 	return MyTags::Status::Dead;

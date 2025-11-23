@@ -43,6 +43,8 @@ ACPlayerCharacter::ACPlayerCharacter()
     Camera->bUsePawnControlRotation = false;
 
     WeaponComponent = CreateDefaultSubobject<UCWeaponComponent>(TEXT("WeaponComponent"));
+    WeaponComponent->SetIsReplicated(true);
+    
     CAbilitySystemComponent = nullptr;
     CAttributeSet = nullptr;
 }

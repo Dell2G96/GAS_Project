@@ -56,21 +56,18 @@ void ACPlayerController::SetupInputComponent()
     UEnhancedInputComponent* EnhancedInputComp = Cast<UEnhancedInputComponent>(InputComponent);
     if (!EnhancedInputComp)
     {
-        UE_LOG(LogTemp, Error, TEXT("SetupInputComponent: Failed to cast to UEnhancedInputComponent"));
         return;
     }
     
     // ✅ 2. LocalPlayer 체크 (클라이언트에서만 유효)
     if (!IsLocalPlayerController())
     {
-        UE_LOG(LogTemp, Warning, TEXT("SetupInputComponent: Not a local player controller, skipping input setup"));
         return;
     }
     
     ULocalPlayer* LocalPlayer = GetLocalPlayer();
     if (!LocalPlayer)
     {
-        UE_LOG(LogTemp, Error, TEXT("SetupInputComponent: LocalPlayer is NULL!"));
         return;
     }
     

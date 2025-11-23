@@ -31,12 +31,12 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Weapon")
 	TSubclassOf<ACWeapon> WeaponClassToSpawn;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Weapon")
+	class ACWeapon* SpawnedWeapon = nullptr;
+
 	// 붙일 소켓 이름
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Weapon")
 	FName SocketName = NAME_None;
+	
 
-private:
-	// 스폰된 무기 "인스턴스"
-	UPROPERTY()
-	TWeakObjectPtr<ACWeapon> SpawnedWeapon;
 };

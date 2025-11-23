@@ -19,6 +19,10 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Weapon")
 	class UBoxComponent* WeaponCollisionBox;
 
+	UPROPERTY(EditDefaultsOnly, Category="Weapon")
+	TSubclassOf<class UGameplayAbility> AbilitiesToGrant;
+
 public:
 	FORCEINLINE UBoxComponent* GetWeaponCollisionBox() const { return WeaponCollisionBox; }
+	
 };
