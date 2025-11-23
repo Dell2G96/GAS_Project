@@ -49,6 +49,18 @@ void ACPlayerController::GetLifetimeReplicatedProps(TArray<class FLifetimeProper
     DOREPLIFETIME(ACPlayerController, TeamID);
 }
 
+void ACPlayerController::Server_SendGameplayEventToSelf_Implementation(const FGameplayTag& EventTag,
+    const FGameplayEventData& EventData)
+{
+    UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(this, EventTag, EventData);
+}
+
+bool ACPlayerController::Server_SendGameplayEventToSelf_Validate(const FGameplayTag& EventTag,
+    const FGameplayEventData& EventData)
+{
+    return true;
+}
+
 void ACPlayerController::SetupInputComponent()
 {
     Super::SetupInputComponent(); 
@@ -112,9 +124,8 @@ void ACPlayerController::SetupInputComponent()
         if (InputActionPair.Value)
         {
             EnhancedInputComp->BindAction(InputActionPair.Value, ETriggerEvent::Started,
-                this, &ACPlayerController::HandleAbilityInputPressed, InputActionPair.Key);
-            EnhancedInputComp->BindAction(InputActionPair.Value, ETriggerEvent::Completed,
-                this, &ACPlayerController::HandleAbilityInputReleased, InputActionPair.Key);
+                this, &ACPlayerController::HandleAbilityInput, InputActionPair.Key);
+            
             
             UE_LOG(LogTemp, Warning, TEXT("Bound Ability InputAction: InputID=%d"), (int32)InputActionPair.Key);
         }
@@ -177,6 +188,7 @@ void ACPlayerController::Look(const FInputActionValue& Value)
 // ✅ 함수 분리: Pressed
 void ACPlayerController::HandleAbilityInputPressed(ECabilityInputID InputId)
 {
+    
     OwnerCharacter = Cast<ACPlayerCharacter>(GetPawn());
     if (!IsValid(OwnerCharacter))
     {
@@ -206,6 +218,37 @@ void ACPlayerController::HandleAbilityInputPressed(ECabilityInputID InputId)
         OwnerCharacter->Server_SendGameplayEventToSelf(BasicAttackTag, FGameplayEventData());
     }
 }
+
+void ACPlayerController::HandleAbilityInput(const FInputActionValue& InputActionValue, ECabilityInputID InputID)
+{
+    OwnerCharacter = Cast<ACPlayerCharacter>(GetPawn());
+    if (!OwnerCharacter) return;
+    
+    UAbilitySystemComponent* ASC = OwnerCharacter->GetAbilitySystemComponent();
+    if (!ASC) return;
+
+
+    bool bPressed = InputActionValue.Get<bool>();
+    
+    if (bPressed)
+    {
+        ASC->AbilityLocalInputPressed((int32)InputID);
+    }
+    else
+    {
+        ASC->AbilityLocalInputReleased((int32)InputID);
+    }
+
+    if (InputID == ECabilityInputID::BasicAttack)
+    {
+        FGameplayTag BasicAttackTag = bPressed ? UCAbilitySystemStatics::GetBasicAttackInputPressedTag() : UCAbilitySystemStatics::GetBasicAttackInputReleasedTag();
+        UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(OwnerCharacter , BasicAttackTag, FGameplayEventData());
+        OwnerCharacter->Server_SendGameplayEventToSelf(BasicAttackTag, FGameplayEventData());
+    }
+}
+
+
+
 
 // ✅ 함수 분리: Released
 void ACPlayerController::HandleAbilityInputReleased(ECabilityInputID InputId)

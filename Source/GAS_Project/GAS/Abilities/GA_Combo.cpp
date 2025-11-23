@@ -1,5 +1,6 @@
 #include "GA_Combo.h"
 
+#include "AbilitySystemComponent.h"
 #include "Abilities/Tasks/AbilityTask_PlayMontageAndWait.h"
 #include "Abilities/Tasks/AbilityTask_WaitGameplayEvent.h"
 #include "Abilities/Tasks/AbilityTask_WaitInputPress.h"
@@ -16,52 +17,115 @@ UGA_Combo::UGA_Combo()
 	SetAssetTags(Tags);
 	BlockAbilitiesWithTag.AddTag(UCAbilitySystemStatics::GetBasicAttackAbilityTag());
  
-	// ✅ Instancing Policy 설정
 	InstancingPolicy = EGameplayAbilityInstancingPolicy::InstancedPerActor;
  
-	// ✅ NetExecutionPolicy 설정 (클라이언트도 예측 실행)
+	// ✅ 중요! LocalPredicted로 설정
 	NetExecutionPolicy = EGameplayAbilityNetExecutionPolicy::LocalPredicted;
+    
+	// ✅ 추가: 클라이언트도 로컬에서 예측 실행 허용
+	bReplicateInputDirectly = false;  // 입력을 직접 복제하지 않음
 
 	const FGameplayTag Tag_BattleMode = UCAbilitySystemStatics::GetBattleModeTag();
 	const FGameplayTag Tag_IdleMode = UCAbilitySystemStatics::GetIdleModeTag();
 
-    ActivationRequiredTags.AddTag(Tag_BattleMode);
+	ActivationRequiredTags.AddTag(Tag_BattleMode);
 	ActivationBlockedTags.AddTag(Tag_IdleMode);
 }
-
 void UGA_Combo::ActivateAbility(const FGameplayAbilitySpecHandle Handle,
                                 const FGameplayAbilityActorInfo* ActorInfo,
                                 const FGameplayAbilityActivationInfo ActivationInfo,
                                 const FGameplayEventData* TriggerEventData)
 {
-	if (K2_CommitAbility())
-	{
-		K2_EndAbility();
-		return;
-	}
+    const TCHAR* RoleStr = K2_HasAuthority() ? TEXT("SERVER") : TEXT("CLIENT");
+    
+    UE_LOG(LogTemp, Warning, TEXT("[%s] ActivateAbility START"), RoleStr);
+    
+    if (!K2_CommitAbility())
+    {
+       UE_LOG(LogTemp, Warning, TEXT("[%s] CommitAbility FAILED!"), RoleStr);
+       K2_EndAbility();
+       return;
+    }
+    
+    UE_LOG(LogTemp, Warning, TEXT("[%s] CommitAbility SUCCESS"), RoleStr);
 
-	if (HasAuthorityOrPredictionKey(ActorInfo, &ActivationInfo))
-	{
-		UAbilityTask_PlayMontageAndWait* Play = UAbilityTask_PlayMontageAndWait::CreatePlayMontageAndWaitProxy(this, NAME_None, ComboMontage);
-		Play->OnCompleted.AddDynamic(this, &UGA_Combo::K2_EndAbility);
-		Play->OnBlendOut.AddDynamic(this, &UGA_Combo::K2_EndAbility);
-		Play->OnInterrupted.AddDynamic(this, &UGA_Combo::K2_EndAbility);
-		Play->OnCancelled.AddDynamic(this, &UGA_Combo::K2_EndAbility);
-		Play->ReadyForActivation();
+    if (!ComboMontage)
+    {
+        UE_LOG(LogTemp, Error, TEXT("[%s] ComboMontage is NULL!"), RoleStr);
+        K2_EndAbility();
+        return;
+    }
 
-		UAbilityTask_WaitGameplayEvent* WaitComboChangeEventTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(this, GetComboChangeEventTag(), nullptr, false, false);
-		WaitComboChangeEventTask->EventReceived.AddDynamic(this, &UGA_Combo::ComboChangedEventReceived);
-		WaitComboChangeEventTask->ReadyForActivation();
-	}
-	
+    bool bHasAuth = HasAuthorityOrPredictionKey(ActorInfo, &ActivationInfo);
+    UE_LOG(LogTemp, Warning, TEXT("[%s] HasAuthorityOrPredictionKey: %d"), RoleStr, bHasAuth ? 1 : 0);
 
-	// 초기 상태
-	bComboWindowOpen = false;
-	CandidateNextSection = NAME_None;
-	NextComboName      = NAME_None;
-	SetupWaitInputTask();
+    if (bHasAuth)
+    {
+       UE_LOG(LogTemp, Warning, TEXT("[%s] Creating PlayMontageTask (Slot: Full)..."), RoleStr);
+       
+       UAbilityTask_PlayMontageAndWait* Play = 
+           UAbilityTask_PlayMontageAndWait::CreatePlayMontageAndWaitProxy(
+               this, 
+               NAME_None,
+               ComboMontage
+           );
+       
+       if (!Play)
+       {
+           UE_LOG(LogTemp, Error, TEXT("[%s] Failed to create PlayMontageTask!"), RoleStr);
+           K2_EndAbility();
+           return;
+       }
+       
+       Play->OnCompleted.AddDynamic(this, &UGA_Combo::K2_EndAbility);
+       Play->OnBlendOut.AddDynamic(this, &UGA_Combo::K2_EndAbility);
+       Play->OnInterrupted.AddDynamic(this, &UGA_Combo::K2_EndAbility);
+       Play->OnCancelled.AddDynamic(this, &UGA_Combo::K2_EndAbility);
+       Play->ReadyForActivation();
 
+       UE_LOG(LogTemp, Warning, TEXT("[%s] PlayMontageTask ready"), RoleStr);
+
+       // ✅ 테스트: 바로 이벤트 발동해보기
+       FGameplayEventData EventData;
+       EventData.EventTag = MyTags::Abilities::ComboChange;
+       
+       UAbilitySystemComponent* ASC = GetAbilitySystemComponentFromActorInfo();
+       if (ASC)
+       {
+           UE_LOG(LogTemp, Warning, TEXT("[%s] TEST: Sending ComboChange event..."), RoleStr);
+           ASC->HandleGameplayEvent(EventData.EventTag, &EventData);
+       }
+
+       //WaitComboEventTask는 일단 주석처리 (테스트용)
+       WaitComboEventTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(
+           this, GetComboChangeEventTag(), nullptr, false, false
+       );
+       WaitComboEventTask->EventReceived.AddDynamic(this, &UGA_Combo::ComboChangedEventReceived);
+       WaitComboEventTask->ReadyForActivation();
+    }
+
+    UE_LOG(LogTemp, Warning, TEXT("[%s] Creating CurrentInputTask..."), RoleStr);
+    
+    CurrentInputTask = UAbilityTask_WaitInputPress::WaitInputPress(this);
+    
+    if (!CurrentInputTask)
+    {
+        UE_LOG(LogTemp, Error, TEXT("[%s] Failed to create CurrentInputTask!"), RoleStr);
+        K2_EndAbility();
+        return;
+    }
+    
+    CurrentInputTask->OnPress.AddDynamic(this, &UGA_Combo::HandleInputPress);
+    CurrentInputTask->ReadyForActivation();
+
+    UE_LOG(LogTemp, Warning, TEXT("[%s] CurrentInputTask ready"), RoleStr);
+
+    NextComboName = NAME_None;
+    
+    UE_LOG(LogTemp, Warning, TEXT("[%s] ActivateAbility END"), RoleStr);
 }
+
+
 
 #pragma region 기존코드
 	// // 콤보 창 오픈(하위 태그 포함: ComboChange.M2 등)
@@ -134,42 +198,79 @@ void UGA_Combo::SetupWaitInputTask()
 
 void UGA_Combo::HandleInputPress(float TimeWaited)
 {
-	SetupWaitInputTask();
-	TryCommitCombo();
+	// SetupWaitInputTask();
+	// TryCommitCombo();
+
+	// ✅ Task 재생성 제거 - 기존 Task가 계속 입력을 받음
+	// ✅ 서버에서만 콤보 커밋 처리
+	if (HasAuthority(&CurrentActivationInfo))
+	{
+		TryCommitCombo();
+	}
 }
+
 
 void UGA_Combo::TryCommitCombo()
 {
-	//
+	// ✅ 서버에서만 실행됨
 	if (NextComboName == NAME_None)
 	{
+		UE_LOG(LogTemp, Warning, TEXT("NextComboName is None"));
 		return;
 	}
 
 	UAnimInstance* OwnerAnimInst = GetOwnerAnimInstance();
-	if (!OwnerAnimInst)
+	if (!OwnerAnimInst || !ComboMontage)
 	{
 		return;
 	}
 
-	OwnerAnimInst->Montage_SetNextSection(OwnerAnimInst->Montage_GetCurrentSection(ComboMontage), NextComboName, ComboMontage);
-	OwnerAnimInst->Montage_JumpToSection(NextComboName, ComboMontage);
+	// 현재 섹션 가져오기
+	FName CurrentSection = OwnerAnimInst->Montage_GetCurrentSection(ComboMontage);
+    
+	// ✅ 서버에서 실행하면 자동으로 클라이언트에 복제됨
+	OwnerAnimInst->Montage_SetNextSection(CurrentSection, NextComboName, ComboMontage);
+    
+	UE_LOG(LogTemp, Log, TEXT("Combo: %s -> %s"), 
+		*CurrentSection.ToString(), *NextComboName.ToString());
 }
-
 void UGA_Combo::ComboChangedEventReceived(FGameplayEventData Data)
 {
+	// ✅ 권한 체크
+	if (!K2_HasAuthority())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("ComboChangedEventReceived called but NO AUTHORITY!"));
+		return;
+	}
+
 	FGameplayTag EventTag = Data.EventTag;
+	UE_LOG(LogTemp, Warning, TEXT("ComboChangedEventReceived: %s"), *EventTag.ToString());
 
 	if (EventTag == GetComboChangeEventEndTag())
 	{
 		NextComboName = NAME_None;
+		UE_LOG(LogTemp, Log, TEXT("Combo Window Closed"));
 		return;
 	}
-	
+    
 	TArray<FName> TagNames;
 	UGameplayTagsManager::Get().SplitGameplayTagFName(EventTag, TagNames);
+    
+	if (TagNames.Num() > 0)
+	{
+		NextComboName = TagNames.Last();
+		UE_LOG(LogTemp, Log, TEXT("Combo Window Opened: %s"), *NextComboName.ToString());
+	}
+}
 
-	NextComboName = TagNames.Last();
+
+UAnimInstance* UGA_Combo::GetOwnerAnimInstance() const
+{
+	if (USkeletalMeshComponent* SkelComp = GetOwningComponentFromActorInfo())
+	{
+		return SkelComp->GetAnimInstance();
+	}
+	return nullptr;
 }
 
 // void UGA_Combo::OnComboWindowOpened(FGameplayEventData Data)

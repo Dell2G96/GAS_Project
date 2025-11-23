@@ -22,6 +22,8 @@ public:
 	virtual void OnPossess(APawn* InPawn) override;
 	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
 
+	UFUNCTION(Server, Reliable, WithValidation)
+	void Server_SendGameplayEventToSelf(const FGameplayTag& EventTag, const FGameplayEventData& EventData);
 protected:
 	virtual void SetupInputComponent() override;
 
@@ -36,6 +38,13 @@ private:
 
 	// ✅ 추가: Started/Completed로 분리
 	void HandleAbilityInputPressed(ECabilityInputID InputId);
+
+	
+	void HandleAbilityInput(const FInputActionValue& InputActionValue, ECabilityInputID InputID);
+	void LearnAbiltiyLeaderDown(const FInputActionValue& InputActionValue);
+	void LearnAbiltiyLeaderUp(const FInputActionValue& InputActionValue);
+	bool bIsLearnAbilityLeaderDown = false;
+
 	void HandleAbilityInputReleased(ECabilityInputID InputId);
 
 	void ActivateAbility(const struct FGameplayTag& AbilityTag) const;

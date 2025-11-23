@@ -39,12 +39,13 @@ protected:
 	void ComboChangedEventReceived(FGameplayEventData Data);
 
 
-
 protected:
 	UPROPERTY(EditDefaultsOnly, Category="Combo")
 	UAnimMontage* ComboMontage = nullptr;
 
 private:
+	UAnimInstance* GetOwnerAnimInstance() const;
+	
 	// 콤보 창 상태
 	bool bComboWindowOpen = false;
 
@@ -53,4 +54,14 @@ private:
 
 	// 실제로 입력이 들어와 확정된 다음 섹션
 	FName NextComboName = NAME_None;
+	
+
+	
+private:
+	UPROPERTY()
+	TObjectPtr<class UAbilityTask_WaitInputPress> CurrentInputTask;
+    
+	UPROPERTY()
+	TObjectPtr<class UAbilityTask_WaitGameplayEvent> WaitComboEventTask;
+	
 };
