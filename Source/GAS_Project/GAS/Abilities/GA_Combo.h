@@ -1,14 +1,13 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "CGameplayAbility.h"
 #include "Abilities/GameplayAbility.h"
 #include "GA_Combo.generated.h"
 
 class UAnimMontage;
 
 UCLASS()
-class GAS_PROJECT_API UGA_Combo : public UCGameplayAbility
+class GAS_PROJECT_API UGA_Combo : public UGameplayAbility
 {
 	GENERATED_BODY()
 
@@ -21,31 +20,33 @@ public:
 		const FGameplayAbilityActivationInfo ActivationInfo,
 		const FGameplayEventData* TriggerEventData) override;
 
-
 protected:
 	// 태그 헬퍼
 	FGameplayTag GetComboChangeEventTag() const;
 	FGameplayTag GetComboChangeEventEndTag() const;
 
-	UFUNCTION()
-	void HandleInputPress(float TimeWaited);
+	UFUNCTION(NetMulticast,Reliable)
+	void Multicast_JumpToSection(FName SectionName);
 
-	void TryCommitCombo();
-	
+	// 이벤트 핸들러들
+	UFUNCTION()
+	void OnComboWindowOpened(FGameplayEventData Data);
+
+	UFUNCTION()
+	void OnComboWindowEnded(FGameplayEventData Data);
+
+	UFUNCTION()
+	void OnInputPressed(float TimeWaited);
+
 	// 유틸
 	void SetupWaitInputTask();
-	
-	UFUNCTION()
-	void ComboChangedEventReceived(FGameplayEventData Data);
-
+	class UAnimInstance* GetOwnerAnimInstance() const;
 
 protected:
 	UPROPERTY(EditDefaultsOnly, Category="Combo")
 	UAnimMontage* ComboMontage = nullptr;
 
 private:
-	UAnimInstance* GetOwnerAnimInstance() const;
-	
 	// 콤보 창 상태
 	bool bComboWindowOpen = false;
 
@@ -54,14 +55,4 @@ private:
 
 	// 실제로 입력이 들어와 확정된 다음 섹션
 	FName NextComboName = NAME_None;
-	
-
-	
-private:
-	UPROPERTY()
-	TObjectPtr<class UAbilityTask_WaitInputPress> CurrentInputTask;
-    
-	UPROPERTY()
-	TObjectPtr<class UAbilityTask_WaitGameplayEvent> WaitComboEventTask;
-	
 };
