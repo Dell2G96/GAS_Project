@@ -2,6 +2,7 @@
 #pragma once
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "GAS_Project/Utils/CStructTypes.h"
 #include "CWeapon.generated.h"
 
 UCLASS()
@@ -11,6 +12,9 @@ class GAS_PROJECT_API ACWeapon : public AActor
 
 public:
 	ACWeapon();
+public:
+	UPROPERTY()
+	struct FWeaponConfig CurrentWeaponConfig;
 
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Weapon")

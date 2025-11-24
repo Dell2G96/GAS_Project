@@ -70,7 +70,7 @@ void ACPlayerCharacter::ServerSideInit()
     {
         return;
     }
-    if (UCAbilitySystemComponent* ASC = PS->GetAbilitySystemComponent())
+    if (UAbilitySystemComponent* ASC = PS->GetAbilitySystemComponent())
     {
         //ASC->ServerSideInit();
         ASC->InitAbilityActorInfo(PS,this);
@@ -131,7 +131,7 @@ UAbilitySystemComponent* ACPlayerCharacter::GetAbilitySystemComponent() const
     {
         return PS->GetAbilitySystemComponent();
     }
-    return Super::GetAbilitySystemComponent();
+    return nullptr;
 }
 
 UAttributeSet* ACPlayerCharacter::GetAttributeSet() const
@@ -152,7 +152,7 @@ void ACPlayerCharacter::PossessedBy(AController* NewController)
     ACPlayerState* PS = GetPlayerState<ACPlayerState>();
     check(PS);
     
-    if (UCAbilitySystemComponent* ASC = PS->GetAbilitySystemComponent())
+    if (UCAbilitySystemComponent* ASC = Cast<UCAbilitySystemComponent>(PS->GetAbilitySystemComponent()))
     {
         ASC->InitAbilityActorInfo(PS,this);
         ASC->ServerSideInit();
@@ -167,9 +167,10 @@ void ACPlayerCharacter::OnRep_PlayerState()
 {
     Super::OnRep_PlayerState();
     ACPlayerState* PS = GetPlayerState<ACPlayerState>();
+    
     if (!PS) return;
 
-    if (UCAbilitySystemComponent* ASC = PS->GetAbilitySystemComponent())
+    if (UAbilitySystemComponent* ASC = PS->GetAbilitySystemComponent())
     {
         ASC->InitAbilityActorInfo(PS, this);   // 클라 동기화
         

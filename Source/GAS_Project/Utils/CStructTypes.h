@@ -43,8 +43,14 @@ struct FWeaponConfig
 {
 	GENERATED_BODY()
 public:
-	UPROPERTY(EditDefaultsOnly, Category="Weapon")
+	UPROPERTY(EditDefaultsOnly, Category="GAS|WeaponWeapon")
 	TSubclassOf<class UGameplayAbility> AbilitiesToGrant;
+
+	UPROPERTY(EditDefaultsOnly, Category="GAS|Weapon")
+	FName EquippedSocketName = NAME_None;
+
+	UPROPERTY(EditDefaultsOnly, Category="GAS|Weapon")
+	TSubclassOf<class UAnimInstance > AnimClass;
 	
 };
 

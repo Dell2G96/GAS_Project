@@ -12,22 +12,23 @@
  * 
  */
 UCLASS()
-class GAS_PROJECT_API ACPlayerState : public APlayerState
+class GAS_PROJECT_API ACPlayerState : public APlayerState, public  IAbilitySystemInterface
 {
 	GENERATED_BODY()
     
 public:
 	ACPlayerState();
-    
-	UFUNCTION(BlueprintCallable,Category="GAS|Abilitys")
-	class UCAbilitySystemComponent* GetAbilitySystemComponent() const {return AbilitySystemComponent;}
-    
+    virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
+
+	// UFUNCTION(BlueprintCallable,Category="GAS|Abilitys")
+	// class UCAbilitySystemComponent* GetAbilitySystemComponent2() const {return AbilitySystemComponent;}
+ //    
 	UFUNCTION(BlueprintPure, Category = "GAS|Attributes")
 	class UCAttributeSet* GetAttributeSet() const {return AttributeSet;}
     
 private:
 	UPROPERTY(VisibleAnywhere, Category = "GAS|Abilities")
-	TObjectPtr<UCAbilitySystemComponent> AbilitySystemComponent;
+	TObjectPtr<UAbilitySystemComponent> AbilitySystemComponent;
 
 	UPROPERTY(VisibleAnywhere, Category = "GAS|Attributes")
 	TObjectPtr<class UCAttributeSet> AttributeSet;

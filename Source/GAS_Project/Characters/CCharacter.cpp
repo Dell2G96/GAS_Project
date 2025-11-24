@@ -33,7 +33,7 @@ void ACCharacter::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& Ou
 
 UAbilitySystemComponent* ACCharacter::GetAbilitySystemComponent() const
 {
-    return CAbilitySystemComponent;
+    return nullptr;
 }
 
 class UAttributeSet* ACCharacter::GetAttributeSet() const

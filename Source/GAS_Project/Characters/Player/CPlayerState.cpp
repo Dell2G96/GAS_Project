@@ -16,3 +16,8 @@ ACPlayerState::ACPlayerState()
 	// Attribute Set 생성
 	AttributeSet = CreateDefaultSubobject<UCAttributeSet>(TEXT("AttributeSet"));
 }
+
+UAbilitySystemComponent* ACPlayerState::GetAbilitySystemComponent() const
+{
+	return AbilitySystemComponent;
+}

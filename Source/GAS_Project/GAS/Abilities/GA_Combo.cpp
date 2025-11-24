@@ -1,39 +1,37 @@
+// /Source/…/GA_Combo.cpp
 #include "GA_Combo.h"
 
 #include "Abilities/Tasks/AbilityTask_PlayMontageAndWait.h"
 #include "Abilities/Tasks/AbilityTask_WaitGameplayEvent.h"
 #include "Abilities/Tasks/AbilityTask_WaitInputPress.h"
 #include "Animation/AnimInstance.h"
+#include "Components/SkeletalMeshComponent.h"
 #include "GameplayTagsManager.h"
 #include "GAS_Project/MyTags.h"
+#include "GAS_Project/Characters/Player/CPlayerCharacter.h"
 #include "GAS_Project/GAS/CAbilitySystemStatics.h"
-#include "Kismet/GameplayStatics.h"
 
 UGA_Combo::UGA_Combo()
 {
-	// 5.6 경고 대응: AbilityTags -> AssetTags
-	FGameplayTagContainer Tags;
-	Tags.AddTag(UCAbilitySystemStatics::GetBasicAttackAbilityTag());
-	SetAssetTags(Tags);
-	BlockAbilitiesWithTag.AddTag(UCAbilitySystemStatics::GetBasicAttackAbilityTag());
+	// 이 어빌리티 자체 태깅(기본공격)
+	{
+		FGameplayTagContainer AssetTags;
+		AssetTags.AddTag(UCAbilitySystemStatics::GetBasicAttackAbilityTag());
+		SetAssetTags(AssetTags);
 
-	// ✅ Instancing Policy 설정
-	InstancingPolicy = EGameplayAbilityInstancingPolicy::InstancedPerActor;
+		// 자기 자신 블럭(선택)
+		BlockAbilitiesWithTag.AddTag(UCAbilitySystemStatics::GetBasicAttackAbilityTag());
+	}
 
-	// ✅ NetExecutionPolicy 설정 (클라이언트도 예측 실행)
+	InstancingPolicy   = EGameplayAbilityInstancingPolicy::InstancedPerActor;
 	NetExecutionPolicy = EGameplayAbilityNetExecutionPolicy::LocalPredicted;
 
-	const FGameplayTag Tag_BattleMode = UCAbilitySystemStatics::GetBattleModeTag();
-	const FGameplayTag Tag_IdleMode = UCAbilitySystemStatics::GetIdleModeTag();
-
-	ActivationRequiredTags.AddTag(Tag_BattleMode);
-	ActivationBlockedTags.AddTag(Tag_IdleMode);
+	// 전투상태 필요 / 대기상태면 차단(선택)
+	ActivationRequiredTags.AddTag(UCAbilitySystemStatics::GetBattleModeTag());
+	ActivationBlockedTags.AddTag(UCAbilitySystemStatics::GetIdleModeTag());
 }
 
-void UGA_Combo::ActivateAbility(const FGameplayAbilitySpecHandle Handle,
-                                const FGameplayAbilityActorInfo* ActorInfo,
-                                const FGameplayAbilityActivationInfo ActivationInfo,
-                                const FGameplayEventData* TriggerEventData)
+void UGA_Combo::ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData)
 {
 	if (!K2_CommitAbility())
 	{
@@ -41,187 +39,206 @@ void UGA_Combo::ActivateAbility(const FGameplayAbilitySpecHandle Handle,
 		return;
 	}
 
-	// 초기 상태
-	bComboWindowOpen = false;
-	CandidateNextSection = NAME_None;
-	NextComboName = NAME_None;
+	// if (HasAuthorityOrPredictionKey(ActorInfo, &ActivationInfo))
+	// {
+	// 	UAbilityTask_PlayMontageAndWait* PlayComboMontageTask = UAbilityTask_PlayMontageAndWait::CreatePlayMontageAndWaitProxy(this, NAME_None, ComboMontage);
+	// 	PlayComboMontageTask->OnBlendOut.AddDynamic(this, &UGA_Combo::K2_EndAbility);
+	// 	PlayComboMontageTask->OnCancelled.AddDynamic(this, &UGA_Combo::K2_EndAbility);
+	// 	PlayComboMontageTask->OnCompleted.AddDynamic(this, &UGA_Combo::K2_EndAbility);
+	// 	PlayComboMontageTask->OnInterrupted.AddDynamic(this, &UGA_Combo::K2_EndAbility);
+	// 	PlayComboMontageTask->ReadyForActivation();
+	//
+	// 	UAbilityTask_WaitGameplayEvent* WaitComboChangeEventTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(this, GetComboChangeEventTag(), nullptr, false, false);
+	// 	WaitComboChangeEventTask->EventReceived.AddDynamic(this, &UGA_Combo::ComboChangedEventReceived);
+	// 	WaitComboChangeEventTask->ReadyForActivation();
+	// }
 
-	if (HasAuthorityOrPredictionKey(ActorInfo,&ActivationInfo))
+
+	// 초기화
+	bComboWindowOpen    = false;
+	CandidateNextSection= NAME_None;
+	NextComboName       = NAME_None;
+
+	// 몽타주 재생(서버 + 예측클라 모두)
 	{
-		
-		// 몽타주 재생
 		UAbilityTask_PlayMontageAndWait* Play =
-			UAbilityTask_PlayMontageAndWait::CreatePlayMontageAndWaitProxy(this, NAME_None, ComboMontage);
+			UAbilityTask_PlayMontageAndWait::CreatePlayMontageAndWaitProxy(
+				this, NAME_None, ComboMontage
+			);
 		Play->OnCompleted.AddDynamic(this, &UGA_Combo::K2_EndAbility);
 		Play->OnBlendOut.AddDynamic(this, &UGA_Combo::K2_EndAbility);
 		Play->OnInterrupted.AddDynamic(this, &UGA_Combo::K2_EndAbility);
 		Play->OnCancelled.AddDynamic(this, &UGA_Combo::K2_EndAbility);
 		Play->ReadyForActivation();
-
-		
 	}
 
-	// 콤보 창 오픈(하위 태그 포함: ComboChange.M2 등)
+	// 창 오픈(ComboChange.*) : 하위태그 허용
 	{
 		UAbilityTask_WaitGameplayEvent* WaitOpen =
 			UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(
-				this, GetComboChangeEventTag(), nullptr,
+				this, GetComboChangeEventTag(), /*OptTarget*/nullptr,
 				/*OnlyTriggerOnce*/ false,
-				/*OnlyMatchExact*/ false // 중요! 하위 태그 잡기
+				/*OnlyMatchExact*/  false   // ComboChange.M2 같은 하위태그 받음
 			);
 		WaitOpen->EventReceived.AddDynamic(this, &UGA_Combo::OnComboWindowOpened);
 		WaitOpen->ReadyForActivation();
 	}
 
-	// 콤보 창 종료(정확히 End 태그만)
+	// 창 종료(ComboChangeEnd) : 정확히 일치
 	{
 		UAbilityTask_WaitGameplayEvent* WaitEnd =
 			UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(
-				this, GetComboChangeEventEndTag(), nullptr,
+				this, GetComboChangeEventEndTag(), /*OptTarget*/nullptr,
 				/*OnlyTriggerOnce*/ false,
-				/*OnlyMatchExact*/ true
+				/*OnlyMatchExact*/  false
 			);
 		WaitEnd->EventReceived.AddDynamic(this, &UGA_Combo::OnComboWindowEnded);
 		WaitEnd->ReadyForActivation();
 	}
 
-	// 입력 대기(지속적으로 재-설치하여 여러 번 받음)
-	SetupWaitInputTask();
+
+	//NextComboName = NAME_None;
+	SetupWaitComboInputPress();
 }
 
-FGameplayTag UGA_Combo::GetComboChangeEventTag() const
+void UGA_Combo::EndAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo,
+	const FGameplayAbilityActivationInfo ActivationInfo, bool bReplicateEndAbility, bool bWasCancelled)
 {
-	return MyTags::Abilities::ComboChange;
+	Super::EndAbility(Handle, ActorInfo, ActivationInfo, bReplicateEndAbility, bWasCancelled);
 }
 
-FGameplayTag UGA_Combo::GetComboChangeEventEndTag() const
-{
-	return MyTags::Abilities::ComboChangeEnd;
-}
 
-void UGA_Combo::Multicast_JumpToSection_Implementation(FName SectionName)
-{
-	UE_LOG(LogTemp, Log, TEXT("[Combo] Multicast JumpTo %s"), *SectionName.ToString());
-    
-	if (UAnimInstance* Anim = GetOwnerAnimInstance())
-	{
-		if (ComboMontage && Anim->Montage_IsPlaying(ComboMontage))
-		{
-			Anim->Montage_JumpToSection(SectionName, ComboMontage);
-		}
-		else
-		{
-			UE_LOG(LogTemp, Warning, TEXT("[Combo] Montage not playing when trying to jump"));
-		}
-	}
-}
-
+// 추가함수
 void UGA_Combo::OnComboWindowOpened(FGameplayEventData Data)
 {
-	// // 태그의 마지막 토큰을 후보 섹션명으로 사용 (예: ComboChange.M2 -> "M2")
-	// TArray<FName> Tokens;
-	// UGameplayTagsManager::Get().SplitGameplayTagFName(Data.EventTag, Tokens);
-	// CandidateNextSection = Tokens.Num() > 0 ? Tokens.Last() : NAME_None;
-	//
-	// bComboWindowOpen = true;
-	// NextComboName = NAME_None; // 새 창이 열렸으니 이전 입력 확정은 초기화
-	//
-	// UE_LOG(LogTemp, Verbose, TEXT("[Combo] Window OPEN, candidate=%s"),
-	//        *CandidateNextSection.ToString());
+	// 태그 마지막 토큰을 후보 섹션명으로 사용 (예: ComboChange.M2 -> "M2")
+	TArray<FName> Tokens;
+	UGameplayTagsManager::Get().SplitGameplayTagFName(Data.EventTag, Tokens);
+	CandidateNextSection = Tokens.Num() > 0 ? Tokens.Last() : NAME_None;
 
-	// 창 닫힘 시점: 입력이 이미 승인돼 있으면 즉시 점프
-	if (NextComboName != NAME_None)
-	{
-		UE_LOG(LogTemp, Log, TEXT("[Combo] Window END -> Requesting Jump to %s"), 
-			*NextComboName.ToString());
-        
-		// ✅ 서버라면 Multicast로 모든 클라이언트에 전파
-		if (GetActorInfo().IsNetAuthority())
-		{
-			Multicast_JumpToSection(NextComboName);
-		}
-		// ✅ 클라이언트라면 서버에 요청
-		else
-		{
-			// 예측 실행: 로컬에서 즉시 점프
-			if (UAnimInstance* Anim = GetOwnerAnimInstance())
-			{
-				if (ComboMontage && Anim->Montage_IsPlaying(ComboMontage))
-				{
-					Anim->Montage_JumpToSection(NextComboName, ComboMontage);
-				}
-			}
-		}
-	}
-	else
-	{
-		UE_LOG(LogTemp, Verbose, TEXT("[Combo] Window END w/o input"));
-	}
-    
-	// 창 종료 후 초기화
-	bComboWindowOpen = false;
-	CandidateNextSection = NAME_None;
-	NextComboName = NAME_None;
+	bComboWindowOpen = (CandidateNextSection != NAME_None);
+
+	UE_LOG(LogTemp, Warning, TEXT("[Combo] Window OPEN, candidate=%s"),
+		*CandidateNextSection.ToString());
 }
 
 void UGA_Combo::OnComboWindowEnded(FGameplayEventData Data)
 {
-	// 창 닫힘 시점: 입력이 이미 승인돼 있으면 즉시 점프
+	
+	// 창 종료 타이밍: 입력이 승인되어 있으면 '즉시' 점프
 	if (NextComboName != NAME_None)
 	{
 		if (UAnimInstance* Anim = GetOwnerAnimInstance())
 		{
 			if (ComboMontage && Anim->Montage_IsPlaying(ComboMontage))
 			{
-				UE_LOG(LogTemp, Log, TEXT("[Combo] Window END -> JumpTo %s"),
-				       *NextComboName.ToString());
+				UE_LOG(LogTemp, Log, TEXT("[Combo] Window END -> JUMP to %s"),
+					*NextComboName.ToString());
+
+				// 즉시 점프(서버도, 예측클라도 각자 실행)
 				Anim->Montage_JumpToSection(NextComboName, ComboMontage);
 			}
 		}
-	}
-	else
-	{
-		UE_LOG(LogTemp, Verbose, TEXT("[Combo] Window END w/o input"));
 	}
 
 	// 창 종료 후 초기화
 	bComboWindowOpen = false;
 	CandidateNextSection = NAME_None;
 	NextComboName = NAME_None;
+
 }
 
-void UGA_Combo::OnInputPressed(float /*TimeWaited*/)
+void UGA_Combo::OnInputPressed(float TimeWaited)
 {
-	// 다음 입력도 계속 받을 수 있도록 재-설치
-	SetupWaitInputTask();
+	// 다음 입력도 계속 받을 수 있도록 재설치
+	SetupWaitComboInputPress();
 
-	// 창이 열려 있을 때만 입력을 승인
+	// 창이 열려 있을 때만 입력 승인
 	if (bComboWindowOpen && CandidateNextSection != NAME_None)
 	{
 		NextComboName = CandidateNextSection;
 		UE_LOG(LogTemp, Log, TEXT("[Combo] INPUT accepted -> Next=%s"),
-		       *NextComboName.ToString());
+			*NextComboName.ToString());
 	}
 	else
 	{
 		UE_LOG(LogTemp, Verbose, TEXT("[Combo] INPUT ignored (window closed)"));
 	}
+
 }
 
-void UGA_Combo::SetupWaitInputTask()
+UAnimInstance* UGA_Combo::GetOwnerAnimInstance() const
 {
+	if (USkeletalMeshComponent* Skel = GetOwningComponentFromActorInfo())
+	{
+		return Skel->GetAnimInstance();
+	}
+	return nullptr;
+
+}
+
+FGameplayTag UGA_Combo::GetComboChangeEventTag()
+{
+	return MyTags::Abilities::ComboChange;
+
+}
+
+FGameplayTag UGA_Combo::GetComboChangeEventEndTag()
+{
+	return MyTags::Abilities::ComboChangeEnd;
+
+}
+
+void UGA_Combo::SetupWaitComboInputPress()
+{
+	// UAbilityTask_WaitInputPress* WaitInputPress = UAbilityTask_WaitInputPress::WaitInputPress(this);
+	// WaitInputPress->OnPress.AddDynamic(this, &UGA_Combo::HandleInputPress);
+	// WaitInputPress->ReadyForActivation();
+
 	if (UAbilityTask_WaitInputPress* Wait = UAbilityTask_WaitInputPress::WaitInputPress(this))
 	{
 		Wait->OnPress.AddDynamic(this, &UGA_Combo::OnInputPressed);
 		Wait->ReadyForActivation();
 	}
+
+
+	
 }
 
-UAnimInstance* UGA_Combo::GetOwnerAnimInstance() const
+void UGA_Combo::HandleInputPress(float TimeWaited)
 {
-	if (USkeletalMeshComponent* SkelComp = GetOwningComponentFromActorInfo())
+	SetupWaitComboInputPress();
+	TryCommitCombo();
+}
+
+void UGA_Combo::TryCommitCombo()
+{
+	if (NextComboName == NAME_None)
 	{
-		return SkelComp->GetAnimInstance();
+		return;
 	}
-	return nullptr;
+
+	UAnimInstance* OwnerAnimInst = GetOwnerAnimInstance();
+	if (!OwnerAnimInst)
+	{
+		return;
+	}
+
+	OwnerAnimInst->Montage_SetNextSection(OwnerAnimInst->Montage_GetCurrentSection(ComboMontage), NextComboName, ComboMontage);
+}
+
+void UGA_Combo::ComboChangedEventReceived(FGameplayEventData Data)
+{
+	FGameplayTag EventTag = Data.EventTag;
+
+	if (EventTag == GetComboChangeEventEndTag())
+	{
+		NextComboName = NAME_None;
+		return;
+	}
+	
+	TArray<FName> TagNames;
+	UGameplayTagsManager::Get().SplitGameplayTagFName(EventTag, TagNames);
+
+	NextComboName = TagNames.Last();
 }
