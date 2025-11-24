@@ -14,29 +14,22 @@ class GAS_PROJECT_API UGA_SpawnWeapon : public UGameplayAbility
 public:
 	UGA_SpawnWeapon();
 
-protected:
-	virtual void ActivateAbility(const FGameplayAbilitySpecHandle Handle,
+	// 스폰할 무기 클래스
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Weapon")
+	TSubclassOf<ACWeapon> WeaponSpawnToClass;
+
+	// 무기 태그
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Weapon")
+	FGameplayTag InWeaponTag;
+
+	// 소켓 이름
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Weapon")
+	FName SocketName = TEXT("WeaponSocket");
+
+	virtual void ActivateAbility(
+		const FGameplayAbilitySpecHandle Handle,
 		const FGameplayAbilityActorInfo* ActorInfo,
 		const FGameplayAbilityActivationInfo ActivationInfo,
-		const FGameplayEventData* TriggerEventData) override;
-
-	virtual void EndAbility(const FGameplayAbilitySpecHandle Handle,
-		const FGameplayAbilityActorInfo* ActorInfo,
-		const FGameplayAbilityActivationInfo ActivationInfo,
-		bool bReplicateEndAbility,
-		bool bWasCancelled) override;
-
-public:
-	// 스폰할 무기 "클래스"
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Weapon")
-	TSubclassOf<ACWeapon> WeaponClassToSpawn;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Weapon")
-	class ACWeapon* SpawnedWeapon = nullptr;
-
-	// 붙일 소켓 이름
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Weapon")
-	FName SocketName = NAME_None;
-	
-
+		const FGameplayEventData* TriggerEventData
+	) override;
 };
