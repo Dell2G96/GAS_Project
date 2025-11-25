@@ -55,6 +55,12 @@ namespace MyTags
 	
 	namespace Events
 	{
+		namespace Hit
+		{
+			UE_DECLARE_GAMEPLAY_TAG_EXTERN(Hit);			
+			UE_DECLARE_GAMEPLAY_TAG_EXTERN(LightHit);			
+			UE_DECLARE_GAMEPLAY_TAG_EXTERN(HeavyHit);			
+		}
 		namespace Equip
 		{
 			UE_DECLARE_GAMEPLAY_TAG_EXTERN(Knife);
@@ -88,6 +94,10 @@ namespace MyTags
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(IdleMode);
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Dead);
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Stun);
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(HealthFull);
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(HealthEmpty);
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(ManaFull);
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(ManaEmpty);
 	}
 }
 

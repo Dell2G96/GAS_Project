@@ -3,6 +3,7 @@
 
 #include "CPlayerState.h"
 
+#include "GAS_Project/MyTags.h"
 #include "GAS_Project/GAS/CAbilitySystemComponent.h"
 #include "GAS_Project/GAS/CAttributeSet.h"
 
@@ -15,6 +16,8 @@ ACPlayerState::ACPlayerState()
     
 	// Attribute Set 생성
 	AttributeSet = CreateDefaultSubobject<UCAttributeSet>(TEXT("AttributeSet"));
+	//AbilitySystemComponent->AddLooseGameplayTag(MyTags::Status::IdleMode);
+
 }
 
 UAbilitySystemComponent* ACPlayerState::GetAbilitySystemComponent() const

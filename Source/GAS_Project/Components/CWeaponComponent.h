@@ -21,20 +21,20 @@ public:
 	UFUNCTION(BlueprintCallable, Category="GAS|Combat")
 	void UnEquipWeapon(TSubclassOf<class ACWeapon> NewWeapon);
 
-private:
+protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="GAS|Combat", meta=(AllowPrivateAccess="true"))
 	TSubclassOf<class ACWeapon> WeaponToEquip;
 
-	UPROPERTY(EditDefaultsOnly, Category="GAS|Combat")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="GAS|Combat")
 	FName SocketName = NAME_None;
 
-	UPROPERTY(EditDefaultsOnly, Category="GAS|Combat")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="GAS|Combat")
 	class UAnimMontage* EquipMontage;
 
-	UPROPERTY(EditDefaultsOnly, Category="GAS|Combat")
+	UPROPERTY(EditAnywhere,BlueprintReadWrite,  Category="GAS|Combat")
 	class UAnimMontage* UnEquipMontage;
 	
-	UPROPERTY()
+	UPROPERTY(EditAnywhere,BlueprintReadWrite,  Category="GAS|Combat")
 	class ACPlayerCharacter* OwnerCharacter;
 
 	

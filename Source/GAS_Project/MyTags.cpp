@@ -51,6 +51,12 @@ namespace MyTags
 
 	namespace Events
 	{
+		namespace Hit
+		{
+			UE_DEFINE_GAMEPLAY_TAG(Hit, "MyTags.Events.Hit")
+			UE_DEFINE_GAMEPLAY_TAG(LightHit, "MyTags.Events.Hit.LightHit")
+			UE_DEFINE_GAMEPLAY_TAG(HeavyHit, "MyTags.Events.Hit.HeavyHit")
+		}
 		namespace Equip
 		{
 			UE_DEFINE_GAMEPLAY_TAG(Knife,"MyTags.Events.Equip.Knife")
@@ -83,5 +89,9 @@ namespace MyTags
 		UE_DEFINE_GAMEPLAY_TAG(IdleMode, "MyTags.Status.IdleMode")
 		UE_DEFINE_GAMEPLAY_TAG(Dead, "MyTags.Status.Dead")
 		UE_DEFINE_GAMEPLAY_TAG(Stun, "MyTags.Status.Stun")
+		UE_DEFINE_GAMEPLAY_TAG(HealthFull, "MyTags.Status.Health.Full")
+		UE_DEFINE_GAMEPLAY_TAG(HealthEmpty, "MyTags.Status.Health.Empty")
+		UE_DEFINE_GAMEPLAY_TAG(ManaFull, "MyTags.Status.Mana.Full")
+		UE_DEFINE_GAMEPLAY_TAG(ManaEmpty, "MyTags.Status.Mana.Empty")
 	}
 }

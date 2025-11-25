@@ -61,23 +61,22 @@ FGameplayTag UCAbilitySystemStatics::GetCameraShakeCueTag()
 
 FGameplayTag UCAbilitySystemStatics::GetHealthFullStatTag()
 {
-	return FGameplayTag::RequestGameplayTag("stats.health.full");
+	return MyTags::Status::HealthFull;
 }
 
 FGameplayTag UCAbilitySystemStatics::GetHealthEmptyStatTag()
 {
-	return FGameplayTag::RequestGameplayTag("stats.health.empty");
+	return MyTags::Status::HealthEmpty;
 }
 
 FGameplayTag UCAbilitySystemStatics::GetManaFullStatTag()
 {
-	return FGameplayTag::RequestGameplayTag("stats.mana.full");
-
+	return MyTags::Status::ManaFull;
 }
 
 FGameplayTag UCAbilitySystemStatics::GetManaEmptyStatTag()
 {
-	return FGameplayTag::RequestGameplayTag("stats.mana.empty");
+	return MyTags::Status::ManaEmpty;
 }
 
 FGameplayTag UCAbilitySystemStatics::GetCrosshairTag()

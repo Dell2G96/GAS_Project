@@ -18,14 +18,14 @@ void UCWeaponComponent::EquipWeapon(TSubclassOf<class ACWeapon> NewWeapon)
 	//OwnerCharacter->GetMesh()->SetAnimationMode(EAnimationMode::Type::AnimationBlueprint);
 	//OwnerCharacter->GetMesh()->SetAnimInstanceClass(WeaponToEquip->CurrentWeaponConfig.AnimClass);
 
-	FActorSpawnParameters Params;
-	Params.Owner = OwnerCharacter;
-	Params.Instigator = Cast<APawn>(OwnerCharacter);
-	Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
-
-	 = GetWorld()->SpawnActor<ACWeapon>(WeaponToEquip, FTransform::Identity, Params);
-	if (!NewWeapon) return;
-	
+	// FActorSpawnParameters Params;
+	// Params.Owner = OwnerCharacter;
+	// Params.Instigator = Cast<APawn>(OwnerCharacter);
+	// Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
+	//
+	// WeaponToEquip = GetWorld()->SpawnActor<ACWeapon>(WeaponToEquip, FTransform::Identity, Params);
+	// if (!NewWeapon) return;
+	//
 	
 }
 

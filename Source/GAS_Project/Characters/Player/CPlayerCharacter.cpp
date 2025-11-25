@@ -65,6 +65,7 @@ void ACPlayerCharacter::ServerSideInit()
     {
         return;
     }
+    
     ACPlayerState* PS = GetPlayerState<ACPlayerState>();
     if (!PS)
     {
@@ -142,7 +143,7 @@ UAttributeSet* ACPlayerCharacter::GetAttributeSet() const
     {
         return PS->GetAttributeSet();
     }
-    return Super::GetAttributeSet();
+    return nullptr;
 }
 
 void ACPlayerCharacter::PossessedBy(AController* NewController)
@@ -150,16 +151,16 @@ void ACPlayerCharacter::PossessedBy(AController* NewController)
     Super::PossessedBy(NewController);
 
     ACPlayerState* PS = GetPlayerState<ACPlayerState>();
-    check(PS);
+    //check(PS);
+    if (!PS)
+    {
+        return;
+    }
     
     if (UCAbilitySystemComponent* ASC = Cast<UCAbilitySystemComponent>(PS->GetAbilitySystemComponent()))
     {
         ASC->InitAbilityActorInfo(PS,this);
         ASC->ServerSideInit();
-        if (HasAuthority())
-        {
-            ASC->AddLooseGameplayTag(MyTags::Status::IdleMode);
-        }
     }
 }
 
