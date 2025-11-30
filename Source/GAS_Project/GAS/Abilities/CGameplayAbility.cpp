@@ -29,12 +29,15 @@ void UCGameplayAbility::EndAbility(const FGameplayAbilitySpecHandle Handle, cons
 {
 	Super::EndAbility(Handle, ActorInfo, ActivationInfo, bReplicateEndAbility, bWasCancelled);
 
-	if (ActivationPolicy == AbilityActivationPolicy::OnGiven)
+	if (HasAuthority(&ActivationInfo))
 	{
-		if (ActorInfo)
+		if (ActivationPolicy == AbilityActivationPolicy::OnGiven)
 		{
-			ActorInfo->AbilitySystemComponent->ClearAbility(Handle);
-		}
+			if (ActorInfo)
+			{
+				ActorInfo->AbilitySystemComponent->ClearAbility(Handle);
+			}
+		}	
 	}
 }
 

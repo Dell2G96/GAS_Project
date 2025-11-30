@@ -28,7 +28,7 @@ public:
     
 private:
 	UPROPERTY(VisibleAnywhere, Category = "GAS|Abilities")
-	TObjectPtr<UAbilitySystemComponent> AbilitySystemComponent;
+	TObjectPtr<UCAbilitySystemComponent> AbilitySystemComponent;
 
 	UPROPERTY(VisibleAnywhere, Category = "GAS|Attributes")
 	TObjectPtr<class UCAttributeSet> AttributeSet;

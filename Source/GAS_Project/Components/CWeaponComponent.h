@@ -8,6 +8,48 @@
 #include "GAS_Project/Utils/CStructTypes.h"
 #include "CWeaponComponent.generated.h"
 
+//
+// UCLASS(Blueprintable)
+// class GAS_PROJECT_API UCWeaponComponent : public UActorComponent
+// {
+// 	GENERATED_BODY()
+//
+//
+//
+// public:
+// 	UCWeaponComponent();
+// 	
+// 	UFUNCTION(BlueprintCallable, Category="GAS|Comp")
+// 	void RegisterSpawnedWeapon(struct FGameplayTag InWeaponTag, class ACWeapon* InWeapon , bool bRegister = false);
+//
+// 	UFUNCTION(BlueprintCallable, Category = "GAS|Combat")
+// 	ACWeapon* GetCarriedWeaponByTag(FGameplayTag InWeaponTagToGet) const;
+//
+// 	UPROPERTY(BlueprintReadWrite, Category = "GAS|Combat")
+// 	FGameplayTag CurrentEquippedWeaponTag;
+//
+// 	UFUNCTION(BlueprintCallable, Category = "GAS|Combat")
+// 	ACWeapon* GetCharacterCurrentEquippedWeapon() const;
+// 	
+// private:
+// 	TMap<struct FGameplayTag, class ACWeapon*> WeaponMap;
+// 	
+// };
+
+
+
+// 무기 한 칸을 표현하는 구조체
+USTRUCT()
+struct FWeaponEntry
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	FGameplayTag WeaponTag;
+
+	UPROPERTY()
+	ACWeapon* Weapon = nullptr;
+};
 
 UCLASS(Blueprintable)
 class GAS_PROJECT_API UCWeaponComponent : public UActorComponent
@@ -15,44 +57,31 @@ class GAS_PROJECT_API UCWeaponComponent : public UActorComponent
 	GENERATED_BODY()
 
 public:
+	UCWeaponComponent();
+
+	UFUNCTION(BlueprintCallable, Category="GAS|Comp")
+	void RegisterSpawnedWeapon(FGameplayTag InWeaponTag, ACWeapon* InWeapon, bool bRegister = false);
+
 	UFUNCTION(BlueprintCallable, Category="GAS|Combat")
-	void EquipWeapon(TSubclassOf<class ACWeapon> NewWeapon);
-	
-	UFUNCTION(BlueprintCallable, Category="GAS|Combat")
-	void UnEquipWeapon(TSubclassOf<class ACWeapon> NewWeapon);
-
-protected:
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="GAS|Combat", meta=(AllowPrivateAccess="true"))
-	TSubclassOf<class ACWeapon> WeaponToEquip;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="GAS|Combat")
-	FName SocketName = NAME_None;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="GAS|Combat")
-	class UAnimMontage* EquipMontage;
-
-	UPROPERTY(EditAnywhere,BlueprintReadWrite,  Category="GAS|Combat")
-	class UAnimMontage* UnEquipMontage;
-	
-	UPROPERTY(EditAnywhere,BlueprintReadWrite,  Category="GAS|Combat")
-	class ACPlayerCharacter* OwnerCharacter;
-
-	
-	
-public:	
-	UFUNCTION(BlueprintCallable, Category="Comp")
-	void RegisterSpawnedWeapon(struct FGameplayTag InWeaponTag, class ACWeapon* InWeapon , bool bRegister = false);
-
-	UFUNCTION(BlueprintCallable, Category = "Warrior|Combat")
 	ACWeapon* GetCarriedWeaponByTag(FGameplayTag InWeaponTagToGet) const;
 
-	UPROPERTY(BlueprintReadWrite, Category = "Warrior|Combat")
+	UPROPERTY(Replicated, BlueprintReadWrite, Category="GAS|Combat")
 	FGameplayTag CurrentEquippedWeaponTag;
 
-	UFUNCTION(BlueprintCallable, Category = "Warrior|Combat")
+	UFUNCTION(BlueprintCallable, Category="GAS|Combat")
 	ACWeapon* GetCharacterCurrentEquippedWeapon() const;
-	
+
+protected:
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+
+	// 배열로 복제할 데이터
+	UPROPERTY(ReplicatedUsing=OnRep_WeaponEntries)
+	TArray<FWeaponEntry> WeaponEntries;
+
+	UFUNCTION()
+	void OnRep_WeaponEntries();
+
 private:
-	TMap<struct FGameplayTag, class ACWeapon*> WeaponMap;
-	
+	// 이건 네가 쓰던 검색용 맵 (복제X, 로컬 캐시용)
+	TMap<FGameplayTag, ACWeapon*> WeaponMap;
 };

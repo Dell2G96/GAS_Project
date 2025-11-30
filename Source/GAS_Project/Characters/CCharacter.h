@@ -29,7 +29,6 @@ public:
 protected: 
 	virtual void BeginPlay() override;
 	virtual  void PossessedBy(AController* NewController) override;
-	bool bAbilitySystemInitialized = false;  // 플래그 추가
 
 
 public:	
@@ -55,6 +54,7 @@ private:
 	// virtual void OnAimStateChanged(bool bIsAimming);
 	void MaxHealthUpdated(const struct FOnAttributeChangeData& Data);
 	void MaxManaUpdated(const struct FOnAttributeChangeData& Data);
+	
 protected:
  	UPROPERTY(VisibleDefaultsOnly, Category="Gameplay Ability")
  	class UCAbilitySystemComponent* CAbilitySystemComponent;

@@ -9,10 +9,8 @@
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/SpringArmComponent.h"
-#include "GAS_Project/MyTags.h"
 #include "GAS_Project/Components/CWeaponComponent.h"
 #include "GAS_Project/GAS/CAbilitySystemComponent.h"
-#include "GAS_Project/GAS/CAbilitySystemStatics.h"
 #include "GAS_Project/GAS/CAttributeSet.h"
 
 ACPlayerCharacter::ACPlayerCharacter()
@@ -47,8 +45,8 @@ ACPlayerCharacter::ACPlayerCharacter()
     WeaponComponent = CreateDefaultSubobject<UCWeaponComponent>(TEXT("WeaponComponent"));
     WeaponComponent->SetIsReplicated(true);
     
-    CAbilitySystemComponent = nullptr;
-    CAttributeSet = nullptr;
+    // CAbilitySystemComponent = CreateDefaultSubobject<UCAbilitySystemComponent>("CAbility System Component");
+    // CAttributeSet = CreateDefaultSubobject<UCAttributeSet>(TEXT("CAttributeSet"));
 }
 
 void ACPlayerCharacter::BeginPlay()
@@ -61,19 +59,16 @@ void ACPlayerCharacter::BeginPlay()
 
 void ACPlayerCharacter::ServerSideInit()
 {
-    if (bAbilitySystemInitialized)
-    {
-        return;
-    }
-    
+
     ACPlayerState* PS = GetPlayerState<ACPlayerState>();
+    ACPlayerCharacter* OwnerCharacter = Cast<ACPlayerCharacter>(GetController());
     if (!PS)
     {
         return;
     }
-    if (UAbilitySystemComponent* ASC = PS->GetAbilitySystemComponent())
+    if (UCAbilitySystemComponent* ASC = Cast<UCAbilitySystemComponent>(PS->GetAbilitySystemComponent()))
     {
-        //ASC->ServerSideInit();
+       // ASC->ServerSideInit();
         ASC->InitAbilityActorInfo(PS,this);
     }
     
@@ -168,14 +163,22 @@ void ACPlayerCharacter::OnRep_PlayerState()
 {
     Super::OnRep_PlayerState();
     ACPlayerState* PS = GetPlayerState<ACPlayerState>();
+    UE_LOG(LogTemp,Warning,TEXT("Start Player State "));
     
-    if (!PS) return;
+    if (!PS)
+    {
+        UE_LOG(LogTemp,Warning,TEXT("ClientSideInit: PlayerState is NULL!"));
+        return;
+    }
+    
 
     if (UAbilitySystemComponent* ASC = PS->GetAbilitySystemComponent())
     {
         ASC->InitAbilityActorInfo(PS, this);   // 클라 동기화
         
     }
+
+    
 }
 
 

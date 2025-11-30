@@ -2,70 +2,118 @@
 
 #include "GAS_Project/Characters/Player/CPlayerCharacter.h"
 #include "GAS_Project/Item/Weapon/CWeapon.h"
+#include "Net/UnrealNetwork.h"
 
 
-void UCWeaponComponent::EquipWeapon(TSubclassOf<class ACWeapon> NewWeapon)
+// UCWeaponComponent::UCWeaponComponent()
+// {
+// 	SetIsReplicated(true);
+// }
+//
+// void UCWeaponComponent::RegisterSpawnedWeapon(struct FGameplayTag InWeaponTag, class ACWeapon* InWeapon, bool bRegister)
+// {
+// 	WeaponMap.Emplace(InWeaponTag,InWeapon);
+// 	
+// 	if (bRegister)
+// 	{
+// 		CurrentEquippedWeaponTag = InWeaponTag;
+// 	}
+// }
+//
+// ACWeapon* UCWeaponComponent::GetCarriedWeaponByTag(FGameplayTag InWeaponTagToGet) const
+// {
+// 	if (WeaponMap.Contains(InWeaponTagToGet))
+// 	{
+// 		if (ACWeapon* const* FoundWeapon = WeaponMap.Find(InWeaponTagToGet))
+// 		{
+// 			return *FoundWeapon;
+// 		}
+// 	}
+//
+// 	return nullptr;
+// }
+//
+// ACWeapon* UCWeaponComponent::GetCharacterCurrentEquippedWeapon() const
+// {
+// 	if (!CurrentEquippedWeaponTag.IsValid())
+// 	{
+// 		return nullptr;
+// 	}
+//  
+// 	return GetCarriedWeaponByTag(CurrentEquippedWeaponTag);
+// }
+
+
+//--------------------------------------------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------------------------------------------
+
+UCWeaponComponent::UCWeaponComponent()
 {
-	OwnerCharacter = Cast<ACPlayerCharacter>(GetOwner());
-	if (!OwnerCharacter) return;
-
-	
-	// WeaponToEquip = (GetWorld()->SpawnActor<ACWeapon>(NewWeapon));
-	// WeaponToEquip->AttachToComponent( OwnerCharacter->GetMesh(), FAttachmentTransformRules::SnapToTargetIncludingScale, SocketName);
-
-
-	//OwnerCharacter->GetMesh()->SetAnimClass(WeaponToEquip->CurrentWeaponConfig.AnimClass);
-	//OwnerCharacter->GetMesh()->SetAnimationMode(EAnimationMode::Type::AnimationBlueprint);
-	//OwnerCharacter->GetMesh()->SetAnimInstanceClass(WeaponToEquip->CurrentWeaponConfig.AnimClass);
-
-	// FActorSpawnParameters Params;
-	// Params.Owner = OwnerCharacter;
-	// Params.Instigator = Cast<APawn>(OwnerCharacter);
-	// Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
-	//
-	// WeaponToEquip = GetWorld()->SpawnActor<ACWeapon>(WeaponToEquip, FTransform::Identity, Params);
-	// if (!NewWeapon) return;
-	//
-	
+	SetIsReplicatedByDefault(true);
 }
 
-void UCWeaponComponent::UnEquipWeapon(TSubclassOf<class ACWeapon> NewWeapon)
+void UCWeaponComponent::RegisterSpawnedWeapon(FGameplayTag InWeaponTag,
+											  ACWeapon* InWeapon,
+											  bool bRegister)
 {
-	if(!WeaponToEquip) return;
-	// OwnerCharacter->GetMesh()
+	if (!InWeapon)
+		return;
 
-	
-}
+	// 서버에서 WeaponEntries 갱신
+	if (GetOwnerRole() == ROLE_Authority)
+	{
+		FWeaponEntry NewEntry;
+		NewEntry.WeaponTag = InWeaponTag;
+		NewEntry.Weapon = InWeapon;
 
-void UCWeaponComponent::RegisterSpawnedWeapon(struct FGameplayTag InWeaponTag, class ACWeapon* InWeapon, bool bRegister)
-{
-	WeaponMap.Emplace(InWeaponTag,InWeapon);
-	
+		WeaponEntries.Add(NewEntry);
+	}
+
+	// 서버/클라 공통으로 쓰는 로컬 맵 갱신
+	WeaponMap.Emplace(InWeaponTag, InWeapon);
+
 	if (bRegister)
 	{
 		CurrentEquippedWeaponTag = InWeaponTag;
 	}
 }
 
-ACWeapon* UCWeaponComponent::GetCarriedWeaponByTag(FGameplayTag InWeaponTagToGet) const
+void UCWeaponComponent::OnRep_WeaponEntries()
 {
-	if (WeaponMap.Contains(InWeaponTagToGet))
+	// 클라에서 배열이 갱신될 때마다 WeaponMap 재구성
+	WeaponMap.Empty();
+
+	for (const FWeaponEntry& Entry : WeaponEntries)
 	{
-		if (ACWeapon* const* FoundWeapon = WeaponMap.Find(InWeaponTagToGet))
+		if (Entry.Weapon)
 		{
-			return *FoundWeapon;
+			WeaponMap.Emplace(Entry.WeaponTag, Entry.Weapon);
 		}
 	}
+}
 
+ACWeapon* UCWeaponComponent::GetCarriedWeaponByTag(FGameplayTag InWeaponTagToGet) const
+{
+	if (ACWeapon* const* Found = WeaponMap.Find(InWeaponTagToGet))
+	{
+		return *Found;
+	}
 	return nullptr;
 }
 
 ACWeapon* UCWeaponComponent::GetCharacterCurrentEquippedWeapon() const
 {
 	if (!CurrentEquippedWeaponTag.IsValid())
-	{
 		return nullptr;
-	}
- 
+
 	return GetCarriedWeaponByTag(CurrentEquippedWeaponTag);
+}
+
+void UCWeaponComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME(UCWeaponComponent, CurrentEquippedWeaponTag);
+	DOREPLIFETIME(UCWeaponComponent, WeaponEntries);
 }
