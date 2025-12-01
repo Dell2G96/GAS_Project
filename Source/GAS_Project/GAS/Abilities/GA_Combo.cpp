@@ -1,43 +1,180 @@
-// /Source/…/GA_Combo.cpp
+// // /Source/…/GA_Combo.cpp
+// #include "GA_Combo.h"
+//
+// #include "Abilities/Tasks/AbilityTask_PlayMontageAndWait.h"
+// #include "Abilities/Tasks/AbilityTask_WaitGameplayEvent.h"
+// #include "Abilities/Tasks/AbilityTask_WaitInputPress.h"
+// #include "Animation/AnimInstance.h"
+// #include "Components/SkeletalMeshComponent.h"
+// #include "GameplayTagsManager.h"
+// #include "GAS_Project/MyTags.h"
+// #include "GAS_Project/Characters/Player/CPlayerCharacter.h"
+// #include "GAS_Project/GAS/CAbilitySystemStatics.h"
+// #include "GeometryCollection/GeometryCollectionSimulationTypes.h"
+//
+// UGA_Combo::UGA_Combo()
+// {
+// 	// 이 어빌리티 자체 태깅(기본공격)
+// 	{
+// 		FGameplayTagContainer AssetTags;
+// 		AssetTags.AddTag(UCAbilitySystemStatics::GetBasicAttackAbilityTag());
+// 		SetAssetTags(AssetTags);
+//
+// 		// 자기 자신 블럭(선택)
+// 		BlockAbilitiesWithTag.AddTag(UCAbilitySystemStatics::GetBasicAttackAbilityTag());
+// 	}
+//
+// 	InstancingPolicy   = EGameplayAbilityInstancingPolicy::InstancedPerActor;
+// 	NetExecutionPolicy = EGameplayAbilityNetExecutionPolicy::LocalPredicted;
+//
+// 	// 전투상태 필요 / 대기상태면 차단(선택)
+// 	ActivationRequiredTags.AddTag(UCAbilitySystemStatics::GetBattleModeTag());
+// 	ActivationBlockedTags.AddTag(UCAbilitySystemStatics::GetIdleModeTag());
+// }
+//
+// void UGA_Combo::ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData)
+// {
+// 	if (!K2_CommitAbility())
+// 	{
+// 		K2_EndAbility();
+// 		return;
+// 	}
+//
+// 	if (HasAuthorityOrPredictionKey(ActorInfo, &ActivationInfo))
+// 	{
+// 		UAbilityTask_PlayMontageAndWait* PlayComboMontageTask = UAbilityTask_PlayMontageAndWait::CreatePlayMontageAndWaitProxy(this, NAME_None, ComboMontage);
+// 		PlayComboMontageTask->OnBlendOut.AddDynamic(this, &UGA_Combo::K2_EndAbility);
+// 		PlayComboMontageTask->OnCancelled.AddDynamic(this, &UGA_Combo::K2_EndAbility);
+// 		PlayComboMontageTask->OnCompleted.AddDynamic(this, &UGA_Combo::K2_EndAbility);
+// 		PlayComboMontageTask->OnInterrupted.AddDynamic(this, &UGA_Combo::K2_EndAbility);
+// 		PlayComboMontageTask->ReadyForActivation();
+//
+// 		UAbilityTask_WaitGameplayEvent* WaitComboChangeEventTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(this, GetComboChangeEventTag(), nullptr, false, false);
+// 		WaitComboChangeEventTask->EventReceived.AddDynamic(this, &UGA_Combo::ComboChangedEventReceived);
+// 		WaitComboChangeEventTask->ReadyForActivation();
+// 	}
+//
+// 	if (K2_HasAuthority())
+// 	{
+// 		UAbilityTask_WaitGameplayEvent* WaitTargetingEventTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(this, GetComboTargetEventTag());
+// 		WaitTargetingEventTask->EventReceived.AddDynamic(this, &UGA_Combo::DoDamage);
+// 		WaitTargetingEventTask->ReadyForActivation();
+// 	}
+// 	
+// 	NextComboName = NAME_None;
+// 	SetupWaitComboInputPress();
+// }
+//
+// FGameplayTag UGA_Combo::GetComboChangeEventTag()
+// {
+// 	return MyTags::Abilities::ComboChange;
+//
+// }
+//
+// FGameplayTag UGA_Combo::GetComboChangeEventEndTag()
+// {
+// 	return MyTags::Abilities::ComboChangeEnd;
+//
+// }
+//
+// FGameplayTag UGA_Combo::GetComboTargetEventTag()
+// {
+// 	return MyTags::Abilities::ComboDamage;
+// }
+//
+// void UGA_Combo::SetupWaitComboInputPress()
+// {
+// 	UAbilityTask_WaitInputPress* WaitInputPress = UAbilityTask_WaitInputPress::WaitInputPress(this);
+// 	WaitInputPress->OnPress.AddDynamic(this, &UGA_Combo::HandleInputPress);
+// 	WaitInputPress->ReadyForActivation();
+// }
+//
+// void UGA_Combo::HandleInputPress(float TimeWaited)
+// {
+// 	SetupWaitComboInputPress();
+// 	TryCommitCombo();
+// }
+//
+// void UGA_Combo::TryCommitCombo()
+// {
+// 	if (NextComboName == NAME_None)
+// 	{
+// 		return;
+// 	}
+//
+// 	UAnimInstance* OwnerAnimInst = GetOwnerAnimInstance();
+// 	if (!OwnerAnimInst)
+// 	{
+// 		return;
+// 	}
+//
+// 	OwnerAnimInst->Montage_SetNextSection(OwnerAnimInst->Montage_GetCurrentSection(ComboMontage), NextComboName, ComboMontage);
+// }
+//
+// void UGA_Combo::ComboChangedEventReceived(FGameplayEventData Data)
+// {
+// 	FGameplayTag EventTag = Data.EventTag;
+//
+// 	if (EventTag == GetComboChangeEventEndTag())
+// 	{
+// 		NextComboName = NAME_None;
+// 		return;
+// 	}
+// 	
+// 	TArray<FName> TagNames;
+// 	UGameplayTagsManager::Get().SplitGameplayTagFName(EventTag, TagNames);
+//
+// 	NextComboName = TagNames.Last();
+// }
+//
+// void UGA_Combo::DoDamage(FGameplayEventData Data)
+// {
+// 	TArray<FHitResult> HitResult = GetHitResultFromSweepLocationTargetData(Data.TargetData, 30.f, ShouldDrawDebug(), true);
+//
+// 	for (const FHitResult& Hit : HitResult)
+// 	{
+// 		TSubclassOf<UGameplayEffect> GameplayEffect = GetDamageEffectForCurrentCombo();
+// 		ApplyGameplayEffectToHitResultActor(Hit, GetDamageEffectForCurrentCombo(), 1);
+// 	}
+// }
+//
+//
+//
+
+
+//-------------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------
+
+// Fill out your copyright notice in the Description page of Project Settings.
+
+
 #include "GA_Combo.h"
 
+#include "AbilitySystemBlueprintLibrary.h"
+#include "GameplayTagsManager.h"
 #include "Abilities/Tasks/AbilityTask_PlayMontageAndWait.h"
 #include "Abilities/Tasks/AbilityTask_WaitGameplayEvent.h"
 #include "Abilities/Tasks/AbilityTask_WaitInputPress.h"
-#include "Animation/AnimInstance.h"
-#include "Components/SkeletalMeshComponent.h"
-#include "GameplayTagsManager.h"
 #include "GAS_Project/MyTags.h"
-#include "GAS_Project/Characters/Player/CPlayerCharacter.h"
 #include "GAS_Project/GAS/CAbilitySystemStatics.h"
 
 UGA_Combo::UGA_Combo()
 {
-	// 이 어빌리티 자체 태깅(기본공격)
-	{
-		FGameplayTagContainer AssetTags;
-		AssetTags.AddTag(UCAbilitySystemStatics::GetBasicAttackAbilityTag());
-		SetAssetTags(AssetTags);
-
-		// 자기 자신 블럭(선택)
-		BlockAbilitiesWithTag.AddTag(UCAbilitySystemStatics::GetBasicAttackAbilityTag());
-	}
-
-	InstancingPolicy   = EGameplayAbilityInstancingPolicy::InstancedPerActor;
-	NetExecutionPolicy = EGameplayAbilityNetExecutionPolicy::LocalPredicted;
-
-	// 전투상태 필요 / 대기상태면 차단(선택)
-	ActivationRequiredTags.AddTag(UCAbilitySystemStatics::GetBattleModeTag());
-	ActivationBlockedTags.AddTag(UCAbilitySystemStatics::GetIdleModeTag());
+	AbilityTags.AddTag(UCAbilitySystemStatics::GetBasicAttackAbilityTag());
+	BlockAbilitiesWithTag.AddTag(UCAbilitySystemStatics::GetBasicAttackAbilityTag());
 }
 
-void UGA_Combo::ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData)
+void UGA_Combo::ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo,
+                                const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData)
 {
 	if (!K2_CommitAbility())
 	{
-		K2_EndAbility();
+		K2_EndAbility(); 
 		return;
 	}
+
+	// 팩토리 패턴
 
 	if (HasAuthorityOrPredictionKey(ActorInfo, &ActivationInfo))
 	{
@@ -49,27 +186,37 @@ void UGA_Combo::ActivateAbility(const FGameplayAbilitySpecHandle Handle, const F
 		PlayComboMontageTask->ReadyForActivation();
 
 		UAbilityTask_WaitGameplayEvent* WaitComboChangeEventTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(this, GetComboChangeEventTag(), nullptr, false, false);
-		WaitComboChangeEventTask->EventReceived.AddDynamic(this, &UGA_Combo::ComboChangedEventReceived);
+		WaitComboChangeEventTask->EventReceived.AddDynamic(this, &UGA_Combo::UGA_Combo::ComboChangedEventRecevied);
 		WaitComboChangeEventTask->ReadyForActivation();
 	}
-	
 
-	NextComboName = NAME_None;
+	if (K2_HasAuthority())
+	{
+		UAbilityTask_WaitGameplayEvent* WaitTargetEventTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(this,GetComboTargetEventTag());
+		WaitTargetEventTask->EventReceived.AddDynamic(this, &UGA_Combo::DoDamage);
+		WaitTargetEventTask->ReadyForActivation();
+	}
 	SetupWaitComboInputPress();
 }
 
 FGameplayTag UGA_Combo::GetComboChangeEventTag()
 {
 	return MyTags::Abilities::ComboChange;
-
+	//FGameplayTag::RequestGameplayTag("ability.combo.change");
 }
 
 FGameplayTag UGA_Combo::GetComboChangeEventEndTag()
 {
 	return MyTags::Abilities::ComboChangeEnd;
-
+	//FGameplayTag::RequestGameplayTag("ability.combo.change.end");
 }
 
+FGameplayTag UGA_Combo::GetComboTargetEventTag()
+{
+	return MyTags::Abilities::ComboDamage;
+	// FGameplayTag::RequestGameplayTag("ability.combo.damage");
+}
+	
 void UGA_Combo::SetupWaitComboInputPress()
 {
 	UAbilityTask_WaitInputPress* WaitInputPress = UAbilityTask_WaitInputPress::WaitInputPress(this);
@@ -80,7 +227,7 @@ void UGA_Combo::SetupWaitComboInputPress()
 void UGA_Combo::HandleInputPress(float TimeWaited)
 {
 	SetupWaitComboInputPress();
-	TryCommitCombo();
+	TryCommitCombo();	
 }
 
 void UGA_Combo::TryCommitCombo()
@@ -89,17 +236,33 @@ void UGA_Combo::TryCommitCombo()
 	{
 		return;
 	}
-
 	UAnimInstance* OwnerAnimInst = GetOwnerAnimInstance();
-	if (!OwnerAnimInst)
+	if (!OwnerAnimInst )
 	{
 		return;
 	}
 
 	OwnerAnimInst->Montage_SetNextSection(OwnerAnimInst->Montage_GetCurrentSection(ComboMontage), NextComboName, ComboMontage);
+	
+	
 }
 
-void UGA_Combo::ComboChangedEventReceived(FGameplayEventData Data)
+TSubclassOf<UGameplayEffect> UGA_Combo::GetDamageEffectForCurrentCombo() const
+{
+	UAnimInstance* OwenrAnimInst = GetOwnerAnimInstance();
+	if (OwenrAnimInst )
+	{
+		FName CurrentSectionName = OwenrAnimInst->Montage_GetCurrentSection(ComboMontage);
+		const TSubclassOf<UGameplayEffect>* FoundEffectPtr = DamageEffectMap.Find(CurrentSectionName);
+		if (FoundEffectPtr)
+		{
+			return* FoundEffectPtr;
+		}
+	}
+	return DafaultDamageEffect;
+}
+
+void UGA_Combo::ComboChangedEventRecevied(FGameplayEventData Data)
 {
 	FGameplayTag EventTag = Data.EventTag;
 
@@ -108,13 +271,30 @@ void UGA_Combo::ComboChangedEventReceived(FGameplayEventData Data)
 		NextComboName = NAME_None;
 		return;
 	}
-	
+
 	TArray<FName> TagNames;
 	UGameplayTagsManager::Get().SplitGameplayTagFName(EventTag, TagNames);
-
 	NextComboName = TagNames.Last();
 }
+void UGA_Combo::DoDamage(FGameplayEventData Data)
+{
 
+	// 기존 코드
+	// TArray<FHitResult> HitResults = GetHitResultFromSweepLocationTargetData(Data.TargetData, TargetSweepShpereRadius);
+	//
+	// for (const FHitResult& HitResult : HitResults)
+	// {
+	// 	 TSubclassOf<UGameplayEffect> GameplayEffect = GetDamageEffectForCurrentCombo();
+	// 	 ApplyGameplayEffectToHitResultActor(HitResult, GameplayEffect, GetAbilityLevel(CurrentSpecHandle, CurrentActorInfo));		
+	// }
 
+	int HitResultCount = UAbilitySystemBlueprintLibrary::GetDataCountFromTargetData(Data.TargetData);
 
+	for (int i = 0; i < HitResultCount; i++)
+	{
+		FHitResult HitResult = UAbilitySystemBlueprintLibrary::GetHitResultFromTargetData(Data.TargetData, i);
+		TSubclassOf<UGameplayEffect> GameplayEffect = GetDamageEffectForCurrentCombo();
+		ApplyGameplayEffectToHitResultActor(HitResult, GameplayEffect, GetAbilityLevel(CurrentSpecHandle, CurrentActorInfo));
+	}
+}
 

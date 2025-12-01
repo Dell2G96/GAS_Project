@@ -7,12 +7,14 @@
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "InputMappingContext.h"
+#include "Blueprint/UserWidget.h"
 #include "GameFramework/Character.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GAS_Project/MyTags.h"
 #include "GAS_Project/Characters/CCharacter.h"
 #include "GAS_Project/GAS/CAbilitySystemStatics.h"
 #include "GAS_Project/Utils/CStructTypes.h"
+#include "GAS_Project/Widgets/GameplayWidget.h"
 #include "Net/UnrealNetwork.h"
 
 void ACPlayerController::BeginPlay()
@@ -22,6 +24,18 @@ void ACPlayerController::BeginPlay()
     SetInputMode(Mode);
     bShowMouseCursor = false;
     
+}
+
+void ACPlayerController::AcknowledgePossession(class APawn* NewPawn)
+{
+    Super::AcknowledgePossession(NewPawn);
+
+    OwnerCharacter = Cast<ACPlayerCharacter>(NewPawn);
+    if (OwnerCharacter)
+    {
+        OwnerCharacter->ClientSideInit();
+        SpawnGameplayWidget();
+    }
 }
 
 // void ACPlayerController::SendAbilityInputEvent(const FGameplayTag& EventTag, bool bPressed)
@@ -40,7 +54,6 @@ void ACPlayerController::OnPossess(APawn* InPawn)
         // 팀아이디는 빙의 되기전에 실행되어야한다
         OwnerCharacter->SetGenericTeamId(TeamID);
     }
-    
 }
 
 void ACPlayerController::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
@@ -153,8 +166,6 @@ void ACPlayerController::StopRuning()
     GetCharacter()->GetCharacterMovement()->MaxWalkSpeed = 400.f;
 }
 
-
-
 void ACPlayerController::StopJumping()
 {
     if (!IsValid(GetCharacter())) return;
@@ -177,13 +188,11 @@ void ACPlayerController::Move(const FInputActionValue& Value)
 
 void ACPlayerController::Look(const FInputActionValue& Value)
 {
-    
     const FVector2D LookAxisVector = Value.Get<FVector2D>();
 
     AddYawInput(LookAxisVector.X);
     AddPitchInput(LookAxisVector.Y);
 }
-
 
 // ✅ 함수 분리: Pressed
 void ACPlayerController::HandleAbilityInputPressed(ECabilityInputID InputId)
@@ -247,9 +256,6 @@ void ACPlayerController::HandleAbilityInput(const FInputActionValue& InputAction
     }
 }
 
-
-
-
 // ✅ 함수 분리: Released
 void ACPlayerController::HandleAbilityInputReleased(ECabilityInputID InputId)
 {
@@ -290,5 +296,18 @@ void ACPlayerController::SendEventToPawn(const struct FGameplayTag& Tag)
 
     FGameplayEventData Data;   // 필요 시 Payload 채워넣기
     UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(Owner, Tag, Data);
+}
+
+void ACPlayerController::SpawnGameplayWidget()
+{
+    if (!IsLocalPlayerController())
+        return;
+
+    GameplayWidget = CreateWidget<UGameplayWidget>(this, GameplayWidgetClass);
+    if (GameplayWidget)
+    {
+        GameplayWidget->AddToViewport();
+       // GameplayWidget->ConfigureAbilities(OwnerCharacter->GetAbilities());
+    }
 }
 

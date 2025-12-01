@@ -58,12 +58,18 @@ void UANS_AttackTrace::DoSweepAndApply(USkeletalMeshComponent* MeshComp, FTraceS
 	if (!Owner) return;
 
 	FCollisionQueryParams Params(SCENE_QUERY_STAT(ANS_AttackTrace), false, Owner);
-	FCollisionResponseParams RespParams;
+	FCollisionObjectQueryParams ObjParams;
 	FCollisionShape Shape = FCollisionShape::MakeSphere(Radius);
+	
+	// TArray<FHitResult> Hits;
+	// const bool bHit = World->SweepMultiByChannel(Hits, From, To, FQuat::Identity, TraceChannel, Shape, Params, RespParams);
+
+
+	ObjParams.AddObjectTypesToQuery(ECC_Pawn);  // Pawn 오브젝트 타입만
 
 	TArray<FHitResult> Hits;
-	const bool bHit = World->SweepMultiByChannel(Hits, From, To, FQuat::Identity, TraceChannel, Shape, Params, RespParams);
-
+	const bool bHit =  World->SweepMultiByObjectType(Hits,From,To,FQuat::Identity,ObjParams,Shape,Params);
+	
 	if (bDrawDebug)
 	{
 		DrawDebugCapsule(World,
@@ -100,30 +106,34 @@ void UANS_AttackTrace::DoSweepAndApply(USkeletalMeshComponent* MeshComp, FTraceS
 {
 	if (!InstigatorActor || !TargetActor) return;
 
-	// 1) GAS 이벤트 전송 (이벤트 태그가 있으면 우선)
-	if (HitTagEvent.IsValid())
-	{
-		FGameplayEventData Ev;
-		Ev.EventTag  = HitTagEvent;
-		Ev.Instigator = InstigatorActor;
-		Ev.Target     = TargetActor;
+	// 디버그: 대상 액터 정보 출력
+	UE_LOG(LogTemp, Warning, TEXT("[ANS_AttackTrace] Hit: %s"), *GetNameSafe(TargetActor));
 
-		// TargetData에 Hit 포함
-		FGameplayAbilityTargetDataHandle Handle;
-		FGameplayAbilityTargetData_SingleTargetHit* NewData =
-			new FGameplayAbilityTargetData_SingleTargetHit(Hit);
-		Handle.Add(NewData);
-		Ev.TargetData = Handle;
-
-		UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(InstigatorActor, HitTagEvent, Ev);
-		return;
-	}
+	// // 1) GAS 이벤트 전송 (이벤트 태그가 있으면 우선)
+	// if (HitTagEvent.IsValid())
+	// {
+	// 	FGameplayEventData Ev;
+	// 	Ev.EventTag  = HitTagEvent;
+	// 	Ev.Instigator = InstigatorActor;
+	// 	Ev.Target     = TargetActor;
+	//
+	// 	// TargetData에 Hit 포함
+	// 	FGameplayAbilityTargetDataHandle Handle;
+	// 	FGameplayAbilityTargetData_SingleTargetHit* NewData =
+	// 		new FGameplayAbilityTargetData_SingleTargetHit(Hit);
+	// 	Handle.Add(NewData);
+	// 	Ev.TargetData = Handle;
+	//
+	// 	UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(InstigatorActor, HitTagEvent, Ev);
+	// 	return;
+	// }
 
 	// 2) 바로 GE 적용(선택)
 	if (DamageEffect)
 	{
 		UAbilitySystemComponent* InstASC =
 			UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(InstigatorActor);
+
 		UAbilitySystemComponent* TgtASC =
 			UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(TargetActor);
 

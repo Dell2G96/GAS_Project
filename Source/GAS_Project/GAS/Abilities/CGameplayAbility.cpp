@@ -52,28 +52,24 @@ class UAnimInstance* UCGameplayAbility::GetOwnerAnimInstance() const
 }
 
 TArray<FHitResult> UCGameplayAbility::GetHitResultFromSweepLocationTargetData(
-	const FGameplayAbilityTargetDataHandle& TargetDataHandle, float SphereSweepRadius, ETeamAttitude::Type TargetTeam,
+	const FGameplayAbilityTargetDataHandle& TargetDataHandle, float SphereSweepRadius,/* ETeamAttitude::Type TargetTeam,*/
 	bool bDrawDebug, bool bIgnoreSelf) const
 {
 	TArray<FHitResult> OutResults;
 	TSet<AActor*> HitActors;
-
 	
 	IGenericTeamAgentInterface* OwnerTeamInterface = Cast<IGenericTeamAgentInterface>(GetAvatarActorFromActorInfo());
-  
- 
+	
 	for (const TSharedPtr<FGameplayAbilityTargetData>& TargetData : TargetDataHandle.Data)
 	{
 		// 시작 및 끝점 위치
 		FVector StartLoc = TargetData->GetOrigin().GetTranslation();
 		FVector EndLoc = TargetData->GetEndPoint();
     
-    
 		// 추척할 오브젝트 객체
 		TArray<TEnumAsByte<EObjectTypeQuery>> ObjectTypes;
 		ObjectTypes.Add(UEngineTypes::ConvertToObjectType(ECC_Pawn));
-    
-    
+		
 		EDrawDebugTrace::Type DrawDebugTrace = bDrawDebug ? EDrawDebugTrace::ForDuration : EDrawDebugTrace::None;
     
 		//무시할 오브젝트 객체
@@ -103,14 +99,14 @@ TArray<FHitResult> UCGameplayAbility::GetHitResultFromSweepLocationTargetData(
 				continue;
 			}
 
-			if (OwnerTeamInterface)
-			{
-				ETeamAttitude::Type OtherActorTeamAttribute = OwnerTeamInterface->GetTeamAttitudeTowards(*Result.GetActor());
-				if (OtherActorTeamAttribute != TargetTeam)
-				{
-					continue;
-				}
-			}
+			// if (OwnerTeamInterface)
+			// {
+			// 	ETeamAttitude::Type OtherActorTeamAttribute = OwnerTeamInterface->GetTeamAttitudeTowards(*Result.GetActor());
+			// 	if (OtherActorTeamAttribute != TargetTeam)
+			// 	{
+			// 		continue;
+			// 	}
+			// }
 
 			HitActors.Add(Result.GetActor());
 			OutResults.Add(Result);

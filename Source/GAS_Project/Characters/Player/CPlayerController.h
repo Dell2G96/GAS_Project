@@ -9,17 +9,23 @@
 #include "CPlayerController.generated.h"
 
 UCLASS()
-class GAS_PROJECT_API ACPlayerController : public APlayerController
+class GAS_PROJECT_API ACPlayerController : public APlayerController, public IGenericTeamAgentInterface
 {
 	GENERATED_BODY()
 
 public:
 	virtual void BeginPlay() override;
 
+	// 서버에서만 실행
+	virtual void OnPossess(APawn* InPawn) override;
+	
+	//클라이언트에서만 실행 , ListenServer
+	void AcknowledgePossession(class APawn* NewPawn) override;
+
+	
 	// //Ability 입력 이벤트 전송(항상 Pawn/Character로 보냄)
  //   void SendAbilityInputEvent(const FGameplayTag& EventTag, bool bPressed);
 	
-	virtual void OnPossess(APawn* InPawn) override;
 	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
 
 	UFUNCTION(Server, Reliable, WithValidation)
@@ -77,6 +83,15 @@ private:
 	/*********************************************************************/
 	/*								UI							        */
 	/*********************************************************************/
+private:
+	void SpawnGameplayWidget();
+
+	UPROPERTY(EditDefaultsOnly, Category="GAS|UI")
+	TSubclassOf<class UGameplayWidget> GameplayWidgetClass;
+
+	UPROPERTY()
+	class UGameplayWidget* GameplayWidget;
+	
 private:
 	UPROPERTY()
 	class ACPlayerCharacter* OwnerCharacter;
