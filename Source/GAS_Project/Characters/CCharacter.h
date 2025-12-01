@@ -19,7 +19,7 @@ class GAS_PROJECT_API ACCharacter : public ACharacter, public IAbilitySystemInte
 protected:
 	ACCharacter();
 public:
-	virtual void ServerSideInit() ; 
+	virtual void ServerSideInit(); 
 	virtual void ClientSideInit();
 	bool IsLocallyControlledByPlayer() const ;
 	virtual  void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
@@ -56,42 +56,42 @@ private:
 	void MaxManaUpdated(const struct FOnAttributeChangeData& Data);
 	
 protected:
- 	UPROPERTY(VisibleDefaultsOnly, Category="Gameplay Ability")
+ 	UPROPERTY(VisibleDefaultsOnly, Category="GAS|Gameplay Ability")
  	class UCAbilitySystemComponent* CAbilitySystemComponent;
 
 	UPROPERTY()
 	class UCAttributeSet* CAttributeSet;
 
 	/*********************************************************************/
-	/*						UI                                           */
+	/*						       UI                                    */
 	/*********************************************************************/
-private:
-	UPROPERTY(VisibleDefaultsOnly, Category="Gameplay Ability")
+protected:
+	UPROPERTY(VisibleDefaultsOnly, Category="GAS|Gameplay Ability")
 	class UWidgetComponent* OverHeadWidgetComponent;
-	void ConfigureOverHeadStatusWidget();
 
-	UPROPERTY(EditDefaultsOnly, Category="UI")
+	virtual void ConfigureOverHeadStatusWidget();
+
+	UPROPERTY(EditDefaultsOnly, Category="GAS|UI")
 	float HeadStatuGaugeVisiblityCheckUpdateGap = 1.f;
 
-	UPROPERTY(EditDefaultsOnly, Category="UI")
+	UPROPERTY(EditDefaultsOnly, Category="GAS|UI")
 	float HeadStatuGaugeVisiblityRangeSquared = 1000000.f;
 
 	FTimerHandle HeadStatGuageVisibilityUpdateTimerHandle;
 
 	
-	void UpdateHeadGuageVisibility();
+	virtual void UpdateHeadGuageVisibility();
 	void SetStatusGaugeEnable(bool bIsEnabled);
 	/*********************************************************************/
-	/*						Stun                                         */
+	/*						      Stun                                   */
 	/*********************************************************************/
 private:
-	UPROPERTY(EditDefaultsOnly, Category="Stun")
+	UPROPERTY(EditDefaultsOnly, Category="GAS|Stun")
 	class UAnimMontage* StunMontage;
 
 	virtual void OnStun();
 	virtual void OnRecoverFromStun();
 	
-
 	/*********************************************************************/
 	/*						Death And Respawn                            */
 	/*********************************************************************/
@@ -102,10 +102,10 @@ public:
 private:
 	FTransform MeshRelativeTransform;
 	
-	UPROPERTY(EditDefaultsOnly, Category="Death")
+	UPROPERTY(EditDefaultsOnly, Category="GAS|Death")
 	float DeathMontageFinishTimerShift = -0.8f;
 	
-	UPROPERTY(EditDefaultsOnly, Category="Death")
+	UPROPERTY(EditDefaultsOnly, Category="GAS|Death")
 	UAnimMontage* DeathMontage;
 
 	FTimerHandle DeathMontageTimerHandle;

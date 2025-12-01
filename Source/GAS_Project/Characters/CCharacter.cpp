@@ -18,10 +18,14 @@ ACCharacter::ACCharacter()
     PrimaryActorTick.bCanEverTick = true;
     GetMesh()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
     
+    
     // ✅ 기본적으로 생성 (AI 캐릭터용)
     // PlayerCharacter는 override에서 nullptr로 설정 가능
     CAbilitySystemComponent = CreateDefaultSubobject<UCAbilitySystemComponent>("CAbility System Component");
     CAttributeSet = CreateDefaultSubobject<UCAttributeSet>("CAttribute Set");
+    
+    OverHeadWidgetComponent = CreateDefaultSubobject<UWidgetComponent>("OverHead Widget Component");
+    OverHeadWidgetComponent->SetupAttachment(GetRootComponent());
     
     BindGASChangeDelegate();
 }
@@ -29,6 +33,7 @@ ACCharacter::ACCharacter()
 void ACCharacter::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
 {
     Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+    DOREPLIFETIME(ACCharacter, TeamID);
 }
 
 UAbilitySystemComponent* ACCharacter::GetAbilitySystemComponent() const
@@ -56,12 +61,14 @@ bool ACCharacter::Server_SendGameplayEventToSelf_Validate(const FGameplayTag& Ev
 
 void ACCharacter::ServerSideInit()
 {
-    
+    CAbilitySystemComponent->InitAbilityActorInfo(this,this);
+    CAbilitySystemComponent->ServerSideInit();
 }
 
 void ACCharacter::ClientSideInit()
 {
-   
+    CAbilitySystemComponent->InitAbilityActorInfo(this,this);
+
 }
 
 bool ACCharacter::IsLocallyControlledByPlayer() const
@@ -77,12 +84,19 @@ const TMap<ECabilityInputID, TSubclassOf<class UGameplayAbility>>& ACCharacter::
 void ACCharacter::BeginPlay()
 {
     Super::BeginPlay();
+    ConfigureOverHeadStatusWidget();
     MeshRelativeTransform = GetMesh()->GetRelativeTransform();
 }
 
 void ACCharacter::PossessedBy(AController* NewController)
 {
     Super::PossessedBy(NewController);
+
+    // 서버에서 실행될때 컨트롤러가 있고, 그게 픒레이어 가 아니라면 -> AI 컨트롤러라면
+    if (NewController && !NewController->IsPlayerController())
+    {
+        ServerSideInit();
+    }
 }
 
 void ACCharacter::Tick(float DeltaTime)
@@ -202,8 +216,6 @@ void ACCharacter::SetStatusGaugeEnable(bool bIsEnabled)
     }
 }
 
-
-
 bool ACCharacter::IsDead() const
 {
     return GetAbilitySystemComponent()->HasMatchingGameplayTag(UCAbilitySystemStatics::GetDeadStatTag());
@@ -305,12 +317,12 @@ FGenericTeamId ACCharacter::GetGenericTeamId() const
 
 void ACCharacter::OnDead()
 {
-    //Overide Inchild		
+    //Overide In child		
 }
 
 void ACCharacter::OnRespawn()
 {
-    //Overide Inchild		
+    //Overide In child		
 }
 
 

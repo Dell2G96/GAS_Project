@@ -161,7 +161,10 @@
 
 UGA_Combo::UGA_Combo()
 {
-	AbilityTags.AddTag(UCAbilitySystemStatics::GetBasicAttackAbilityTag());
+	FGameplayTagContainer AssetTags;
+	AssetTags.AddTag(UCAbilitySystemStatics::GetBasicAttackAbilityTag());
+	SetAssetTags(AssetTags);
+	// 자기 자신 블럭(선택)
 	BlockAbilitiesWithTag.AddTag(UCAbilitySystemStatics::GetBasicAttackAbilityTag());
 }
 

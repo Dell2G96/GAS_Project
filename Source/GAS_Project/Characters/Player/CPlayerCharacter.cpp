@@ -7,11 +7,14 @@
 #include "EnhancedInputSubsystems.h"
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
+#include "Components/WidgetComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "GAS_Project/Components/CWeaponComponent.h"
 #include "GAS_Project/GAS/CAbilitySystemComponent.h"
 #include "GAS_Project/GAS/CAttributeSet.h"
+#include "GAS_Project/Widgets/OverHeadStatsGauge.h"
+#include "Kismet/GameplayStatics.h"
 
 ACPlayerCharacter::ACPlayerCharacter()
 {
@@ -55,6 +58,7 @@ void ACPlayerCharacter::BeginPlay()
 
     OwnerController = Cast<ACPlayerController>(GetController());
     CachedPlayerState = GetPlayerState<ACPlayerState>();
+    ConfigureOverHeadStatusWidget();
 }
 
 void ACPlayerCharacter::ServerSideInit()
@@ -155,6 +159,7 @@ void ACPlayerCharacter::PossessedBy(AController* NewController)
     if (UCAbilitySystemComponent* ASC = Cast<UCAbilitySystemComponent>(PS->GetAbilitySystemComponent()))
     {
         ASC->InitAbilityActorInfo(PS,this);
+        ConfigureOverHeadStatusWidget();
         ASC->ServerSideInit();
     }
 }
@@ -171,15 +176,14 @@ void ACPlayerCharacter::OnRep_PlayerState()
         return;
     }
     
-
     if (UAbilitySystemComponent* ASC = PS->GetAbilitySystemComponent())
     {
         ASC->InitAbilityActorInfo(PS, this);   // 클라 동기화
-        
+        ConfigureOverHeadStatusWidget();
     }
-
     
 }
+
 
 
 void ACPlayerCharacter::OnStun()
