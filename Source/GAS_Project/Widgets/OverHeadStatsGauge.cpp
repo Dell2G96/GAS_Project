@@ -13,7 +13,7 @@ void UOverHeadStatsGauge::ConfigureWithASC(class UAbilitySystemComponent* Abilit
 	
 	if (AbilitySystemComponent)
 	{
-		HealthBar->SetAndBoundToGameplayAttribute(AbilitySystemComponent,UCAttributeSet::GetHealthAttribute(),	UCAttributeSet::GetMaxHealthAttribute()	);
+		HealthBar->SetAndBoundToGameplayAttribute(AbilitySystemComponent,UCAttributeSet::GetHealthAttribute(),	UCAttributeSet::GetMaxHealthAttribute());
 		ManaBar->SetAndBoundToGameplayAttribute(AbilitySystemComponent, UCAttributeSet::GetManaAttribute(), UCAttributeSet::GetMaxManaAttribute());
 	}
 }

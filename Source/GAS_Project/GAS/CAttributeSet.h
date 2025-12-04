@@ -21,10 +21,10 @@ class GAS_PROJECT_API UCAttributeSet : public UAttributeSet
 public:
 	ATTRIBUTE_ACCESSORS(ThisClass, Health);
 	ATTRIBUTE_ACCESSORS(ThisClass, MaxHealth);
-	ATTRIBUTE_ACCESSORS(UCAttributeSet, CachedHealthPercent)
+	ATTRIBUTE_ACCESSORS(ThisClass, CachedHealthPercent)
 	ATTRIBUTE_ACCESSORS(ThisClass, Mana);
 	ATTRIBUTE_ACCESSORS(ThisClass, MaxMana);
-	ATTRIBUTE_ACCESSORS(UCAttributeSet, CachedManaPercent)
+	ATTRIBUTE_ACCESSORS(ThisClass, CachedManaPercent)
 
 	
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;

@@ -14,8 +14,7 @@
 
 UCAbilitySystemComponent::UCAbilitySystemComponent()
 {
-	GetGameplayAttributeValueChangeDelegate(UCAttributeSet::GetHealthAttribute()).AddUObject(this, &UCAbilitySystemComponent::HealthUpdate);
-	GetGameplayAttributeValueChangeDelegate(UCAttributeSet::GetManaAttribute()).AddUObject(this, &UCAbilitySystemComponent::ManaUpdate);
+	
 	
 }
 
@@ -38,6 +37,10 @@ void UCAbilitySystemComponent::InitializeBaseAttributes()
 void UCAbilitySystemComponent::ServerSideInit()
 {
 	InitializeBaseAttributes();
+	
+	GetGameplayAttributeValueChangeDelegate(UCAttributeSet::GetHealthAttribute()).AddUObject(this, &UCAbilitySystemComponent::HealthUpdate);
+	GetGameplayAttributeValueChangeDelegate(UCAttributeSet::GetManaAttribute()).AddUObject(this, &UCAbilitySystemComponent::ManaUpdate);
+	
 	ApplyInitialEffects();
 	GiveInitialAbilities();
 }
@@ -153,15 +156,30 @@ void UCAbilitySystemComponent::HealthUpdate(const FOnAttributeChangeData& Change
 	// 죽으면
 	if (ChangeData.NewValue <= 0)
 	{
+		if (GetOwner()->HasAuthority() && DeadEffect)
+		{
+			FGameplayEffectSpecHandle EffectSpecHandle = MakeOutgoingSpec(DeadEffect, 1, MakeEffectContext());
+			ApplyGameplayEffectSpecToSelf(*EffectSpecHandle.Data.Get());
+		}
 		if (!HasMatchingGameplayTag(UCAbilitySystemStatics::GetHealthEmptyStatTag()))
 		{
 			AddLooseGameplayTag(UCAbilitySystemStatics::GetHealthEmptyStatTag());
-			
-			
-			FGameplayEventData DeadAbilityEventData;
+			AddLooseGameplayTag(UCAbilitySystemStatics::GetDeadStatTag());
+
+			FGameplayEventData DeadEventData;
 			if (ChangeData.GEModData)
-				DeadAbilityEventData.ContextHandle = ChangeData.GEModData->EffectSpec.GetContext();
-			UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(GetOwner(), UCAbilitySystemStatics::GetDeadStatTag(), DeadAbilityEventData); 
+				DeadEventData.ContextHandle = ChangeData.GEModData->EffectSpec.GetContext();
+
+			UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(
+				GetOwner(),
+				UCAbilitySystemStatics::GetDeadStatTag(),
+				DeadEventData);
+			
+		// 	FGameplayEventData DeadAbilityEventData;
+		// 	if (ChangeData.GEModData)
+		// 		DeadAbilityEventData.ContextHandle = ChangeData.GEModData->EffectSpec.GetContext();
+		// 	UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(GetOwner(), UCAbilitySystemStatics::GetDeadStatTag(), DeadAbilityEventData); 
+		//
 		}
 	}
 	else

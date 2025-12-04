@@ -28,7 +28,10 @@ private:
 	void AuthApplyGameplayEffect(TSubclassOf<UGameplayEffect> GameplayEffect, int Level = 1);
 	void HealthUpdate(const FOnAttributeChangeData& ChangeData);
 	void ManaUpdate(const FOnAttributeChangeData& ChangeData);
-
+	 
+	UPROPERTY(EditDefaultsOnly, Category = "GAS|Gameplay Abilitys")
+	TSubclassOf<class UGameplayEffect> DeadEffect;
+	
 	UPROPERTY(EditDefaultsOnly, Category = "GAS|Gameplay Abilitys")
 	TMap<ECabilityInputID, TSubclassOf<UGameplayAbility>> Abilities;
 

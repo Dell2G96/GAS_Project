@@ -12,6 +12,7 @@
 #include "GameFramework/SpringArmComponent.h"
 #include "GAS_Project/Components/CWeaponComponent.h"
 #include "GAS_Project/GAS/CAbilitySystemComponent.h"
+#include "GAS_Project/GAS/CAbilitySystemStatics.h"
 #include "GAS_Project/GAS/CAttributeSet.h"
 #include "GAS_Project/Widgets/OverHeadStatsGauge.h"
 #include "Kismet/GameplayStatics.h"
@@ -48,8 +49,6 @@ ACPlayerCharacter::ACPlayerCharacter()
     WeaponComponent = CreateDefaultSubobject<UCWeaponComponent>(TEXT("WeaponComponent"));
     WeaponComponent->SetIsReplicated(true);
     
-    // CAbilitySystemComponent = CreateDefaultSubobject<UCAbilitySystemComponent>("CAbility System Component");
-    // CAttributeSet = CreateDefaultSubobject<UCAttributeSet>(TEXT("CAttributeSet"));
 }
 
 void ACPlayerCharacter::BeginPlay()
@@ -61,9 +60,9 @@ void ACPlayerCharacter::BeginPlay()
     ConfigureOverHeadStatusWidget();
 }
 
+
 void ACPlayerCharacter::ServerSideInit()
 {
-
     ACPlayerState* PS = GetPlayerState<ACPlayerState>();
     ACPlayerCharacter* OwnerCharacter = Cast<ACPlayerCharacter>(GetController());
     if (!PS)
@@ -91,6 +90,35 @@ void ACPlayerCharacter::ClientSideInit()
         ASC->InitAbilityActorInfo(PS,this);
     }
  }
+
+void ACPlayerCharacter::BindGASChangeDelegate()
+{
+    Super::BindGASChangeDelegate();
+
+    CAbilitySystemComponent = Cast<UCAbilitySystemComponent>(GetAbilitySystemComponent());
+    if (CAbilitySystemComponent)
+    {
+        CAbilitySystemComponent->RegisterGameplayTagEvent(UCAbilitySystemStatics::GetDeadStatTag()).AddUObject(this,&ACPlayerCharacter::DeathTagUpdated);
+        
+        CAbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(UCAttributeSet::GetMaxHealthAttribute()).AddUObject(this, &ACPlayerCharacter::MaxHealthUpdated);
+        CAbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(UCAttributeSet::GetMaxManaAttribute()).AddUObject(this, &ACPlayerCharacter::MaxManaUpdated);
+    }
+}
+
+void ACPlayerCharacter::DeathTagUpdated(const FGameplayTag Tag, int32 NewCount)
+{
+    Super::DeathTagUpdated(Tag, NewCount);
+}
+
+void ACPlayerCharacter::MaxHealthUpdated(const struct FOnAttributeChangeData& Data)
+{
+    Super::MaxHealthUpdated(Data);
+}
+
+void ACPlayerCharacter::MaxManaUpdated(const struct FOnAttributeChangeData& Data)
+{
+    Super::MaxManaUpdated(Data);
+}
 
 void ACPlayerCharacter::PawnClientRestart()
 {
@@ -155,12 +183,15 @@ void ACPlayerCharacter::PossessedBy(AController* NewController)
     {
         return;
     }
-    
-    if (UCAbilitySystemComponent* ASC = Cast<UCAbilitySystemComponent>(PS->GetAbilitySystemComponent()))
+
+    CAbilitySystemComponent = Cast<UCAbilitySystemComponent> (PS->GetAbilitySystemComponent());
+
+    if (CAbilitySystemComponent)
     {
-        ASC->InitAbilityActorInfo(PS,this);
+        CAbilitySystemComponent->InitAbilityActorInfo(PS,this);
         ConfigureOverHeadStatusWidget();
-        ASC->ServerSideInit();
+        CAbilitySystemComponent->ServerSideInit();
+        BindGASChangeDelegate();
     }
 }
 
@@ -168,17 +199,16 @@ void ACPlayerCharacter::OnRep_PlayerState()
 {
     Super::OnRep_PlayerState();
     ACPlayerState* PS = GetPlayerState<ACPlayerState>();
-    UE_LOG(LogTemp,Warning,TEXT("Start Player State "));
     
     if (!PS)
     {
         UE_LOG(LogTemp,Warning,TEXT("ClientSideInit: PlayerState is NULL!"));
         return;
     }
-    
-    if (UAbilitySystemComponent* ASC = PS->GetAbilitySystemComponent())
+    CAbilitySystemComponent = Cast<UCAbilitySystemComponent> (PS->GetAbilitySystemComponent());
+    if (CAbilitySystemComponent)
     {
-        ASC->InitAbilityActorInfo(PS, this);   // 클라 동기화
+        CAbilitySystemComponent->InitAbilityActorInfo(PS, this);   // 클라 동기화
         ConfigureOverHeadStatusWidget();
     }
     

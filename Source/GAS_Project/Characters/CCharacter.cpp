@@ -27,7 +27,6 @@ ACCharacter::ACCharacter()
     OverHeadWidgetComponent = CreateDefaultSubobject<UWidgetComponent>("OverHead Widget Component");
     OverHeadWidgetComponent->SetupAttachment(GetRootComponent());
     
-    BindGASChangeDelegate();
 }
 
 void ACCharacter::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
@@ -106,24 +105,25 @@ void ACCharacter::Tick(float DeltaTime)
 
 void ACCharacter::BindGASChangeDelegate()
 {
-    if (CAbilitySystemComponent)
-    {
-        CAbilitySystemComponent->RegisterGameplayTagEvent(UCAbilitySystemStatics::GetDeadStatTag()).AddUObject(this,&ACCharacter::DeathTagUpdated);
-        CAbilitySystemComponent->RegisterGameplayTagEvent(UCAbilitySystemStatics::GetStunStatTag()).AddUObject(this,&ACCharacter::StunTagUpdated);
-        
-        CAbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(UCAttributeSet::GetMaxHealthAttribute()).AddUObject(this, &ACCharacter::MaxHealthUpdated);
-        CAbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(UCAttributeSet::GetMaxManaAttribute()).AddUObject(this, &ACCharacter::MaxManaUpdated);
-    }
+    // if (CAbilitySystemComponent)
+    // {
+    //     CAbilitySystemComponent->RegisterGameplayTagEvent(UCAbilitySystemStatics::GetDeadStatTag()).AddUObject(this,&ACCharacter::DeathTagUpdated);
+    //     
+    //     CAbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(UCAttributeSet::GetMaxHealthAttribute()).AddUObject(this, &ACCharacter::MaxHealthUpdated);
+    //     CAbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(UCAttributeSet::GetMaxManaAttribute()).AddUObject(this, &ACCharacter::MaxManaUpdated);
+    // }
 }
 
 void ACCharacter::DeathTagUpdated(const FGameplayTag Tag, int32 NewCount)
 {
+    UE_LOG(LogTemp,Warning,TEXT("=== DeathTagUpdated ==="));
     if (NewCount != 0)
     {
         StartDeathSequence();
     }
     else
     {
+        UE_LOG(LogTemp,Warning,TEXT("=== Respawned ==="));
         //Respawn();
         return;
     }
@@ -263,18 +263,21 @@ void ACCharacter::PlayDeathAnim()
         GetWorldTimerManager().SetTimer(DeathMontageTimerHandle, this, &ACCharacter::DeathMontageFinished, MontageDuration + DeathMontageFinishTimerShift);
     }
 }
+  
+  
+
 
 void ACCharacter::StartDeathSequence()
 {
-    
+    UE_LOG(LogTemp,Warning,TEXT("ACCharacter::StartDeathSequence"));
     OnDead();
+    PlayDeathAnim();
     if (CAbilitySystemComponent)
     {
         CAbilitySystemComponent->CancelAllAbilities();
     }
-    PlayDeathAnim();
     SetStatusGaugeEnable(false);
-
+    
     //GetCharacterMovement()->SetMovementMode(MOVE_None);
     GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 

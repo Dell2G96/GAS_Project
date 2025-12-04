@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "AttributeSet.h"
 #include "Blueprint/UserWidget.h"
 #include "ValueGauge.generated.h"
 
@@ -17,7 +18,7 @@ class GAS_PROJECT_API UValueGauge : public UUserWidget
 	
 public:
 	virtual void NativePreConstruct() override;
-	void SetAndBoundToGameplayAttribute(class UAbilitySystemComponent* AbilitySystemComponent, const struct FGameplayAttribute& Attribute, const FGameplayAttribute& MaxAttribute);
+	void SetAndBoundToGameplayAttribute(class UAbilitySystemComponent* AbilitySystemComponent, const  FGameplayAttribute& Attribute, const FGameplayAttribute& MaxAttribute);
 	void SetValue(float NewValue, float NewMaxValue);
 	
 private:

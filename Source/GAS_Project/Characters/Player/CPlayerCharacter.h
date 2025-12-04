@@ -23,6 +23,11 @@ public:
 	
 	virtual void ServerSideInit() override; 
 	virtual void ClientSideInit() override;
+	virtual void BindGASChangeDelegate() override;
+
+	virtual void DeathTagUpdated(const FGameplayTag Tag, int32 NewCount) override;
+	virtual void MaxHealthUpdated(const struct FOnAttributeChangeData& Data) override;
+	virtual void MaxManaUpdated(const struct FOnAttributeChangeData& Data) override;
 	
 	virtual void BeginPlay() override;
 	virtual void PawnClientRestart() override;

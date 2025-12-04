@@ -19,17 +19,18 @@ class GAS_PROJECT_API ACPlayerState : public APlayerState, public  IAbilitySyste
 public:
 	ACPlayerState();
     virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
+	
 
 	// UFUNCTION(BlueprintCallable,Category="GAS|Abilitys")
 	// class UCAbilitySystemComponent* GetAbilitySystemComponent2() const {return AbilitySystemComponent;}
  //    
 	UFUNCTION(BlueprintPure, Category = "GAS|Attributes")
-	class UCAttributeSet* GetAttributeSet() const {return AttributeSet;}
+	class UAttributeSet* GetAttributeSet() const {return AttributeSet;}
     
 private:
 	UPROPERTY(VisibleAnywhere, Category = "GAS|Abilities")
-	TObjectPtr<UCAbilitySystemComponent> AbilitySystemComponent;
+	TObjectPtr<UAbilitySystemComponent> AbilitySystemComponent;
 
 	UPROPERTY(VisibleAnywhere, Category = "GAS|Attributes")
-	TObjectPtr<class UCAttributeSet> AttributeSet;
+	TObjectPtr<class UAttributeSet> AttributeSet;
 };

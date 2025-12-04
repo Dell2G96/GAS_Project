@@ -37,6 +37,6 @@ public:
 	// void SetFoucsToGameOnly();
 
 	UPROPERTY()
-	class UAbilitySystemComponent* OwnerAbilitySystemComponent;
+	class UCAbilitySystemComponent* OwnerAbilitySystemComponent;
 	
 };

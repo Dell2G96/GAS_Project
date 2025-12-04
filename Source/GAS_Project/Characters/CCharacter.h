@@ -45,15 +45,15 @@ public:
 	void Server_SendGameplayEventToSelf(const FGameplayTag& EventTag,const FGameplayEventData& EventData);
 	
 
-private:
-	void BindGASChangeDelegate();
-	void DeathTagUpdated(const FGameplayTag Tag, int32 NewCount);
+protected:
+	virtual void BindGASChangeDelegate();
+	virtual void DeathTagUpdated(const FGameplayTag Tag, int32 NewCount);
 	void StunTagUpdated(const FGameplayTag Tag, int32 NewCount);
 	//void AimTagUpdated(const FGameplayTag Tag, int32 NewCount);
 	// void SetIsAimming(bool bIsAimming);
 	// virtual void OnAimStateChanged(bool bIsAimming);
-	void MaxHealthUpdated(const struct FOnAttributeChangeData& Data);
-	void MaxManaUpdated(const struct FOnAttributeChangeData& Data);
+	virtual void MaxHealthUpdated(const struct FOnAttributeChangeData& Data);
+	virtual void MaxManaUpdated(const struct FOnAttributeChangeData& Data);
 	
 protected:
  	UPROPERTY(VisibleDefaultsOnly, Category="GAS|Gameplay Ability")

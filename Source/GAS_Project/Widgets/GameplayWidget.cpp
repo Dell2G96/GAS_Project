@@ -5,6 +5,7 @@
 
 #include "AbilitySystemBlueprintLibrary.h"
 #include "ValueGauge.h"
+#include "GAS_Project/GAS/CAbilitySystemComponent.h"
 #include "GAS_Project/GAS/CAttributeSet.h"
 
 
@@ -12,7 +13,7 @@ void UGameplayWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
 	
-	OwnerAbilitySystemComponent = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(GetOwningPlayerPawn());
+	OwnerAbilitySystemComponent = Cast<UCAbilitySystemComponent>(UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(GetOwningPlayerPawn()));
 
 	if (OwnerAbilitySystemComponent)
 	{

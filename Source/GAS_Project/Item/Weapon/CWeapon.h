@@ -15,11 +15,11 @@ public:
 	UPROPERTY()
 	TObjectPtr<USceneComponent> Parent = nullptr;
 
-	// 칼을 붙일 소켓 이름 (예: "hand_r_socket")
+	// 칼을 붙일 소켓 이름 
 	UPROPERTY()
 	FName WeaponSocketName = NAME_None;
 
-	// 칼집을 붙일 소켓 이름 (예: "sheath_hip_socket")
+	// 칼집을 붙일 소켓 이름 
 	UPROPERTY()
 	FName SheathSocketName = NAME_None;
 };
