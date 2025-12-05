@@ -228,10 +228,18 @@ void ACPlayerCharacter::OnRecoverFromStun()
 
 void ACPlayerCharacter::OnDead()
 {
-    //ToDo CPlayerController
+    ACPlayerController* PC = Cast<ACPlayerController>(GetController());
+    if (PC)
+    {
+        DisableInput(PC);
+    }
 }
 
 void ACPlayerCharacter::OnRespawn()
 {
-    //ToDo CPlayerController
+    ACPlayerController* PC = Cast<ACPlayerController>(GetController());
+    if (PC)
+    {
+        EnableInput(PC);
+    }
 }
