@@ -137,7 +137,7 @@ void ACPlayerCharacter::PawnClientRestart()
     Super::PawnClientRestart();  // ✅ 부모 호출 (중요!)
 
     // ✅ PS 할당
-    ACPlayerState* PS = GetPlayerState<ACPlayerState>();
+    ACPlayerState* PS = Cast<ACPlayerState>(GetPlayerState());
     
     if (!PS)
     {
@@ -146,10 +146,9 @@ void ACPlayerCharacter::PawnClientRestart()
     }
     
     // ✅ PlayerState의 ASC 사용
-    CAbilitySystemComponent = Cast<UCAbilitySystemComponent>(PS->GetAbilitySystemComponent());
-    if (CAbilitySystemComponent)
+    if (GetAbilitySystemComponent())
     {
-        CAbilitySystemComponent->InitAbilityActorInfo(PS, this);
+        GetAbilitySystemComponent()->InitAbilityActorInfo(PS, this);
     }
     
     // ✅ 클라이언트 컨트롤러에서 Input 재설정
@@ -195,28 +194,13 @@ void ACPlayerCharacter::PossessedBy(AController* NewController)
         //CAbilitySystemComponent->ServerSideInit();
         //BindGASChangeDelegate();
     }
-
-    UCAttributeSet* CAttributeSet = Cast<UCAttributeSet>(GetAttributeSet());
+    
+    CAttributeSet = Cast<UCAttributeSet>(GetAttributeSet());
     if (!IsValid(CAttributeSet)) return;
 
     GetAbilitySystemComponent()->GetGameplayAttributeValueChangeDelegate(CAttributeSet->GetHealthAttribute()).AddUObject(this, &ThisClass::OnHealthChanged);
     
-    // ACPlayerState* PS = GetPlayerState<ACPlayerState>();
-    // //check(PS);
-    // if (!PS)
-    // {
-    //     return;
-    // }
-    //
-    // CAbilitySystemComponent = Cast<UCAbilitySystemComponent>(GetAbilitySystemComponent());
-    //
-    // if (CAbilitySystemComponent)
-    // {
-    //     CAbilitySystemComponent->InitAbilityActorInfo(PS,this);
-    //     ConfigureOverHeadStatusWidget();
-    //     CAbilitySystemComponent->ServerSideInit();
-    //     BindGASChangeDelegate();
-    // }
+   
 }
 
 void ACPlayerCharacter::OnRep_PlayerState()
@@ -228,11 +212,14 @@ void ACPlayerCharacter::OnRep_PlayerState()
     GetAbilitySystemComponent()->InitAbilityActorInfo(GetPlayerState(), this);
     OnASCInitialized.Broadcast(GetAbilitySystemComponent(), GetAttributeSet());
 
-    UCAttributeSet* CAttributeSet = Cast<UCAttributeSet>(GetAttributeSet());
+
+    CAttributeSet = Cast<UCAttributeSet>(GetAttributeSet());
     if (!IsValid(CAttributeSet)) return;
 	
     GetAbilitySystemComponent()->GetGameplayAttributeValueChangeDelegate(CAttributeSet->GetHealthAttribute()).AddUObject(this, &ThisClass::OnHealthChanged);
+    GetAbilitySystemComponent()->GetGameplayAttributeValueChangeDelegate(CAttributeSet->GetStaminaAttribute()).AddUObject(this, &ThisClass::OnStaminaChanged);
 
+    ConfigureOverHeadStatusWidget();
     
     // ACPlayerState* PS = GetPlayerState<ACPlayerState>();
     //

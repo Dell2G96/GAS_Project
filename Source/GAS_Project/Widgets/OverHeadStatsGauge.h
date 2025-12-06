@@ -22,5 +22,5 @@ private:
 	class UValueGauge* HealthBar;
 
 	UPROPERTY(meta=(BindWidget))
-	class UValueGauge* ManaBar;
+	class UValueGauge* StaminaBar;
 };

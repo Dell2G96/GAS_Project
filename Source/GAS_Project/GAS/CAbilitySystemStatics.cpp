@@ -69,14 +69,14 @@ FGameplayTag UCAbilitySystemStatics::GetHealthEmptyStatTag()
 	return MyTags::Status::HealthEmpty;
 }
 
-FGameplayTag UCAbilitySystemStatics::GetManaFullStatTag()
+FGameplayTag UCAbilitySystemStatics::GetStaminaFullStatTag()
 {
-	return MyTags::Status::ManaFull;
+	return MyTags::Status::StaminaFull;
 }
 
-FGameplayTag UCAbilitySystemStatics::GetManaEmptyStatTag()
+FGameplayTag UCAbilitySystemStatics::GetStaminaEmptyStatTag()
 {
-	return MyTags::Status::ManaEmpty;
+	return MyTags::Status::StaminaEmpty;
 }
 
 FGameplayTag UCAbilitySystemStatics::GetCrosshairTag()
@@ -160,20 +160,20 @@ bool UCAbilitySystemStatics::CheckAbilityCostStatic(const UGameplayAbility* Abil
 	return false;
 }
 
-float UCAbilitySystemStatics::GetManaCostFor(const UGameplayAbility* AbilityCDO, const UAbilitySystemComponent& ASC,
+float UCAbilitySystemStatics::GetStaminaCostFor(const UGameplayAbility* AbilityCDO, const UAbilitySystemComponent& ASC,
 	int AbilityLevel)
 {
-	float ManaCost = 0.0f;
+	float StaminaCost = 0.0f;
 	if (AbilityCDO)
 	{
 		UGameplayEffect* CostEffect = AbilityCDO->GetCostGameplayEffect();
 		if (CostEffect)
 		{
 			FGameplayEffectSpecHandle EffectSpec = ASC.MakeOutgoingSpec(CostEffect->GetClass(), AbilityLevel, ASC.MakeEffectContext());
-			CostEffect->Modifiers[0].ModifierMagnitude.AttemptCalculateMagnitude(*EffectSpec.Data.Get(), ManaCost);
+			CostEffect->Modifiers[0].ModifierMagnitude.AttemptCalculateMagnitude(*EffectSpec.Data.Get(), StaminaCost);
 		}
 	}
-	return FMath::Abs(ManaCost); 
+	return FMath::Abs(StaminaCost); 
 }
 
 float UCAbilitySystemStatics::GetCooldownDurationFor(const UGameplayAbility* AbilityCDO,

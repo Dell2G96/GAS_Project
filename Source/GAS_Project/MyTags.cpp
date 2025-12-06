@@ -91,7 +91,7 @@ namespace MyTags
 		UE_DEFINE_GAMEPLAY_TAG(Stun, "MyTags.Status.Stun")
 		UE_DEFINE_GAMEPLAY_TAG(HealthFull, "MyTags.Status.Health.Full")
 		UE_DEFINE_GAMEPLAY_TAG(HealthEmpty, "MyTags.Status.Health.Empty")
-		UE_DEFINE_GAMEPLAY_TAG(ManaFull, "MyTags.Status.Mana.Full")
-		UE_DEFINE_GAMEPLAY_TAG(ManaEmpty, "MyTags.Status.Mana.Empty")
+		UE_DEFINE_GAMEPLAY_TAG(StaminaFull, "MyTags.Status.Stamina.Full")
+		UE_DEFINE_GAMEPLAY_TAG(StaminaEmpty, "MyTags.Status.Stamina.Empty")
 	}
 }

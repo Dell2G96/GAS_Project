@@ -83,9 +83,21 @@ void ACCharacter::OnHealthChanged(const FOnAttributeChangeData& AttributeChangeD
     }
 }
 
+void ACCharacter::OnStaminaChanged(const FOnAttributeChangeData& AttributeChangeData)
+{
+    if (AttributeChangeData.NewValue <= 0.f)
+    {
+        //HandleDeath();
+        UE_LOG(LogTemp,Warning,TEXT("ACCharacter::Stamina Now Zero"));
+        //To Do : 탈진 상태 추가?
+    }
+}
+
 void ACCharacter::HandleDeath()
 {
     bAlive = false;
+    StartDeathSequence();
+    
     if (IsValid(GEngine))
     {
         GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Red, FString::Printf(TEXT("%s has died!"), *GetName()));
@@ -143,7 +155,7 @@ void ACCharacter::BindGASChangeDelegate()
         //CAbilitySystemComponent->RegisterGameplayTagEvent(UCAbilitySystemStatics::GetDeadStatTag()).AddUObject(this,&ACCharacter::DeathTagUpdated);
         
         CAbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(UCAttributeSet::GetMaxHealthAttribute()).AddUObject(this, &ACCharacter::MaxHealthUpdated);
-        CAbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(UCAttributeSet::GetMaxManaAttribute()).AddUObject(this, &ACCharacter::MaxManaUpdated);
+        CAbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(UCAttributeSet::GetMaxStaminaAttribute()).AddUObject(this, &ACCharacter::MaxManaUpdated);
     }
 }
 
@@ -194,7 +206,7 @@ void ACCharacter::MaxManaUpdated(const FOnAttributeChangeData& Data)
 {
     if (IsValid(CAttributeSet))
     {
-        CAttributeSet->RescaleMana();
+        CAttributeSet->RescaleStamina();
     }
 }
 
@@ -296,9 +308,6 @@ void ACCharacter::PlayDeathAnim()
         GetWorldTimerManager().SetTimer(DeathMontageTimerHandle, this, &ACCharacter::DeathMontageFinished, MontageDuration + DeathMontageFinishTimerShift);
     }
 }
-  
-  
-
 
 void ACCharacter::StartDeathSequence()
 {

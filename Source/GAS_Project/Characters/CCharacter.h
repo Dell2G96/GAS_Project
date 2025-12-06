@@ -7,6 +7,7 @@
 #include "AttributeSet.h"
 #include "GameplayTagContainer.h"
 #include "GenericTeamAgentInterface.h"
+#include "GAS_Project/GAS/CAttributeSet.h"
 #include "GAS_Project/Utils/CStructTypes.h"
 #include "CCharacter.generated.h"
 
@@ -35,6 +36,7 @@ protected:
 
 protected:
 	void OnHealthChanged(const FOnAttributeChangeData& AttributeChangeData);
+	void OnStaminaChanged(const FOnAttributeChangeData& AttributeChangeData);
 	virtual void HandleDeath();
 
 private:

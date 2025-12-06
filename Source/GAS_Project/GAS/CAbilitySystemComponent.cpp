@@ -15,7 +15,7 @@
 UCAbilitySystemComponent::UCAbilitySystemComponent()
 {
 	GetGameplayAttributeValueChangeDelegate(UCAttributeSet::GetHealthAttribute()).AddUObject(this, &UCAbilitySystemComponent::HealthUpdate);
-	GetGameplayAttributeValueChangeDelegate(UCAttributeSet::GetManaAttribute()).AddUObject(this, &UCAbilitySystemComponent::ManaUpdate);	
+	GetGameplayAttributeValueChangeDelegate(UCAttributeSet::GetStaminaAttribute()).AddUObject(this, &UCAbilitySystemComponent::StaminaUpdate);	
 	
 }
 
@@ -31,7 +31,7 @@ void UCAbilitySystemComponent::InitializeBaseAttributes()
 	if (BaseStats)
 	{
 		SetNumericAttributeBase(UCAttributeSet::GetMaxHealthAttribute(), BaseStats->BaseMaxHealth);
-		SetNumericAttributeBase(UCAttributeSet::GetMaxManaAttribute(), BaseStats->BaseMaxMana);
+		SetNumericAttributeBase(UCAttributeSet::GetMaxStaminaAttribute(), BaseStats->BaseMaxStamina);
 	}
 }
 
@@ -187,40 +187,40 @@ void UCAbilitySystemComponent::HealthUpdate(const FOnAttributeChangeData& Change
 	}
 }
 
-void UCAbilitySystemComponent::ManaUpdate(const FOnAttributeChangeData& ChangeData)
+void UCAbilitySystemComponent::StaminaUpdate(const FOnAttributeChangeData& ChangeData)
 {
 	if (!GetOwner() || !GetOwner()->HasAuthority()) return;
 
 	bool bFound = false;
 
-	float MaxMana = GetGameplayAttributeValue(UCAttributeSet::GetMaxManaAttribute(),bFound);
+	float MaxStamina = GetGameplayAttributeValue(UCAttributeSet::GetMaxStaminaAttribute(),bFound);
 
 
 	// 피가 다 차있으면
-	if (bFound && ChangeData.NewValue >= MaxMana)
+	if (bFound && ChangeData.NewValue >= MaxStamina)
 	{
-		if (!HasMatchingGameplayTag(UCAbilitySystemStatics::GetManaFullStatTag()))
+		if (!HasMatchingGameplayTag(UCAbilitySystemStatics::GetStaminaFullStatTag()))
 		{
-			AddLooseGameplayTag(UCAbilitySystemStatics::GetManaFullStatTag());
+			AddLooseGameplayTag(UCAbilitySystemStatics::GetStaminaFullStatTag());
 		}	
 	}
 	else
 	{
-		RemoveLooseGameplayTag(UCAbilitySystemStatics::GetManaFullStatTag());
+		RemoveLooseGameplayTag(UCAbilitySystemStatics::GetStaminaFullStatTag());
 	}
 
 
 	// 죽으면
 	if (ChangeData.NewValue <= 0)
 	{
-		if (!HasMatchingGameplayTag(UCAbilitySystemStatics::GetManaEmptyStatTag()))
+		if (!HasMatchingGameplayTag(UCAbilitySystemStatics::GetStaminaEmptyStatTag()))
 		{
-			AddLooseGameplayTag(UCAbilitySystemStatics::GetManaEmptyStatTag());
+			AddLooseGameplayTag(UCAbilitySystemStatics::GetStaminaEmptyStatTag());
 		}
 	}
 	else
 	{
-		RemoveLooseGameplayTag(UCAbilitySystemStatics::GetManaEmptyStatTag());
+		RemoveLooseGameplayTag(UCAbilitySystemStatics::GetStaminaEmptyStatTag());
 	}
 }
 

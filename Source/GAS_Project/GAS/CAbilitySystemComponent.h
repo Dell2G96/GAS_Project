@@ -13,7 +13,6 @@ class GAS_PROJECT_API UCAbilitySystemComponent : public UAbilitySystemComponent
 {
 	GENERATED_BODY()
 
-
 public:
 	UCAbilitySystemComponent();
 	void InitializeBaseAttributes();
@@ -27,7 +26,7 @@ private:
 	void GiveInitialAbilities();
 	void AuthApplyGameplayEffect(TSubclassOf<UGameplayEffect> GameplayEffect, int Level = 1);
 	void HealthUpdate(const FOnAttributeChangeData& ChangeData);
-	void ManaUpdate(const FOnAttributeChangeData& ChangeData);
+	void StaminaUpdate(const FOnAttributeChangeData& ChangeData);
 	 
 	UPROPERTY(EditDefaultsOnly, Category = "GAS|Gameplay Abilitys")
 	TSubclassOf<class UGameplayEffect> DeadEffect;

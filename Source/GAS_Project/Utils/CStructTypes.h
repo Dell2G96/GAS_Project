@@ -69,6 +69,6 @@ public:
 	float BaseMaxHealth;
 
 	UPROPERTY(EditAnywhere)
-	float BaseMaxMana;
+	float BaseMaxStamina;
 	
 };

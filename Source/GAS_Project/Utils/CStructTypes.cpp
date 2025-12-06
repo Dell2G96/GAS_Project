@@ -5,7 +5,7 @@
 FHeroBaseStats::FHeroBaseStats()
 	:Class {nullptr},
 	BaseMaxHealth{0.f},
-	BaseMaxMana{0.f}
+	BaseMaxStamina{0.f}
 {
 	
 }

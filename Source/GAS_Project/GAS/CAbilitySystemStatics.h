@@ -26,8 +26,8 @@ public:
 	static FGameplayTag GetCameraShakeCueTag();
 	static FGameplayTag GetHealthFullStatTag();
 	static FGameplayTag GetHealthEmptyStatTag();
-	static FGameplayTag GetManaFullStatTag();
-	static FGameplayTag GetManaEmptyStatTag();
+	static FGameplayTag GetStaminaFullStatTag();
+	static FGameplayTag GetStaminaEmptyStatTag();
 
 	static FGameplayTag GetCrosshairTag();
 	static FGameplayTag GetTargetUpdatedTag();
@@ -40,7 +40,7 @@ public:
 	static float GetStaticCostForAbility(const UGameplayAbility* Ability);
 	static bool CheckAbilityCost(const struct FGameplayAbilitySpec& AbilitySpec, const class UAbilitySystemComponent& ASC);
 	static bool CheckAbilityCostStatic(const UGameplayAbility* AbilityCDO, const UAbilitySystemComponent& ASC);
-	static float GetManaCostFor(const UGameplayAbility* AbilityCDO, const UAbilitySystemComponent& ASC, int AbilityLevel);
+	static float GetStaminaCostFor(const UGameplayAbility* AbilityCDO, const UAbilitySystemComponent& ASC, int AbilityLevel);
 	static float GetCooldownDurationFor(const UGameplayAbility* AbilityCDO, const UAbilitySystemComponent& ASC, int AbilityLevel);
 	static float GetCooldownRemainingFor(const UGameplayAbility* AbilityCDO, const UAbilitySystemComponent& ASC);
 };
