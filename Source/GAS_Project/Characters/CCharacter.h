@@ -18,13 +18,34 @@ class GAS_PROJECT_API ACCharacter : public ACharacter, public IAbilitySystemInte
     GENERATED_BODY()
 protected:
 	ACCharacter();
+	virtual  void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
+	virtual class UAbilitySystemComponent* GetAbilitySystemComponent() const override;
+	virtual class UAttributeSet* GetAttributeSet() const ;
+	bool IsAlive() const { return bAlive; }
+	void SetAlive(bool bAliveStatus) { bAlive = bAliveStatus; }
+
+	UPROPERTY(BlueprintAssignable)
+	FASCInitialized OnASCInitialized;
+
+	UFUNCTION(BlueprintCallable, Category="GAS|Death")
+	virtual void HandleRespawn();
+
+	UFUNCTION(BlueprintCallable, Category="Crash|Death")
+	void ResetAttributes();
+
+protected:
+	void OnHealthChanged(const FOnAttributeChangeData& AttributeChangeData);
+	virtual void HandleDeath();
+
+private:
+	UPROPERTY(BlueprintReadOnly, meta = (AllowPrivateAccess = true), Replicated)
+	bool bAlive = true;
+	
 public:
 	virtual void ServerSideInit(); 
 	virtual void ClientSideInit();
 	bool IsLocallyControlledByPlayer() const ;
-	virtual  void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
 	const TMap<ECabilityInputID, TSubclassOf<class UGameplayAbility>>& GetAbilities() const;
-
 
 protected: 
 	virtual void BeginPlay() override;
@@ -38,9 +59,6 @@ public:
 	/*						Gameplay Ability                             */
 	/*********************************************************************/
 public:
- 	virtual class UAbilitySystemComponent* GetAbilitySystemComponent() const ;
-	virtual class UAttributeSet* GetAttributeSet() const ;
-
 	UFUNCTION(Server, Reliable,WithValidation)
 	void Server_SendGameplayEventToSelf(const FGameplayTag& EventTag,const FGameplayEventData& EventData);
 	
@@ -104,14 +122,16 @@ private:
 	
 	UPROPERTY(EditDefaultsOnly, Category="GAS|Death")
 	float DeathMontageFinishTimerShift = -0.8f;
-	
+
+protected:
 	UPROPERTY(EditDefaultsOnly, Category="GAS|Death")
 	UAnimMontage* DeathMontage;
 
 	FTimerHandle DeathMontageTimerHandle;
 	void DeathMontageFinished();
 	void SetRagdollEnabled(bool bIsEnabled);
-	
+
+protected:
 	void PlayDeathAnim();
 	void StartDeathSequence();
 	void Respawn();

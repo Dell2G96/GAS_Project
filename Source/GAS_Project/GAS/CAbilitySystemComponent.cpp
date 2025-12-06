@@ -14,7 +14,8 @@
 
 UCAbilitySystemComponent::UCAbilitySystemComponent()
 {
-	
+	GetGameplayAttributeValueChangeDelegate(UCAttributeSet::GetHealthAttribute()).AddUObject(this, &UCAbilitySystemComponent::HealthUpdate);
+	GetGameplayAttributeValueChangeDelegate(UCAttributeSet::GetManaAttribute()).AddUObject(this, &UCAbilitySystemComponent::ManaUpdate);	
 	
 }
 
@@ -37,24 +38,9 @@ void UCAbilitySystemComponent::InitializeBaseAttributes()
 void UCAbilitySystemComponent::ServerSideInit()
 {
 	InitializeBaseAttributes();
-	
-	GetGameplayAttributeValueChangeDelegate(UCAttributeSet::GetHealthAttribute()).AddUObject(this, &UCAbilitySystemComponent::HealthUpdate);
-	GetGameplayAttributeValueChangeDelegate(UCAttributeSet::GetManaAttribute()).AddUObject(this, &UCAbilitySystemComponent::ManaUpdate);
-	
 	ApplyInitialEffects();
 	GiveInitialAbilities();
 }
-
-void UCAbilitySystemComponent::ApplyFullStatEffect()
-{
-	return;
-}
-
-const TMap<ECabilityInputID, TSubclassOf<UGameplayAbility>>& UCAbilitySystemComponent::GetAbilities() const
-{
-	return Abilities;
-}
-
 
 void UCAbilitySystemComponent::ApplyInitialEffects()
 {
@@ -72,6 +58,19 @@ void UCAbilitySystemComponent::ApplyInitialEffects()
 	}
 	
 }
+
+void UCAbilitySystemComponent::ApplyFullStatEffect()
+{
+	if (!AbilitySystemGenerics) return ;
+	AuthApplyGameplayEffect(AbilitySystemGenerics->GetFullStatEffect());
+}
+
+const TMap<ECabilityInputID, TSubclassOf<UGameplayAbility>>& UCAbilitySystemComponent::GetAbilities() const
+{
+	return Abilities;
+}
+
+
 
 void UCAbilitySystemComponent::GiveInitialAbilities()
 {

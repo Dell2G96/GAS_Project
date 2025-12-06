@@ -10,10 +10,12 @@
 #include "Components/WidgetComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/SpringArmComponent.h"
+#include "GAS_Project/MyTags.h"
 #include "GAS_Project/Components/CWeaponComponent.h"
 #include "GAS_Project/GAS/CAbilitySystemComponent.h"
 #include "GAS_Project/GAS/CAbilitySystemStatics.h"
 #include "GAS_Project/GAS/CAttributeSet.h"
+#include "GAS_Project/GAS/Abilities/GA_Dead.h"
 #include "GAS_Project/Widgets/OverHeadStatsGauge.h"
 #include "Kismet/GameplayStatics.h"
 
@@ -48,6 +50,8 @@ ACPlayerCharacter::ACPlayerCharacter()
 
     WeaponComponent = CreateDefaultSubobject<UCWeaponComponent>(TEXT("WeaponComponent"));
     WeaponComponent->SetIsReplicated(true);
+
+    
     
 }
 
@@ -69,10 +73,11 @@ void ACPlayerCharacter::ServerSideInit()
     {
         return;
     }
-    if (UCAbilitySystemComponent* ASC = Cast<UCAbilitySystemComponent>(PS->GetAbilitySystemComponent()))
+    CAbilitySystemComponent = Cast<UCAbilitySystemComponent>(PS->GetAbilitySystemComponent());
+    if (CAbilitySystemComponent)
     {
-       // ASC->ServerSideInit();
-        ASC->InitAbilityActorInfo(PS,this);
+        CAbilitySystemComponent->ServerSideInit();
+        CAbilitySystemComponent->InitAbilityActorInfo(PS,this);
     }
     
 }
@@ -85,9 +90,10 @@ void ACPlayerCharacter::ClientSideInit()
     {
         return;
     }
-    if (UAbilitySystemComponent* ASC = PS->GetAbilitySystemComponent())
+    CAbilitySystemComponent = Cast<UCAbilitySystemComponent>(PS->GetAbilitySystemComponent());
+    if (CAbilitySystemComponent)
     {
-        ASC->InitAbilityActorInfo(PS,this);
+        CAbilitySystemComponent->InitAbilityActorInfo(PS,this);
     }
  }
 
@@ -98,16 +104,25 @@ void ACPlayerCharacter::BindGASChangeDelegate()
     CAbilitySystemComponent = Cast<UCAbilitySystemComponent>(GetAbilitySystemComponent());
     if (CAbilitySystemComponent)
     {
-        CAbilitySystemComponent->RegisterGameplayTagEvent(UCAbilitySystemStatics::GetDeadStatTag()).AddUObject(this,&ACPlayerCharacter::DeathTagUpdated);
-        
-        CAbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(UCAttributeSet::GetMaxHealthAttribute()).AddUObject(this, &ACPlayerCharacter::MaxHealthUpdated);
-        CAbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(UCAttributeSet::GetMaxManaAttribute()).AddUObject(this, &ACPlayerCharacter::MaxManaUpdated);
+        CAbilitySystemComponent->RegisterGameplayTagEvent(UCAbilitySystemStatics::GetDeadStatTag()).AddUObject(this,&ThisClass::DeathTagUpdated);
     }
+   
 }
 
 void ACPlayerCharacter::DeathTagUpdated(const FGameplayTag Tag, int32 NewCount)
 {
-    Super::DeathTagUpdated(Tag, NewCount);
+    //Super::DeathTagUpdated(Tag, NewCount);
+    //UE_LOG(LogTemp,Warning,TEXT("ACCharacter::StartDeathSequence"));
+    OnDead();
+    // if (CAbilitySystemComponent)
+    // {
+    //     CAbilitySystemComponent->CancelAllAbilities();
+    // }
+  //  PlayDeathAnim();
+    SetStatusGaugeEnable(false);
+    
+    //GetCharacterMovement()->SetMovementMode(MOVE_None);
+    GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 }
 
 void ACPlayerCharacter::MaxHealthUpdated(const struct FOnAttributeChangeData& Data)
@@ -134,9 +149,10 @@ void ACPlayerCharacter::PawnClientRestart()
     }
     
     // ✅ PlayerState의 ASC 사용
-    if (UAbilitySystemComponent* ASC = PS->GetAbilitySystemComponent())
+    CAbilitySystemComponent = Cast<UCAbilitySystemComponent>(PS->GetAbilitySystemComponent());
+    if (CAbilitySystemComponent)
     {
-        ASC->InitAbilityActorInfo(PS, this);
+        CAbilitySystemComponent->InitAbilityActorInfo(PS, this);
     }
     
     // ✅ 클라이언트 컨트롤러에서 Input 재설정
@@ -184,7 +200,7 @@ void ACPlayerCharacter::PossessedBy(AController* NewController)
         return;
     }
 
-    CAbilitySystemComponent = Cast<UCAbilitySystemComponent> (PS->GetAbilitySystemComponent());
+    CAbilitySystemComponent = Cast<UCAbilitySystemComponent>(GetAbilitySystemComponent());
 
     if (CAbilitySystemComponent)
     {
@@ -198,6 +214,7 @@ void ACPlayerCharacter::PossessedBy(AController* NewController)
 void ACPlayerCharacter::OnRep_PlayerState()
 {
     Super::OnRep_PlayerState();
+    
     ACPlayerState* PS = GetPlayerState<ACPlayerState>();
     
     if (!PS)
@@ -210,11 +227,10 @@ void ACPlayerCharacter::OnRep_PlayerState()
     {
         CAbilitySystemComponent->InitAbilityActorInfo(PS, this);   // 클라 동기화
         ConfigureOverHeadStatusWidget();
+        BindGASChangeDelegate();
     }
     
 }
-
-
 
 void ACPlayerCharacter::OnStun()
 {
@@ -226,8 +242,12 @@ void ACPlayerCharacter::OnRecoverFromStun()
     //ToDo CPlayerController
 }
 
+
 void ACPlayerCharacter::OnDead()
 {
+    UE_LOG(LogTemp,Warning,TEXT("//----------ClientSideDead----------//"));
+    
+    //PlayAnimMontage(DeathMontage);
     ACPlayerController* PC = Cast<ACPlayerController>(GetController());
     if (PC)
     {

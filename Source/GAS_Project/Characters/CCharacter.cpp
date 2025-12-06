@@ -17,13 +17,14 @@ ACCharacter::ACCharacter()
 {
     PrimaryActorTick.bCanEverTick = true;
     GetMesh()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-    
+    GetMesh()->VisibilityBasedAnimTickOption = EVisibilityBasedAnimTickOption::AlwaysTickPoseAndRefreshBones;
     
     // ✅ 기본적으로 생성 (AI 캐릭터용)
     // PlayerCharacter는 override에서 nullptr로 설정 가능
-    CAbilitySystemComponent = CreateDefaultSubobject<UCAbilitySystemComponent>("CAbility System Component");
-    CAttributeSet = CreateDefaultSubobject<UCAttributeSet>("CAttribute Set");
     
+    // CAbilitySystemComponent = CreateDefaultSubobject<UCAbilitySystemComponent>("CAbility System Component");
+    // CAttributeSet = CreateDefaultSubobject<UCAttributeSet>("CAttribute Set");
+    //
     OverHeadWidgetComponent = CreateDefaultSubobject<UWidgetComponent>("OverHead Widget Component");
     OverHeadWidgetComponent->SetupAttachment(GetRootComponent());
     
@@ -32,6 +33,7 @@ ACCharacter::ACCharacter()
 void ACCharacter::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
 {
     Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+    DOREPLIFETIME(ThisClass, bAlive);
     DOREPLIFETIME(ACCharacter, TeamID);
 }
 
@@ -58,6 +60,38 @@ bool ACCharacter::Server_SendGameplayEventToSelf_Validate(const FGameplayTag& Ev
 
 }
 
+void ACCharacter::HandleRespawn()
+{
+    bAlive = true;
+}
+
+void ACCharacter::ResetAttributes()
+{
+    // checkf(IsValid(ResetAttributesEffects), TEXT("InitializeAttributeEffect not Set"));
+	   //
+    // FGameplayEffectContextHandle ContextHandle = GetAbilitySystemComponent()->MakeEffectContext();
+    // FGameplayEffectSpecHandle SpecHandle = GetAbilitySystemComponent()->MakeOutgoingSpec(ResetAttributesEffects, 1.f,ContextHandle);
+    // GetAbilitySystemComponent()->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
+
+}
+
+void ACCharacter::OnHealthChanged(const FOnAttributeChangeData& AttributeChangeData)
+{
+    if (AttributeChangeData.NewValue <= 0.f)
+    {
+        HandleDeath();
+    }
+}
+
+void ACCharacter::HandleDeath()
+{
+    bAlive = false;
+    if (IsValid(GEngine))
+    {
+        GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Red, FString::Printf(TEXT("%s has died!"), *GetName()));
+    }
+}
+
 void ACCharacter::ServerSideInit()
 {
     CAbilitySystemComponent->InitAbilityActorInfo(this,this);
@@ -67,7 +101,6 @@ void ACCharacter::ServerSideInit()
 void ACCharacter::ClientSideInit()
 {
     CAbilitySystemComponent->InitAbilityActorInfo(this,this);
-
 }
 
 bool ACCharacter::IsLocallyControlledByPlayer() const
@@ -105,13 +138,13 @@ void ACCharacter::Tick(float DeltaTime)
 
 void ACCharacter::BindGASChangeDelegate()
 {
-    // if (CAbilitySystemComponent)
-    // {
-    //     CAbilitySystemComponent->RegisterGameplayTagEvent(UCAbilitySystemStatics::GetDeadStatTag()).AddUObject(this,&ACCharacter::DeathTagUpdated);
-    //     
-    //     CAbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(UCAttributeSet::GetMaxHealthAttribute()).AddUObject(this, &ACCharacter::MaxHealthUpdated);
-    //     CAbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(UCAttributeSet::GetMaxManaAttribute()).AddUObject(this, &ACCharacter::MaxManaUpdated);
-    // }
+    if (CAbilitySystemComponent)
+    {
+        //CAbilitySystemComponent->RegisterGameplayTagEvent(UCAbilitySystemStatics::GetDeadStatTag()).AddUObject(this,&ACCharacter::DeathTagUpdated);
+        
+        CAbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(UCAttributeSet::GetMaxHealthAttribute()).AddUObject(this, &ACCharacter::MaxHealthUpdated);
+        CAbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(UCAttributeSet::GetMaxManaAttribute()).AddUObject(this, &ACCharacter::MaxManaUpdated);
+    }
 }
 
 void ACCharacter::DeathTagUpdated(const FGameplayTag Tag, int32 NewCount)
@@ -269,13 +302,13 @@ void ACCharacter::PlayDeathAnim()
 
 void ACCharacter::StartDeathSequence()
 {
-    UE_LOG(LogTemp,Warning,TEXT("ACCharacter::StartDeathSequence"));
+    //UE_LOG(LogTemp,Warning,TEXT("ACCharacter::StartDeathSequence"));
     OnDead();
+    // if (CAbilitySystemComponent)
+    // {
+    //     CAbilitySystemComponent->CancelAllAbilities();
+    // }
     PlayDeathAnim();
-    if (CAbilitySystemComponent)
-    {
-        CAbilitySystemComponent->CancelAllAbilities();
-    }
     SetStatusGaugeEnable(false);
     
     //GetCharacterMovement()->SetMovementMode(MOVE_None);
