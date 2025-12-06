@@ -20,12 +20,12 @@ public:
 	ACPlayerState();
     virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
 	
+	UFUNCTION(BlueprintPure, Category = "GAS|Attributes")
+	class UAttributeSet* GetAttributeSet() const {return AttributeSet;}
 
 	// UFUNCTION(BlueprintCallable,Category="GAS|Abilitys")
 	// class UCAbilitySystemComponent* GetAbilitySystemComponent2() const {return AbilitySystemComponent;}
  //    
-	UFUNCTION(BlueprintPure, Category = "GAS|Attributes")
-	class UAttributeSet* GetAttributeSet() const {return AttributeSet;}
     
 private:
 	UPROPERTY(VisibleAnywhere, Category = "GAS|Abilities")

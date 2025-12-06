@@ -1,3 +1,4 @@
+
 #include "CAttributeSet.h"
 #include "AbilitySystemBlueprintLibrary.h"
 #include "AbilitySystemComponent.h"
@@ -6,6 +7,19 @@
 
 
 
+void UCAttributeSet::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	// ✅ 모든 속성에 일관된 방식으로 Replication 설정
+	DOREPLIFETIME_CONDITION_NOTIFY(ThisClass, Health, COND_None, REPNOTIFY_Always);
+	DOREPLIFETIME_CONDITION_NOTIFY(ThisClass, MaxHealth, COND_None, REPNOTIFY_Always);
+	DOREPLIFETIME_CONDITION_NOTIFY(ThisClass, Stamina, COND_None, REPNOTIFY_Always);
+	DOREPLIFETIME_CONDITION_NOTIFY(ThisClass, MaxStamina, COND_None, REPNOTIFY_Always);
+
+	DOREPLIFETIME(ThisClass, bAttributesInitialized);
+	
+}
 void UCAttributeSet::PreAttributeChange(const FGameplayAttribute& Attribute, float& NewValue)
 {
 	Super::PreAttributeChange(Attribute, NewValue);
@@ -14,9 +28,17 @@ void UCAttributeSet::PreAttributeChange(const FGameplayAttribute& Attribute, flo
 	{
 		NewValue = FMath::Clamp<float>(NewValue, 0.0f, GetMaxHealth());
 	}
-	if (Attribute == GetManaAttribute())
+	if (Attribute == GetStaminaAttribute())
 	{
-		NewValue = FMath::Clamp<float>(NewValue, 0.0f, GetMaxMana());
+		NewValue = FMath::Clamp<float>(NewValue, 0.0f, GetMaxStamina());
+	}
+}
+
+void UCAttributeSet::OnRep_AttributesInitialized()
+{
+	if (bAttributesInitialized)
+	{
+		OnAttributesInitialized.Broadcast();
 	}
 }
 
@@ -32,30 +54,19 @@ void UCAttributeSet::RescaleHealth()
 	}
 }
 
-void UCAttributeSet::RescaleMana()
+void UCAttributeSet::RescaleStamina()
 {
 	if (!GetOwningActor()->HasAuthority())
 	{
 		return;
 	}
-	if (GetCachedManaPercent() != 0 && GetMana() != 0)
+	if (GetCachedStaminaPercent() != 0 && GetStamina() != 0)
 	{
-		SetMana(GetMaxMana() * GetCachedManaPercent());
+		SetStamina(GetMaxStamina() * GetCachedStaminaPercent());
 	}
 }
 
-void UCAttributeSet::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
-{
-	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
-	// ✅ 모든 속성에 일관된 방식으로 Replication 설정
-	DOREPLIFETIME_CONDITION_NOTIFY(ThisClass, Health, COND_None, REPNOTIFY_Always);
-	DOREPLIFETIME_CONDITION_NOTIFY(ThisClass, MaxHealth, COND_None, REPNOTIFY_Always);
-	DOREPLIFETIME_CONDITION_NOTIFY(ThisClass, Mana, COND_None, REPNOTIFY_Always);
-	DOREPLIFETIME_CONDITION_NOTIFY(ThisClass, MaxMana, COND_None, REPNOTIFY_Always);
-	
-	
-}
 
 void UCAttributeSet::PostGameplayEffectExecute(const FGameplayEffectModCallbackData& Data)
 {
@@ -67,10 +78,16 @@ void UCAttributeSet::PostGameplayEffectExecute(const FGameplayEffectModCallbackD
 		SetCachedHealthPercent(GetHealth()/GetMaxHealth());
 	}
 	
-	if (Data.EvaluatedData.Attribute == GetManaAttribute())
+	if (Data.EvaluatedData.Attribute == GetStaminaAttribute())
 	{
-		SetMana(FMath::Clamp(GetMana(),0.f,GetMaxMana()));
-		SetCachedHealthPercent(GetMana()/GetMaxMana());   
+		SetStamina(FMath::Clamp(GetStamina(),0.f,GetMaxStamina()));
+		SetCachedHealthPercent(GetStamina()/GetMaxStamina());   
+	}
+
+	if (!bAttributesInitialized)
+	{
+		bAttributesInitialized = true;
+		OnAttributesInitialized.Broadcast();
 	}
 }
 
@@ -84,12 +101,12 @@ void UCAttributeSet::OnRep_MaxHealth(const FGameplayAttributeData& OldValue)
 	GAMEPLAYATTRIBUTE_REPNOTIFY(ThisClass, MaxHealth, OldValue);
 }
 
-void UCAttributeSet::OnRep_Mana(const FGameplayAttributeData& OldValue)
+void UCAttributeSet::OnRep_Stamina(const FGameplayAttributeData& OldValue)
 {
-	GAMEPLAYATTRIBUTE_REPNOTIFY(ThisClass, Mana, OldValue);
+	GAMEPLAYATTRIBUTE_REPNOTIFY(ThisClass, Stamina, OldValue);
 }
 
-void UCAttributeSet::OnRep_MaxMana(const FGameplayAttributeData& OldValue)
+void UCAttributeSet::OnRep_MaxStamina(const FGameplayAttributeData& OldValue)
 {
-	GAMEPLAYATTRIBUTE_REPNOTIFY(ThisClass, MaxMana, OldValue);
+	GAMEPLAYATTRIBUTE_REPNOTIFY(ThisClass, MaxStamina, OldValue);
 }
