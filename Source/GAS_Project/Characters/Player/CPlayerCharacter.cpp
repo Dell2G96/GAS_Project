@@ -50,8 +50,6 @@ ACPlayerCharacter::ACPlayerCharacter()
 
     WeaponComponent = CreateDefaultSubobject<UCWeaponComponent>(TEXT("WeaponComponent"));
     WeaponComponent->SetIsReplicated(true);
-
-    
     
 }
 
@@ -68,7 +66,6 @@ void ACPlayerCharacter::BeginPlay()
 void ACPlayerCharacter::ServerSideInit()
 {
     ACPlayerState* PS = GetPlayerState<ACPlayerState>();
-    ACPlayerCharacter* OwnerCharacter = Cast<ACPlayerCharacter>(GetController());
     if (!PS)
     {
         return;
@@ -169,66 +166,88 @@ void ACPlayerCharacter::PawnClientRestart()
 
 UAbilitySystemComponent* ACPlayerCharacter::GetAbilitySystemComponent() const
 {
-    ACPlayerState* PS = GetPlayerState<ACPlayerState>();
-
-    if (PS)
-    {
-        return PS->GetAbilitySystemComponent();
-    }
-    return nullptr;
+    ACPlayerState* PS = Cast<ACPlayerState>(GetPlayerState());
+    if (!IsValid(PS)) return nullptr;
+    
+    return PS->GetAbilitySystemComponent();
 }
 
 UAttributeSet* ACPlayerCharacter::GetAttributeSet() const
 {
-    ACPlayerState* PS = GetPlayerState<ACPlayerState>();
+    ACPlayerState* PS = Cast<ACPlayerState>(GetPlayerState());
+    if (!IsValid(PS)) return nullptr;
 
-    if (PS)
-    {
-        return PS->GetAttributeSet();
-    }
-    return nullptr;
+    return PS->GetAttributeSet();
 }
 
 void ACPlayerCharacter::PossessedBy(AController* NewController)
 {
     Super::PossessedBy(NewController);
 
-    ACPlayerState* PS = GetPlayerState<ACPlayerState>();
-    //check(PS);
-    if (!PS)
-    {
-        return;
-    }
+    if (!IsValid(GetAbilitySystemComponent()) || !HasAuthority()) return;
 
-    CAbilitySystemComponent = Cast<UCAbilitySystemComponent>(GetAbilitySystemComponent());
+    GetAbilitySystemComponent()->InitAbilityActorInfo(GetPlayerState(), this);
+    OnASCInitialized.Broadcast(GetAbilitySystemComponent(), GetAttributeSet());
 
-    if (CAbilitySystemComponent)
+    if (IsValid(GetAbilitySystemComponent()))
     {
-        CAbilitySystemComponent->InitAbilityActorInfo(PS,this);
         ConfigureOverHeadStatusWidget();
-        CAbilitySystemComponent->ServerSideInit();
-        BindGASChangeDelegate();
+        //CAbilitySystemComponent->ServerSideInit();
+        //BindGASChangeDelegate();
     }
+
+    UCAttributeSet* CAttributeSet = Cast<UCAttributeSet>(GetAttributeSet());
+    if (!IsValid(CAttributeSet)) return;
+
+    GetAbilitySystemComponent()->GetGameplayAttributeValueChangeDelegate(CAttributeSet->GetHealthAttribute()).AddUObject(this, &ThisClass::OnHealthChanged);
+    
+    // ACPlayerState* PS = GetPlayerState<ACPlayerState>();
+    // //check(PS);
+    // if (!PS)
+    // {
+    //     return;
+    // }
+    //
+    // CAbilitySystemComponent = Cast<UCAbilitySystemComponent>(GetAbilitySystemComponent());
+    //
+    // if (CAbilitySystemComponent)
+    // {
+    //     CAbilitySystemComponent->InitAbilityActorInfo(PS,this);
+    //     ConfigureOverHeadStatusWidget();
+    //     CAbilitySystemComponent->ServerSideInit();
+    //     BindGASChangeDelegate();
+    // }
 }
 
 void ACPlayerCharacter::OnRep_PlayerState()
 {
     Super::OnRep_PlayerState();
     
-    ACPlayerState* PS = GetPlayerState<ACPlayerState>();
+    if (!IsValid(GetAbilitySystemComponent())) return;
+
+    GetAbilitySystemComponent()->InitAbilityActorInfo(GetPlayerState(), this);
+    OnASCInitialized.Broadcast(GetAbilitySystemComponent(), GetAttributeSet());
+
+    UCAttributeSet* CAttributeSet = Cast<UCAttributeSet>(GetAttributeSet());
+    if (!IsValid(CAttributeSet)) return;
+	
+    GetAbilitySystemComponent()->GetGameplayAttributeValueChangeDelegate(CAttributeSet->GetHealthAttribute()).AddUObject(this, &ThisClass::OnHealthChanged);
+
     
-    if (!PS)
-    {
-        UE_LOG(LogTemp,Warning,TEXT("ClientSideInit: PlayerState is NULL!"));
-        return;
-    }
-    CAbilitySystemComponent = Cast<UCAbilitySystemComponent> (PS->GetAbilitySystemComponent());
-    if (CAbilitySystemComponent)
-    {
-        CAbilitySystemComponent->InitAbilityActorInfo(PS, this);   // 클라 동기화
-        ConfigureOverHeadStatusWidget();
-        BindGASChangeDelegate();
-    }
+    // ACPlayerState* PS = GetPlayerState<ACPlayerState>();
+    //
+    // if (!PS)
+    // {
+    //     UE_LOG(LogTemp,Warning,TEXT("ClientSideInit: PlayerState is NULL!"));
+    //     return;
+    // }
+    // CAbilitySystemComponent = Cast<UCAbilitySystemComponent> (PS->GetAbilitySystemComponent());
+    // if (CAbilitySystemComponent)
+    // {
+    //     CAbilitySystemComponent->InitAbilityActorInfo(PS, this);   // 클라 동기화
+    //     ConfigureOverHeadStatusWidget();
+    //     BindGASChangeDelegate();
+    // }
     
 }
 

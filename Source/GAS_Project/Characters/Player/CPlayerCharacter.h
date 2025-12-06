@@ -12,14 +12,15 @@ class GAS_PROJECT_API ACPlayerCharacter : public ACCharacter
 public:
 	ACPlayerCharacter();
 
+	// ASC/AttributeSet은 PlayerState 보유 것을 사용
+	virtual class UAbilitySystemComponent* GetAbilitySystemComponent() const override;
+	virtual class UAttributeSet* GetAttributeSet() const override;
 	// 서버: 소유권 확정 시 PS의 ASC를 Character(AVAtar) 와 연결
 	virtual void PossessedBy(AController* NewController) override;
 	// 클라 : PS 복제 도착 시 동일 초기화
 	virtual void OnRep_PlayerState() override;
 
-	// ASC/AttributeSet은 PlayerState 보유 것을 사용
-	virtual class UAbilitySystemComponent* GetAbilitySystemComponent() const override;
-	virtual class UAttributeSet* GetAttributeSet() const override;
+
 	
 	virtual void ServerSideInit() override; 
 	virtual void ClientSideInit() override;
