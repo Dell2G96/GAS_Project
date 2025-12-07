@@ -60,6 +60,11 @@ bool ACCharacter::Server_SendGameplayEventToSelf_Validate(const FGameplayTag& Ev
 
 }
 
+void ACCharacter::Multicast_StartDeathSequence_Implementation()
+{
+    StartDeathSequence();
+}
+
 void ACCharacter::HandleRespawn()
 {
     bAlive = true;
@@ -96,8 +101,12 @@ void ACCharacter::OnStaminaChanged(const FOnAttributeChangeData& AttributeChange
 void ACCharacter::HandleDeath()
 {
     bAlive = false;
-    StartDeathSequence();
-    
+    //StartDeathSequence();
+
+    if (HasAuthority())
+    {
+      Multicast_StartDeathSequence();  
+    }
     if (IsValid(GEngine))
     {
         GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Red, FString::Printf(TEXT("%s has died!"), *GetName()));
@@ -155,7 +164,7 @@ void ACCharacter::BindGASChangeDelegate()
         //CAbilitySystemComponent->RegisterGameplayTagEvent(UCAbilitySystemStatics::GetDeadStatTag()).AddUObject(this,&ACCharacter::DeathTagUpdated);
         
         CAbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(UCAttributeSet::GetMaxHealthAttribute()).AddUObject(this, &ACCharacter::MaxHealthUpdated);
-        CAbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(UCAttributeSet::GetMaxStaminaAttribute()).AddUObject(this, &ACCharacter::MaxManaUpdated);
+        CAbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(UCAttributeSet::GetMaxStaminaAttribute()).AddUObject(this, &ACCharacter::MaxStaminaUpdated);
     }
 }
 
@@ -202,7 +211,7 @@ void ACCharacter::MaxHealthUpdated(const FOnAttributeChangeData& Data)
     }
 }
 
-void ACCharacter::MaxManaUpdated(const FOnAttributeChangeData& Data)
+void ACCharacter::MaxStaminaUpdated(const FOnAttributeChangeData& Data)
 {
     if (IsValid(CAttributeSet))
     {

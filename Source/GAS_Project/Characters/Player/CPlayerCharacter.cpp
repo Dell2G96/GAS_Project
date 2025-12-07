@@ -127,9 +127,9 @@ void ACPlayerCharacter::MaxHealthUpdated(const struct FOnAttributeChangeData& Da
     Super::MaxHealthUpdated(Data);
 }
 
-void ACPlayerCharacter::MaxManaUpdated(const struct FOnAttributeChangeData& Data)
+void ACPlayerCharacter::MaxStaminaUpdated(const struct FOnAttributeChangeData& Data)
 {
-    Super::MaxManaUpdated(Data);
+    Super::MaxStaminaUpdated(Data);
 }
 
 void ACPlayerCharacter::PawnClientRestart()
@@ -199,6 +199,7 @@ void ACPlayerCharacter::PossessedBy(AController* NewController)
     if (!IsValid(CAttributeSet)) return;
 
     GetAbilitySystemComponent()->GetGameplayAttributeValueChangeDelegate(CAttributeSet->GetHealthAttribute()).AddUObject(this, &ThisClass::OnHealthChanged);
+    GetAbilitySystemComponent()->GetGameplayAttributeValueChangeDelegate(CAttributeSet->GetStaminaAttribute()).AddUObject(this, &ThisClass::OnStaminaChanged);
     
    
 }

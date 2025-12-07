@@ -17,13 +17,16 @@ UCLASS(Abstract)
 class GAS_PROJECT_API ACCharacter : public ACharacter, public IAbilitySystemInterface
 {
     GENERATED_BODY()
-protected:
+public:
 	ACCharacter();
 	virtual  void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
-	virtual class UAbilitySystemComponent* GetAbilitySystemComponent() const override;
-	virtual class UAttributeSet* GetAttributeSet() const ;
+	virtual  UAbilitySystemComponent* GetAbilitySystemComponent() const override;
+	virtual  UAttributeSet* GetAttributeSet() const ;
 	bool IsAlive() const { return bAlive; }
 	void SetAlive(bool bAliveStatus) { bAlive = bAliveStatus; }
+
+	UFUNCTION(NetMulticast, Reliable)
+	void Multicast_StartDeathSequence();
 
 	UPROPERTY(BlueprintAssignable)
 	FASCInitialized OnASCInitialized;
@@ -73,7 +76,7 @@ protected:
 	// void SetIsAimming(bool bIsAimming);
 	// virtual void OnAimStateChanged(bool bIsAimming);
 	virtual void MaxHealthUpdated(const struct FOnAttributeChangeData& Data);
-	virtual void MaxManaUpdated(const struct FOnAttributeChangeData& Data);
+	virtual void MaxStaminaUpdated(const struct FOnAttributeChangeData& Data);
 	
 protected:
  	UPROPERTY(VisibleDefaultsOnly, Category="GAS|Gameplay Ability")

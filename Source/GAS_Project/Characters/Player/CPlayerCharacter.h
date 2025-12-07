@@ -19,8 +19,6 @@ public:
 	virtual void PossessedBy(AController* NewController) override;
 	// 클라 : PS 복제 도착 시 동일 초기화
 	virtual void OnRep_PlayerState() override;
-
-
 	
 	virtual void ServerSideInit() override; 
 	virtual void ClientSideInit() override;
@@ -28,7 +26,7 @@ public:
 
 	virtual void DeathTagUpdated(const FGameplayTag Tag, int32 NewCount) override;
 	virtual void MaxHealthUpdated(const struct FOnAttributeChangeData& Data) override;
-	virtual void MaxManaUpdated(const struct FOnAttributeChangeData& Data) override;
+	virtual void MaxStaminaUpdated(const struct FOnAttributeChangeData& Data) override;
 	
 	virtual void BeginPlay() override;
 	virtual void PawnClientRestart() override;
