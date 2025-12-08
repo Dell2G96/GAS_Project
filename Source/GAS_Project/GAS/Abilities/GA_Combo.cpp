@@ -1,152 +1,3 @@
-// // /Source/…/GA_Combo.cpp
-// #include "GA_Combo.h"
-//
-// #include "Abilities/Tasks/AbilityTask_PlayMontageAndWait.h"
-// #include "Abilities/Tasks/AbilityTask_WaitGameplayEvent.h"
-// #include "Abilities/Tasks/AbilityTask_WaitInputPress.h"
-// #include "Animation/AnimInstance.h"
-// #include "Components/SkeletalMeshComponent.h"
-// #include "GameplayTagsManager.h"
-// #include "GAS_Project/MyTags.h"
-// #include "GAS_Project/Characters/Player/CPlayerCharacter.h"
-// #include "GAS_Project/GAS/CAbilitySystemStatics.h"
-// #include "GeometryCollection/GeometryCollectionSimulationTypes.h"
-//
-// UGA_Combo::UGA_Combo()
-// {
-// 	// 이 어빌리티 자체 태깅(기본공격)
-// 	{
-// 		FGameplayTagContainer AssetTags;
-// 		AssetTags.AddTag(UCAbilitySystemStatics::GetBasicAttackAbilityTag());
-// 		SetAssetTags(AssetTags);
-//
-// 		// 자기 자신 블럭(선택)
-// 		BlockAbilitiesWithTag.AddTag(UCAbilitySystemStatics::GetBasicAttackAbilityTag());
-// 	}
-//
-// 	InstancingPolicy   = EGameplayAbilityInstancingPolicy::InstancedPerActor;
-// 	NetExecutionPolicy = EGameplayAbilityNetExecutionPolicy::LocalPredicted;
-//
-// 	// 전투상태 필요 / 대기상태면 차단(선택)
-// 	ActivationRequiredTags.AddTag(UCAbilitySystemStatics::GetBattleModeTag());
-// 	ActivationBlockedTags.AddTag(UCAbilitySystemStatics::GetIdleModeTag());
-// }
-//
-// void UGA_Combo::ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData)
-// {
-// 	if (!K2_CommitAbility())
-// 	{
-// 		K2_EndAbility();
-// 		return;
-// 	}
-//
-// 	if (HasAuthorityOrPredictionKey(ActorInfo, &ActivationInfo))
-// 	{
-// 		UAbilityTask_PlayMontageAndWait* PlayComboMontageTask = UAbilityTask_PlayMontageAndWait::CreatePlayMontageAndWaitProxy(this, NAME_None, ComboMontage);
-// 		PlayComboMontageTask->OnBlendOut.AddDynamic(this, &UGA_Combo::K2_EndAbility);
-// 		PlayComboMontageTask->OnCancelled.AddDynamic(this, &UGA_Combo::K2_EndAbility);
-// 		PlayComboMontageTask->OnCompleted.AddDynamic(this, &UGA_Combo::K2_EndAbility);
-// 		PlayComboMontageTask->OnInterrupted.AddDynamic(this, &UGA_Combo::K2_EndAbility);
-// 		PlayComboMontageTask->ReadyForActivation();
-//
-// 		UAbilityTask_WaitGameplayEvent* WaitComboChangeEventTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(this, GetComboChangeEventTag(), nullptr, false, false);
-// 		WaitComboChangeEventTask->EventReceived.AddDynamic(this, &UGA_Combo::ComboChangedEventReceived);
-// 		WaitComboChangeEventTask->ReadyForActivation();
-// 	}
-//
-// 	if (K2_HasAuthority())
-// 	{
-// 		UAbilityTask_WaitGameplayEvent* WaitTargetingEventTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(this, GetComboTargetEventTag());
-// 		WaitTargetingEventTask->EventReceived.AddDynamic(this, &UGA_Combo::DoDamage);
-// 		WaitTargetingEventTask->ReadyForActivation();
-// 	}
-// 	
-// 	NextComboName = NAME_None;
-// 	SetupWaitComboInputPress();
-// }
-//
-// FGameplayTag UGA_Combo::GetComboChangeEventTag()
-// {
-// 	return MyTags::Abilities::ComboChange;
-//
-// }
-//
-// FGameplayTag UGA_Combo::GetComboChangeEventEndTag()
-// {
-// 	return MyTags::Abilities::ComboChangeEnd;
-//
-// }
-//
-// FGameplayTag UGA_Combo::GetComboTargetEventTag()
-// {
-// 	return MyTags::Abilities::ComboDamage;
-// }
-//
-// void UGA_Combo::SetupWaitComboInputPress()
-// {
-// 	UAbilityTask_WaitInputPress* WaitInputPress = UAbilityTask_WaitInputPress::WaitInputPress(this);
-// 	WaitInputPress->OnPress.AddDynamic(this, &UGA_Combo::HandleInputPress);
-// 	WaitInputPress->ReadyForActivation();
-// }
-//
-// void UGA_Combo::HandleInputPress(float TimeWaited)
-// {
-// 	SetupWaitComboInputPress();
-// 	TryCommitCombo();
-// }
-//
-// void UGA_Combo::TryCommitCombo()
-// {
-// 	if (NextComboName == NAME_None)
-// 	{
-// 		return;
-// 	}
-//
-// 	UAnimInstance* OwnerAnimInst = GetOwnerAnimInstance();
-// 	if (!OwnerAnimInst)
-// 	{
-// 		return;
-// 	}
-//
-// 	OwnerAnimInst->Montage_SetNextSection(OwnerAnimInst->Montage_GetCurrentSection(ComboMontage), NextComboName, ComboMontage);
-// }
-//
-// void UGA_Combo::ComboChangedEventReceived(FGameplayEventData Data)
-// {
-// 	FGameplayTag EventTag = Data.EventTag;
-//
-// 	if (EventTag == GetComboChangeEventEndTag())
-// 	{
-// 		NextComboName = NAME_None;
-// 		return;
-// 	}
-// 	
-// 	TArray<FName> TagNames;
-// 	UGameplayTagsManager::Get().SplitGameplayTagFName(EventTag, TagNames);
-//
-// 	NextComboName = TagNames.Last();
-// }
-//
-// void UGA_Combo::DoDamage(FGameplayEventData Data)
-// {
-// 	TArray<FHitResult> HitResult = GetHitResultFromSweepLocationTargetData(Data.TargetData, 30.f, ShouldDrawDebug(), true);
-//
-// 	for (const FHitResult& Hit : HitResult)
-// 	{
-// 		TSubclassOf<UGameplayEffect> GameplayEffect = GetDamageEffectForCurrentCombo();
-// 		ApplyGameplayEffectToHitResultActor(Hit, GetDamageEffectForCurrentCombo(), 1);
-// 	}
-// }
-//
-//
-//
-
-
-//-------------------------------------------------------------------------------------
-//-------------------------------------------------------------------------------------
-//-------------------------------------------------------------------------------------
-
-// Fill out your copyright notice in the Description page of Project Settings.
 
 
 #include "GA_Combo.h"
@@ -157,7 +8,10 @@
 #include "Abilities/Tasks/AbilityTask_WaitGameplayEvent.h"
 #include "Abilities/Tasks/AbilityTask_WaitInputPress.h"
 #include "GAS_Project/MyTags.h"
+#include "GAS_Project/Characters/Player/CPlayerCharacter.h"
+#include "GAS_Project/Components/CWeaponComponent.h"
 #include "GAS_Project/GAS/CAbilitySystemStatics.h"
+#include "GAS_Project/Item/Weapon/CWeapon.h"
 
 UGA_Combo::UGA_Combo()
 {
@@ -177,6 +31,30 @@ void UGA_Combo::ActivateAbility(const FGameplayAbilitySpecHandle Handle, const F
 		return;
 	}
 
+	// 1) 캐시 셋업
+	CachedOwnerCharacter = Cast<ACPlayerCharacter>(GetAvatarActorFromActorInfo());
+	if (CachedOwnerCharacter)
+	{
+		CachedWeaponComp = CachedOwnerCharacter->FindComponentByClass<UCWeaponComponent>();
+		if (CachedWeaponComp)
+		{
+			CachedWeapon = CachedWeaponComp->GetCharacterCurrentEquippedWeapon();
+			if (CachedWeapon)
+			{
+				CachedWeaponMesh = CachedWeapon->GetWeaponMesh();
+			}
+		}
+	}
+
+	// 무기나 메쉬가 없으면 바로 종료
+	if (!CachedWeaponMesh)
+	{
+		K2_EndAbility();
+		return;
+	}
+
+	AlreadyHitActors.Empty();
+	
 	// 팩토리 패턴
 
 	if (HasAuthorityOrPredictionKey(ActorInfo, &ActivationInfo))
@@ -189,8 +67,16 @@ void UGA_Combo::ActivateAbility(const FGameplayAbilitySpecHandle Handle, const F
 		PlayComboMontageTask->ReadyForActivation();
 
 		UAbilityTask_WaitGameplayEvent* WaitComboChangeEventTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(this, GetComboChangeEventTag(), nullptr, false, false);
-		WaitComboChangeEventTask->EventReceived.AddDynamic(this, &UGA_Combo::UGA_Combo::ComboChangedEventRecevied);
+		WaitComboChangeEventTask->EventReceived.AddDynamic(this, &UGA_Combo::ComboChangedEventRecevied);
 		WaitComboChangeEventTask->ReadyForActivation();
+
+		UAbilityTask_WaitGameplayEvent* HitScanStartTask  = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(this, MyTags::Events::Trace::TraceStart, nullptr, false, false);
+		HitScanStartTask->EventReceived.AddDynamic(this,&UGA_Combo::OnHitScanStartEvent);
+		HitScanStartTask->ReadyForActivation();
+
+		UAbilityTask_WaitGameplayEvent* HitScanEndTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(this, MyTags::Events::Trace::TraceEnd, nullptr, false, false);
+		HitScanEndTask->EventReceived.AddDynamic(this, &UGA_Combo::OnHitScanEndEvent);
+		HitScanEndTask->ReadyForActivation();
 	}
 
 	if (K2_HasAuthority())
@@ -219,7 +105,17 @@ FGameplayTag UGA_Combo::GetComboTargetEventTag()
 	return MyTags::Abilities::ComboDamage;
 	// FGameplayTag::RequestGameplayTag("ability.combo.damage");
 }
-	
+
+void UGA_Combo::OnHitScanStartEvent(FGameplayEventData Payload)
+{
+	HitScanStart();
+}
+
+void UGA_Combo::OnHitScanEndEvent(FGameplayEventData Payload)
+{
+	HitScanEnd();
+}
+
 void UGA_Combo::SetupWaitComboInputPress()
 {
 	UAbilityTask_WaitInputPress* WaitInputPress = UAbilityTask_WaitInputPress::WaitInputPress(this);
@@ -301,3 +197,168 @@ void UGA_Combo::DoDamage(FGameplayEventData Data)
 	}
 }
 
+
+void UGA_Combo::SendHitReacEventToActors(const TArray<class AActor*>& HitActors)
+{
+	for (AActor* HitActor : HitActors)
+	{
+		FGameplayEventData Payload;
+		Payload.Instigator = GetAvatarActorFromActorInfo();
+		UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(HitActor, MyTags::Events::Enemy::HitReact,Payload);
+	}
+}
+
+TArray<class AActor*> UGA_Combo::HitBoxTrace()
+{ TArray<AActor*> OutActors;
+
+	UWorld* World = GetWorld();
+	if (!World || !CachedWeaponMesh || !CachedOwnerCharacter)
+	{
+		return OutActors;
+	}
+
+	AActor* AvatarActor = CachedOwnerCharacter;
+
+	// 소켓 체크
+	if (!CachedWeaponMesh->DoesSocketExist(StartSocket) ||
+		!CachedWeaponMesh->DoesSocketExist(EndSocket))
+	{
+		return OutActors;
+	}
+
+	const FVector Start = CachedWeaponMesh->GetSocketLocation(StartSocket);
+	const FVector End   = CachedWeaponMesh->GetSocketLocation(EndSocket);
+
+	FCollisionQueryParams QueryParams(SCENE_QUERY_STAT(ComboHitBoxTrace), false, AvatarActor);
+	QueryParams.AddIgnoredActor(AvatarActor);
+
+	FCollisionResponseParams ResponseParams;
+	ResponseParams.CollisionResponse.SetAllChannels(ECR_Ignore);
+	ResponseParams.CollisionResponse.SetResponse(ECC_Pawn, ECR_Block);
+
+	const FCollisionShape Sphere = FCollisionShape::MakeSphere(HitBoxRadius);
+
+	TArray<FHitResult> HitResults;
+
+	const bool bHit = World->SweepMultiByChannel(
+		HitResults,
+		Start,
+		End,
+		FQuat::Identity,
+		ECC_Visibility,
+		Sphere,
+		QueryParams,
+		ResponseParams
+	);
+
+	if (bShouldDrawDebug)
+	{
+		DrawDebugHitTrace(HitResults, (Start + End) * 0.5f);
+	}
+
+	if (!bHit)
+	{
+		return OutActors;
+	}
+
+	OutActors.Reserve(HitResults.Num());
+
+	for (const FHitResult& Result : HitResults)
+	{
+		AActor* HitActor = Result.GetActor();
+		if (!IsValid(HitActor) || HitActor == AvatarActor)
+		{
+			continue;
+		}
+
+		OutActors.AddUnique(HitActor);
+	}
+
+	return OutActors;
+}
+
+void UGA_Combo::HitScanStart()
+{
+	UWorld* World = GetWorld();
+	if (!World) return;
+
+	AlreadyHitActors.Empty(); // 새 공격 창 시작
+
+	if (World->GetTimerManager().IsTimerActive(HitBoxTraceTimerHandle))
+	{
+		World->GetTimerManager().ClearTimer(HitBoxTraceTimerHandle);
+	}
+
+	const float TraceInterval = 0.016f; // 프레임 레벨
+
+	World->GetTimerManager().SetTimer(
+		HitBoxTraceTimerHandle,
+		this,
+		&UGA_Combo::HitScanTick,
+		TraceInterval,
+		true);
+}
+
+void UGA_Combo::HitScanEnd()
+{
+	UWorld* World = GetWorld();
+	if (!World) return;
+
+	World->GetTimerManager().ClearTimer(HitBoxTraceTimerHandle);
+}
+
+void UGA_Combo::HitScanTick()
+{
+	
+	TArray<AActor*> HitActors = HitBoxTrace();
+
+	for (AActor* HitActor : HitActors)
+	{
+		if (!IsValid(HitActor)) continue;
+		if (AlreadyHitActors.Contains(HitActor)) continue;
+
+		AlreadyHitActors.Add(HitActor);
+
+		// 여기서부터 실제 처리
+		FGameplayEventData Payload;
+		Payload.Instigator = GetAvatarActorFromActorInfo();
+		UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(
+			HitActor,
+			MyTags::Events::Enemy::HitReact,
+			Payload
+		);
+	}
+
+	SendHitReacEventToActors(HitActors);
+}
+
+void UGA_Combo::DrawDebugHitTrace(const TArray<FHitResult>& Hits, const FVector& HitBoxLocation) const
+{
+	DrawDebugSphere(GetWorld(), HitBoxLocation, HitBoxRadius, 16, FColor::Red, false, 3.f);
+
+	for (const FHitResult& Result : Hits)
+	{
+		if (IsValid(Result.GetActor()))
+		{
+			// 표면 충돌 지점
+			FVector HitPoint = Result.ImpactPoint;
+
+			// 혹시 ImpactPoint 가 비어있는 경우를 대비해 Location fallback
+			if (HitPoint.IsNearlyZero())
+			{
+				HitPoint = Result.Location;
+			}
+
+			DrawDebugSphere(
+				GetWorld(),
+				HitPoint,
+				30.f,
+				10,
+				FColor::Green,
+				false,
+				3.f
+			);
+		}
+	}
+
+}

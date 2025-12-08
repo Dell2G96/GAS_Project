@@ -57,7 +57,7 @@ protected:
 	void SendLocalGameplayEvent(const FGameplayTag& EventTag, const FGameplayEventData& EventData);
 
 	
-private:
+protected:
 	UPROPERTY(EditDefaultsOnly, Category="Debug")
 	bool bShouldDrawDebug = false;
 

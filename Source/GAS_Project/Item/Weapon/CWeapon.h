@@ -33,7 +33,9 @@ class GAS_PROJECT_API ACWeapon : public AActor
 public:
 	ACWeapon();
 
-
+public:
+	FORCEINLINE USkeletalMeshComponent* GetWeaponMesh() const { return WeaponMesh; }
+	
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Weapon")
 	USkeletalMeshComponent* WeaponMesh;

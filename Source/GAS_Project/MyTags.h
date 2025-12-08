@@ -55,6 +55,16 @@ namespace MyTags
 	
 	namespace Events
 	{
+		namespace Combo
+		{
+			UE_DECLARE_GAMEPLAY_TAG_EXTERN(ComboStart);
+			UE_DECLARE_GAMEPLAY_TAG_EXTERN(ComboEnd);
+		}
+		namespace Trace
+		{
+			UE_DECLARE_GAMEPLAY_TAG_EXTERN(TraceStart);
+			UE_DECLARE_GAMEPLAY_TAG_EXTERN(TraceEnd);
+		}
 		namespace Hit
 		{
 			UE_DECLARE_GAMEPLAY_TAG_EXTERN(Hit);			

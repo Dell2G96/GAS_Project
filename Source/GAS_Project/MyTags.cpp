@@ -51,6 +51,17 @@ namespace MyTags
 
 	namespace Events
 	{
+		namespace Combo
+		{
+			UE_DEFINE_GAMEPLAY_TAG(ComboStart, "MyTags.Events.Combo.Start")
+			UE_DEFINE_GAMEPLAY_TAG(ComboEnd, "MyTags.Events.Combo.End")
+		}
+		namespace Trace
+		{
+			UE_DEFINE_GAMEPLAY_TAG(TraceStart, "MyTags.Events.Trace.Start")
+			UE_DEFINE_GAMEPLAY_TAG(TraceEnd, "MyTags.Events.Trace.End")
+		}
+		
 		namespace Hit
 		{
 			UE_DEFINE_GAMEPLAY_TAG(Hit, "MyTags.Events.Hit")
