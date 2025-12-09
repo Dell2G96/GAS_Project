@@ -3,9 +3,12 @@
 
 #include "CAbilitySystemStatics.h"
 
+#include "AbilitySystemBlueprintLibrary.h"
 #include "AbilitySystemComponent.h"
 #include "AbilitySystemInterface.h"
 #include "GAS_Project/MyTags.h"
+#include "GAS_Project/Characters/CCharacter.h"
+#include "Kismet/GameplayStatics.h"
 
 FGameplayTag UCAbilitySystemStatics::GetBasicAttackAbilityTag()
 {
@@ -215,4 +218,155 @@ float UCAbilitySystemStatics::GetCooldownRemainingFor(const UGameplayAbility* Ab
 	}
 
 	return CooldownRemaining;
+}
+
+EHitDirection UCAbilitySystemStatics::GetHitDirection(const FVector& TargetForward, const FVector& ToInstigator)
+{
+	const float Dot = FVector::DotProduct(TargetForward, ToInstigator);
+	if (Dot < -0.5f)
+	{
+		return EHitDirection::Back;
+	}
+	if (Dot < 0.5f)
+	{
+		// 왼쪽 또는 오른쪽
+		const FVector Cross = FVector::CrossProduct(TargetForward, ToInstigator);
+		if (Cross.Z < 0.f)
+		{
+			return EHitDirection::Left;
+		}
+		return EHitDirection::Right;
+	}
+	return EHitDirection::Forward;
+}
+
+FName UCAbilitySystemStatics::GetHitDirectionName(const EHitDirection& HitDirection)
+{
+	switch (HitDirection)
+	{
+		case EHitDirection::Right: return FName("Right");
+		case EHitDirection::Left: return FName("Left");
+		case EHitDirection::Back: return FName("Back");
+		case EHitDirection::Forward: return FName("Forward");
+		default: return FName("None");
+	}
+}
+
+TArray<AActor*> UCAbilitySystemStatics::HitBoxHitTest(AActor* AvatarActor, float HitBoxRadius,
+	float HitBoxForwardOffset, float HitBoxElevatOffset, bool bDrawDebugs)
+{
+	if (!IsValid(AvatarActor)) return TArray<AActor*>();
+
+	//자기 자신 제외
+	FCollisionQueryParams QueryParams;
+	QueryParams.AddIgnoredActor(AvatarActor);
+
+	FCollisionResponseParams ResponseParams;
+	ResponseParams.CollisionResponse.SetAllChannels(ECR_Ignore);
+	ResponseParams.CollisionResponse.SetResponse(ECC_Pawn, ECR_Block);
+
+	TArray<FHitResult> HitResults;
+	FCollisionShape Sphere = FCollisionShape::MakeSphere(HitBoxRadius);
+
+	const FVector Forward = AvatarActor->GetActorForwardVector() * HitBoxForwardOffset;
+	const FVector HitBoxLocation = AvatarActor->GetActorLocation() + Forward + FVector(0, 0, HitBoxElevatOffset);
+
+	UWorld* World = GEngine->GetWorldFromContextObject(AvatarActor, EGetWorldErrorMode::LogAndReturnNull);
+	if (!IsValid(World)) return TArray<AActor*>();
+	World->SweepMultiByChannel(HitResults, HitBoxLocation, HitBoxLocation, FQuat::Identity, ECC_Visibility, Sphere, QueryParams, ResponseParams);
+
+
+
+	TArray<AActor*> ActorsHit;
+	for (const FHitResult& Result : HitResults)
+	{
+		ACCharacter* Character = Cast<ACCharacter>(Result.GetActor());
+		if (!IsValid(Character)) continue;
+		if (!Character->IsAlive()) continue;
+		ActorsHit.AddUnique(Character);
+	}
+	
+	if (bDrawDebugs)
+	{
+		DrawHitBoxHitDebugs(AvatarActor, HitResults, HitBoxLocation, HitBoxRadius);
+	}
+
+	return ActorsHit;
+}
+
+void UCAbilitySystemStatics::DrawHitBoxHitDebugs(const UObject* WorldContextObject,
+	const TArray<FHitResult>& HitResults, const FVector& HitBoxLocation, float HitBoxRadius)
+{
+	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::LogAndReturnNull);
+	if (!IsValid(World)) return;
+
+	DrawDebugSphere(World, HitBoxLocation, HitBoxRadius, 16, FColor::Red, false, 3.f);
+
+	for (const FHitResult& Result : HitResults)
+	{
+		if (IsValid(Result.GetActor()))
+		{
+			FVector DebugLocation = Result.GetActor()->GetActorLocation();
+			DebugLocation.Z += 100;
+			DrawDebugSphere(World, DebugLocation, 30.f, 10, FColor::Green, false, 3.f);
+		}
+	}
+}
+
+FClosestActorWithTagResult UCAbilitySystemStatics::FindClosestActorWithTag(const UObject* WorldContextObject,
+	const FVector& Origin, const FName& Tag)
+{
+	
+
+	TArray<AActor*> ActorsWithTag;
+	UGameplayStatics::GetAllActorsWithTag(WorldContextObject, Tag, ActorsWithTag);
+
+	float ClosestDistance = TNumericLimits<float>::Max();
+	AActor* ClosesActor = nullptr;
+
+	for (AActor* Actor : ActorsWithTag)
+	{
+		if (!IsValid(Actor)) continue;
+		ACCharacter* BaseCharacter = Cast<ACCharacter>(Actor);
+		if (!IsValid(BaseCharacter) || !BaseCharacter->IsAlive()) continue;
+		const float Distance = FVector::Dist(Origin, Actor->GetActorLocation());
+		if (Distance < ClosestDistance)
+		{
+			ClosestDistance = Distance;
+			ClosesActor = Actor;
+		}
+	}
+	FClosestActorWithTagResult Result;
+	Result.Actor = ClosesActor;
+	Result.Distance = ClosestDistance;
+
+	return Result;
+	
+}
+
+void UCAbilitySystemStatics::SendDamageEventToPlayer(AActor* Target,
+	const TSubclassOf<class UGameplayEffect>& DamageEffect, const struct FGameplayEventData& Payload,
+	const struct FGameplayTag& DataTag, float Damage)
+{
+	ACCharacter* PlayerCharacter = Cast<ACCharacter>(Target);
+	if (!IsValid(PlayerCharacter)) return;
+	if (!PlayerCharacter->IsAlive()) return;
+
+	UCAttributeSet* AttributeSet = Cast<UCAttributeSet>(PlayerCharacter->GetAttributeSet());
+	if (!IsValid(AttributeSet)) return;
+
+	const bool bLethal = AttributeSet->GetHealth() - Damage <= 0.f;
+	const FGameplayTag EventTag = bLethal ? MyTags::Events::Player::Death : MyTags::Events::Player::HitReact;
+
+	UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(PlayerCharacter, EventTag, Payload);
+
+	UAbilitySystemComponent* TargetASC = PlayerCharacter->GetAbilitySystemComponent();
+	if (!IsValid(TargetASC)) return;
+
+	FGameplayEffectContextHandle ContextHandle = TargetASC->MakeEffectContext();
+	FGameplayEffectSpecHandle SpecHandle = TargetASC->MakeOutgoingSpec(DamageEffect, 1.f, ContextHandle);
+
+	UAbilitySystemBlueprintLibrary::AssignTagSetByCallerMagnitude(SpecHandle, DataTag, -Damage);
+
+	TargetASC->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
 }

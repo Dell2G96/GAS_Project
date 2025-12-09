@@ -1,4 +1,3 @@
-// Fill out your copyright notice in the Description page of Project Settings.
 
 #pragma once
 
@@ -7,9 +6,29 @@
 #include "Abilities/GameplayAbility.h"
 #include "CAbilitySystemStatics.generated.h"
 
-/**
- * 
- */
+
+UENUM(BlueprintType)
+enum class EHitDirection : uint8
+{
+	Left,
+	Right,
+	Forward,
+	Back,
+};
+
+USTRUCT(BlueprintType)
+struct FClosestActorWithTagResult
+{
+	GENERATED_BODY()
+	
+	UPROPERTY(BlueprintReadWrite)
+	TWeakObjectPtr<AActor> Actor;
+
+	UPROPERTY(BlueprintReadWrite)
+	float Distance {0.f};
+	
+};
+
 UCLASS()
 class GAS_PROJECT_API UCAbilitySystemStatics : public UBlueprintFunctionLibrary
 {
@@ -43,4 +62,42 @@ public:
 	static float GetStaminaCostFor(const UGameplayAbility* AbilityCDO, const UAbilitySystemComponent& ASC, int AbilityLevel);
 	static float GetCooldownDurationFor(const UGameplayAbility* AbilityCDO, const UAbilitySystemComponent& ASC, int AbilityLevel);
 	static float GetCooldownRemainingFor(const UGameplayAbility* AbilityCDO, const UAbilitySystemComponent& ASC);
+	//------------------------------------------------------------------------------------------------------------------------------
+	UFUNCTION(BlueprintPure)
+	static EHitDirection GetHitDirection(const FVector& TargetForward, const FVector& ToInstigator);
+
+	UFUNCTION(BlueprintPure)
+	static FName GetHitDirectionName(const EHitDirection& HitDirection);
+
+	
+	UFUNCTION(BlueprintCallable, Category="GAS|Abilities")
+	static TArray<AActor*> HitBoxHitTest
+	(
+		AActor* AvatarActor,
+		float HitBoxRadius,
+		float HitBoxForwardOffset = 0.f,
+		float HitBoxElevatOffset = 0.f,
+		bool bDrawDebugs = false
+	);
+
+	UFUNCTION(BlueprintCallable, Category="GAS|Abilities")
+	static void DrawHitBoxHitDebugs
+	(
+		const UObject* WorldContextObject,
+		const TArray<FHitResult>& HitResults,
+		const FVector& HitBoxLocation,
+		float HitBoxRadius
+	);
+
+	UFUNCTION(BlueprintCallable)
+	static FClosestActorWithTagResult FindClosestActorWithTag(const UObject* WorldContextObject, const FVector& Origin, const FName& Tag);
+
+	UFUNCTION(BlueprintCallable)
+	static void SendDamageEventToPlayer(
+		AActor* Target,														
+		const TSubclassOf<class UGameplayEffect>& DamageEffect,					
+		const struct FGameplayEventData& Payload,								
+		const struct FGameplayTag& DataTag,												
+		float Damage);																
+
 };

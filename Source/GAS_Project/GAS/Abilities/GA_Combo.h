@@ -36,7 +36,7 @@ public:
 	FName EndSocket = NAME_None;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="GAS|AttackTrace")
-	float HitBoxRadius = 30.f;
+	float HitBoxRadius = 5.f;
 
 	UFUNCTION(BlueprintCallable,  category="GAS|Combo")
 	void SendHitReacEventToActors(const TArray<class AActor*>& HitActors);

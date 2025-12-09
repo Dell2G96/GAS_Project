@@ -203,7 +203,7 @@ void UANS_AttackTrace::NotifyBegin(USkeletalMeshComponent* MeshComp, UAnimSequen
 			DrawDebugSphere(World, State.PreEnd,   Radius, 12, FColor::Green, false, 1.0f);
 			DrawDebugLine(World, State.PreStart, State.PreEnd, FColor::Green, false, 1.0f, 0, 1.5f);
 		}
-	}
+	}	
 	
 }
 

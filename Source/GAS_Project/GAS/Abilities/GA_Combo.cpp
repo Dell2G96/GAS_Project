@@ -240,26 +240,10 @@ TArray<class AActor*> UGA_Combo::HitBoxTrace()
 
 	TArray<FHitResult> HitResults;
 
-	const bool bHit = World->SweepMultiByChannel(
-		HitResults,
-		Start,
-		End,
-		FQuat::Identity,
-		ECC_Visibility,
-		Sphere,
-		QueryParams,
-		ResponseParams
-	);
-
-	if (bShouldDrawDebug)
-	{
-		DrawDebugHitTrace(HitResults, (Start + End) * 0.5f);
-	}
-
-	if (!bHit)
-	{
-		return OutActors;
-	}
+	const bool bHit = World->SweepMultiByChannel(HitResults,Start,End,FQuat::Identity,ECC_Visibility,Sphere,QueryParams,ResponseParams);
+	
+	if (!bHit) return OutActors;
+	
 
 	OutActors.Reserve(HitResults.Num());
 
@@ -272,8 +256,31 @@ TArray<class AActor*> UGA_Combo::HitBoxTrace()
 		}
 
 		OutActors.AddUnique(HitActor);
+		UE_LOG(LogTemp,Warning,TEXT("HitActor : %s"),*HitActor->GetName());
 	}
 
+	if (bShouldDrawDebug)
+	{
+		DrawDebugSphere(GetWorld(), Start, HitBoxRadius, 12, FColor::Green, false, 1.0f);
+		DrawDebugSphere(GetWorld(), End,   HitBoxRadius, 12, FColor::Green, false, 1.0f);
+		DrawDebugLine(GetWorld(), Start, End, FColor::Green, false, 1.0f, 0, 1.5f);
+
+		for (const FHitResult& Result : HitResults)
+		{
+			if (IsValid(Result.GetActor()))
+			{
+				// 표면 충돌 지점
+				FVector HitPoint = Result.ImpactPoint;
+
+				// 혹시 ImpactPoint 가 비어있는 경우를 대비해 Location fallback
+				if (HitPoint.IsNearlyZero())
+				{
+					HitPoint = Result.Location;
+				}
+				DrawDebugSphere(GetWorld(),HitPoint,HitBoxRadius,10,FColor::Red,false,1.f);
+			}
+		}
+	}
 	return OutActors;
 }
 
@@ -291,12 +298,7 @@ void UGA_Combo::HitScanStart()
 
 	const float TraceInterval = 0.016f; // 프레임 레벨
 
-	World->GetTimerManager().SetTimer(
-		HitBoxTraceTimerHandle,
-		this,
-		&UGA_Combo::HitScanTick,
-		TraceInterval,
-		true);
+	World->GetTimerManager().SetTimer(HitBoxTraceTimerHandle,this,&UGA_Combo::HitScanTick,TraceInterval,true);
 }
 
 void UGA_Combo::HitScanEnd()
@@ -315,6 +317,7 @@ void UGA_Combo::HitScanTick()
 	for (AActor* HitActor : HitActors)
 	{
 		if (!IsValid(HitActor)) continue;
+		
 		if (AlreadyHitActors.Contains(HitActor)) continue;
 
 		AlreadyHitActors.Add(HitActor);
@@ -322,11 +325,7 @@ void UGA_Combo::HitScanTick()
 		// 여기서부터 실제 처리
 		FGameplayEventData Payload;
 		Payload.Instigator = GetAvatarActorFromActorInfo();
-		UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(
-			HitActor,
-			MyTags::Events::Enemy::HitReact,
-			Payload
-		);
+		UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(HitActor,MyTags::Events::Enemy::HitReact,Payload);
 	}
 
 	SendHitReacEventToActors(HitActors);
@@ -335,11 +334,14 @@ void UGA_Combo::HitScanTick()
 void UGA_Combo::DrawDebugHitTrace(const TArray<FHitResult>& Hits, const FVector& HitBoxLocation) const
 {
 	DrawDebugSphere(GetWorld(), HitBoxLocation, HitBoxRadius, 16, FColor::Red, false, 3.f);
-
+	
 	for (const FHitResult& Result : Hits)
 	{
+		
 		if (IsValid(Result.GetActor()))
 		{
+			
+			
 			// 표면 충돌 지점
 			FVector HitPoint = Result.ImpactPoint;
 
