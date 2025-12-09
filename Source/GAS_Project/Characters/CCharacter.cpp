@@ -72,11 +72,11 @@ void ACCharacter::HandleRespawn()
 
 void ACCharacter::ResetAttributes()
 {
-    // checkf(IsValid(ResetAttributesEffects), TEXT("InitializeAttributeEffect not Set"));
-	   //
-    // FGameplayEffectContextHandle ContextHandle = GetAbilitySystemComponent()->MakeEffectContext();
-    // FGameplayEffectSpecHandle SpecHandle = GetAbilitySystemComponent()->MakeOutgoingSpec(ResetAttributesEffects, 1.f,ContextHandle);
-    // GetAbilitySystemComponent()->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
+    checkf(IsValid(ResetAttributesEffects), TEXT("InitializeAttributeEffect not Set"));
+	   
+    FGameplayEffectContextHandle ContextHandle = GetAbilitySystemComponent()->MakeEffectContext();
+    FGameplayEffectSpecHandle SpecHandle = GetAbilitySystemComponent()->MakeOutgoingSpec(ResetAttributesEffects, 1.f,ContextHandle);
+    GetAbilitySystemComponent()->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
 
 }
 
@@ -331,6 +331,10 @@ void ACCharacter::StartDeathSequence()
     
     //GetCharacterMovement()->SetMovementMode(MOVE_None);
     GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+    if (CAbilitySystemComponent)
+    {
+        CAbilitySystemComponent->MakeOutgoingSpec(death)
+    }
 
 }
 

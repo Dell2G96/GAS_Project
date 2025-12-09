@@ -79,9 +79,8 @@ void UCAbilitySystemComponent::GiveInitialAbilities()
 
     UE_LOG(LogTemp, Log, TEXT("=== GiveInitialAbilities START on %s ==="), *GetOwner()->GetName());
 	
-    // 2) 맵/배열 개수 로그
 
-    // 3) 일반 능력
+    // 일반 능력
 	for (const TPair<ECabilityInputID,TSubclassOf<UGameplayAbility>>& AbilityPair : Abilities)
 	{
 		if (!*AbilityPair.Value)
@@ -93,7 +92,7 @@ void UCAbilitySystemComponent::GiveInitialAbilities()
 		GiveAbility(FGameplayAbilitySpec(AbilityPair.Value, 0, (int32)AbilityPair.Key, nullptr));
 	}
 
-    // 4) 기본 능력
+    // 기본 능력
 	for (const TPair<ECabilityInputID,TSubclassOf<UGameplayAbility>>& AbilityPair : BasicAbilities)
 	{
 		if (!*AbilityPair.Value)

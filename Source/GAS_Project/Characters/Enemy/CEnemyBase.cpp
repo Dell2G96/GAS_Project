@@ -62,4 +62,15 @@ void ACEnemyBase::HandleDeath()
 	AIController->StopMovement();
 }
 
+void ACEnemyBase::OnDead()
+{
+	Super::OnDead();
+	
+}
+
+void ACEnemyBase::OnRespawn()
+{
+	Super::OnRespawn();
+}
+
 

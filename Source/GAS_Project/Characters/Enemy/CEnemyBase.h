@@ -19,6 +19,13 @@ public:
 protected:
 	virtual void BeginPlay() override;
 	virtual void HandleDeath() override;
+
+	/*********************************************************************/
+	/*						Death And Respawn                            */
+	/*********************************************************************/
+private:
+	virtual void OnDead() override;
+	virtual void OnRespawn() override;
 //
 // private:
 // 	UPROPERTY(VisibleAnywhere)

@@ -34,7 +34,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category="GAS|Death")
 	virtual void HandleRespawn();
 
-	UFUNCTION(BlueprintCallable, Category="Crash|Death")
+	UFUNCTION(BlueprintCallable, Category="GAS|Death")
 	void ResetAttributes();
 
 protected:
@@ -54,12 +54,12 @@ public:
 
 protected: 
 	virtual void BeginPlay() override;
-	virtual  void PossessedBy(AController* NewController) override;
+	virtual void PossessedBy(AController* NewController) override;
 
 
 public:	
 	virtual void Tick(float DeltaTime) override;
-	
+	 
 	/*********************************************************************/
 	/*						Gameplay Ability                             */
 	/*********************************************************************/
@@ -121,7 +121,14 @@ private:
 public:
 	bool IsDead() const;
 	void RespawnImmediately();
-
+	
+protected:
+	void PlayDeathAnim();
+	void StartDeathSequence();
+	void Respawn();
+	
+	virtual void OnDead();
+	virtual void OnRespawn();
 private:
 	FTransform MeshRelativeTransform;
 	
@@ -136,15 +143,9 @@ protected:
 	void DeathMontageFinished();
 	void SetRagdollEnabled(bool bIsEnabled);
 
-protected:
-	void PlayDeathAnim();
-	void StartDeathSequence();
-	void Respawn();
-	
-	virtual void OnDead();
-	virtual void OnRespawn();
+
 	/*********************************************************************/
-	/*						Team ID			                             */
+	/*								Team ID			                     */
 	/*********************************************************************/
 public:
 	virtual void SetGenericTeamId(const FGenericTeamId& NewTeamID);
@@ -157,7 +158,7 @@ private:
 	virtual void OnRep_TeamID();
 
 	/*********************************************************************/
-	/*						  AI			                             */
+	/*								  AI			                     */
 	/*********************************************************************/
 private:
 	
