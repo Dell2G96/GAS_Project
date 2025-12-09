@@ -34,6 +34,30 @@ void UCAttributeSet::PreAttributeChange(const FGameplayAttribute& Attribute, flo
 	}
 }
 
+
+void UCAttributeSet::PostGameplayEffectExecute(const FGameplayEffectModCallbackData& Data)
+{
+	Super::PostGameplayEffectExecute(Data);
+
+	if (!bAttributesInitialized)
+	{
+		bAttributesInitialized = true;
+		OnAttributesInitialized.Broadcast();
+	}
+	
+	if (Data.EvaluatedData.Attribute == GetHealthAttribute())
+	{
+		SetHealth(FMath::Clamp(GetHealth(),0.f,GetMaxHealth()));
+		SetCachedHealthPercent(GetHealth()/GetMaxHealth());
+	}
+	
+	if (Data.EvaluatedData.Attribute == GetStaminaAttribute())
+	{
+		SetStamina(FMath::Clamp(GetStamina(),0.f,GetMaxStamina()));
+		SetCachedHealthPercent(GetStamina()/GetMaxStamina());   
+	}
+}
+
 void UCAttributeSet::OnRep_AttributesInitialized()
 {
 	if (bAttributesInitialized)
@@ -68,28 +92,6 @@ void UCAttributeSet::RescaleStamina()
 
 
 
-void UCAttributeSet::PostGameplayEffectExecute(const FGameplayEffectModCallbackData& Data)
-{
-	Super::PostGameplayEffectExecute(Data);
-	
-	if (Data.EvaluatedData.Attribute == GetHealthAttribute())
-	{
-		SetHealth(FMath::Clamp(GetHealth(),0.f,GetMaxHealth()));
-		SetCachedHealthPercent(GetHealth()/GetMaxHealth());
-	}
-	
-	if (Data.EvaluatedData.Attribute == GetStaminaAttribute())
-	{
-		SetStamina(FMath::Clamp(GetStamina(),0.f,GetMaxStamina()));
-		SetCachedHealthPercent(GetStamina()/GetMaxStamina());   
-	}
-
-	if (!bAttributesInitialized)
-	{
-		bAttributesInitialized = true;
-		OnAttributesInitialized.Broadcast();
-	}
-}
 
 void UCAttributeSet::OnRep_Health(const FGameplayAttributeData& OldValue)
 {

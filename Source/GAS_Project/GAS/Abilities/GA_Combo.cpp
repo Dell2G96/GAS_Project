@@ -12,6 +12,7 @@
 #include "GAS_Project/Components/CWeaponComponent.h"
 #include "GAS_Project/GAS/CAbilitySystemStatics.h"
 #include "GAS_Project/Item/Weapon/CWeapon.h"
+#include "Kismet/GameplayStatics.h"
 
 UGA_Combo::UGA_Combo()
 {
@@ -82,7 +83,7 @@ void UGA_Combo::ActivateAbility(const FGameplayAbilitySpecHandle Handle, const F
 	if (K2_HasAuthority())
 	{
 		UAbilityTask_WaitGameplayEvent* WaitTargetEventTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(this,GetComboTargetEventTag());
-		WaitTargetEventTask->EventReceived.AddDynamic(this, &UGA_Combo::DoDamage);
+		WaitTargetEventTask->EventReceived.AddDynamic(this, &UGA_Combo::DoDamageNew);
 		WaitTargetEventTask->ReadyForActivation();
 	}
 	SetupWaitComboInputPress();
@@ -143,7 +144,6 @@ void UGA_Combo::TryCommitCombo()
 
 	OwnerAnimInst->Montage_SetNextSection(OwnerAnimInst->Montage_GetCurrentSection(ComboMontage), NextComboName, ComboMontage);
 	
-	
 }
 
 TSubclassOf<UGameplayEffect> UGA_Combo::GetDamageEffectForCurrentCombo() const
@@ -158,7 +158,7 @@ TSubclassOf<UGameplayEffect> UGA_Combo::GetDamageEffectForCurrentCombo() const
 			return* FoundEffectPtr;
 		}
 	}
-	return DafaultDamageEffect;
+	return DefaultDamageEffect;
 }
 
 void UGA_Combo::ComboChangedEventRecevied(FGameplayEventData Data)
@@ -177,16 +177,6 @@ void UGA_Combo::ComboChangedEventRecevied(FGameplayEventData Data)
 }
 void UGA_Combo::DoDamage(FGameplayEventData Data)
 {
-
-	// 기존 코드
-	// TArray<FHitResult> HitResults = GetHitResultFromSweepLocationTargetData(Data.TargetData, TargetSweepShpereRadius);
-	//
-	// for (const FHitResult& HitResult : HitResults)
-	// {
-	// 	 TSubclassOf<UGameplayEffect> GameplayEffect = GetDamageEffectForCurrentCombo();
-	// 	 ApplyGameplayEffectToHitResultActor(HitResult, GameplayEffect, GetAbilityLevel(CurrentSpecHandle, CurrentActorInfo));		
-	// }
-
 	int HitResultCount = UAbilitySystemBlueprintLibrary::GetDataCountFromTargetData(Data.TargetData);
 
 	for (int i = 0; i < HitResultCount; i++)
@@ -197,14 +187,41 @@ void UGA_Combo::DoDamage(FGameplayEventData Data)
 	}
 }
 
+void UGA_Combo::DoDamageNew(FGameplayEventData Data)
+{
+	const IAbilitySystemInterface* InstASI = Cast<IAbilitySystemInterface>(Data.Instigator);
+	const IAbilitySystemInterface* TgtASI  = Cast<IAbilitySystemInterface>(Data.Target);
+	if (InstASI && TgtASI)
+	{
+		// HitResult 생성 및 위치 정보 설정
+		FHitResult HitResult;
+		HitResult.Location = Cast<AActor>(Data.Target)->GetActorLocation();
+		HitResult.ImpactPoint = HitResult.Location;
+		
+		UAbilitySystemComponent* InstASC = InstASI->GetAbilitySystemComponent();
+		UAbilitySystemComponent* TgtASC  = TgtASI->GetAbilitySystemComponent();
+		if (InstASC && TgtASC)
+		{
+			FGameplayEffectContextHandle ContextHandle = InstASC->MakeEffectContext();
+			ContextHandle.AddInstigator(CachedOwnerCharacter, CachedOwnerCharacter);
+			ContextHandle.AddHitResult(HitResult);
+			FGameplayEffectSpecHandle Spec = InstASC->MakeOutgoingSpec(DefaultDamageEffect, /*Lvl*/1.f, ContextHandle);
+			if (Spec.IsValid())
+			{
+				TgtASC->ApplyGameplayEffectSpecToSelf(*Spec.Data.Get());
+			}
+		}
+	}
+}
 
-void UGA_Combo::SendHitReacEventToActors(const TArray<class AActor*>& HitActors)
+
+void UGA_Combo::SendHitReactEventToActors(const TArray<class AActor*>& HitActors)
 {
 	for (AActor* HitActor : HitActors)
 	{
 		FGameplayEventData Payload;
 		Payload.Instigator = GetAvatarActorFromActorInfo();
-		UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(HitActor, MyTags::Events::Enemy::HitReact,Payload);
+		UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(HitActor, MyTags::Events::Hit::LightHit,Payload);
 	}
 }
 
@@ -322,13 +339,21 @@ void UGA_Combo::HitScanTick()
 
 		AlreadyHitActors.Add(HitActor);
 
-		// 여기서부터 실제 처리
-		FGameplayEventData Payload;
-		Payload.Instigator = GetAvatarActorFromActorInfo();
-		UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(HitActor,MyTags::Events::Hit::LightHit,Payload);
+		if (K2_HasAuthority())
+		{
+			SendHitReactEventToActors(HitActors);
+			FGameplayEventData Data;
+			Data.Instigator = CachedOwnerCharacter;
+			Data.Target = HitActor;
+			DoDamageNew(Data);
+			// 여기서부터 실제 처리
+
+			// FGameplayEventData Payload;
+			// Payload.Instigator = GetAvatarActorFromActorInfo();
+			// UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(HitActor,MyTags::Events::Hit::LightHit,Payload);	
+		}
 	}
 
-	SendHitReacEventToActors(HitActors);
 }
 
 void UGA_Combo::DrawDebugHitTrace(const TArray<FHitResult>& Hits, const FVector& HitBoxLocation) const

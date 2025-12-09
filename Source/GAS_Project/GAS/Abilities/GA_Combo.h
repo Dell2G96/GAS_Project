@@ -39,7 +39,7 @@ public:
 	float HitBoxRadius = 5.f;
 
 	UFUNCTION(BlueprintCallable,  category="GAS|Combo")
-	void SendHitReacEventToActors(const TArray<class AActor*>& HitActors);
+	void SendHitReactEventToActors(const TArray<class AActor*>& HitActors);
 
 	UFUNCTION(BlueprintCallable,  category="GAS|Combo")
 	TArray<class AActor*> HitBoxTrace();
@@ -90,7 +90,10 @@ private:
 
 	
 	UPROPERTY(EditDefaultsOnly, Category="Gameplay Effect")
-	TSubclassOf<UGameplayEffect> DafaultDamageEffect;
+	TSubclassOf<UGameplayEffect> DefaultDamageEffect;
+
+	UPROPERTY(EditDefaultsOnly, Category="Gameplay Effect")
+	class UGameplayEffect* DamageEffect;
 	
 	UPROPERTY(EditDefaultsOnly, Category="Gameplay Effect")
 	TMap<FName, TSubclassOf<UGameplayEffect>> DamageEffectMap;
@@ -105,7 +108,11 @@ private:
 	void ComboChangedEventRecevied(FGameplayEventData Data);
 
 	UFUNCTION()
+	void DoDamageNew(FGameplayEventData Data);
+	
+	UFUNCTION()
 	void DoDamage(FGameplayEventData Data);
+	
 
 	
 	FName NextComboName;

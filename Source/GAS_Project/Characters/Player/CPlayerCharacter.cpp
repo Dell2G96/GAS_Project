@@ -63,6 +63,67 @@ void ACPlayerCharacter::BeginPlay()
 }
 
 
+void ACPlayerCharacter::PossessedBy(AController* NewController)
+{
+    Super::PossessedBy(NewController);
+
+    if (!IsValid(GetAbilitySystemComponent()) || !HasAuthority()) return;
+
+    GetAbilitySystemComponent()->InitAbilityActorInfo(GetPlayerState(), this);
+    OnASCInitialized.Broadcast(GetAbilitySystemComponent(), GetAttributeSet());
+
+    if (IsValid(GetAbilitySystemComponent()))
+    {
+        ConfigureOverHeadStatusWidget();
+        //CAbilitySystemComponent->ServerSideInit();
+        //BindGASChangeDelegate();
+    }
+
+    //없어도 되는거 아닌가
+    // CAttributeSet = Cast<UCAttributeSet>(GetAttributeSet());
+    // if (!IsValid(CAttributeSet)) return;
+
+    GetAbilitySystemComponent()->GetGameplayAttributeValueChangeDelegate(CAttributeSet->GetHealthAttribute()).AddUObject(this, &ThisClass::OnHealthChanged);
+    GetAbilitySystemComponent()->GetGameplayAttributeValueChangeDelegate(CAttributeSet->GetStaminaAttribute()).AddUObject(this, &ThisClass::OnStaminaChanged);
+    
+}
+
+
+void ACPlayerCharacter::OnRep_PlayerState()
+{
+    Super::OnRep_PlayerState();
+    
+    if (!IsValid(GetAbilitySystemComponent())) return;
+
+    GetAbilitySystemComponent()->InitAbilityActorInfo(GetPlayerState(), this);
+    OnASCInitialized.Broadcast(GetAbilitySystemComponent(), GetAttributeSet());
+
+    //없어도 되는거 아닌가
+    // CAttributeSet = Cast<UCAttributeSet>(GetAttributeSet());
+    // if (!IsValid(CAttributeSet)) return;
+	
+    GetAbilitySystemComponent()->GetGameplayAttributeValueChangeDelegate(CAttributeSet->GetHealthAttribute()).AddUObject(this, &ThisClass::OnHealthChanged);
+    GetAbilitySystemComponent()->GetGameplayAttributeValueChangeDelegate(CAttributeSet->GetStaminaAttribute()).AddUObject(this, &ThisClass::OnStaminaChanged);
+
+    ConfigureOverHeadStatusWidget();
+    
+    // ACPlayerState* PS = GetPlayerState<ACPlayerState>();
+    //
+    // if (!PS)
+    // {
+    //     UE_LOG(LogTemp,Warning,TEXT("ClientSideInit: PlayerState is NULL!"));
+    //     return;
+    // }
+    // CAbilitySystemComponent = Cast<UCAbilitySystemComponent> (PS->GetAbilitySystemComponent());
+    // if (CAbilitySystemComponent)
+    // {
+    //     CAbilitySystemComponent->InitAbilityActorInfo(PS, this);   // 클라 동기화
+    //     ConfigureOverHeadStatusWidget();
+    //     BindGASChangeDelegate();
+    // }
+    
+}
+
 void ACPlayerCharacter::ServerSideInit()
 {
     ACPlayerState* PS = GetPlayerState<ACPlayerState>();
@@ -179,65 +240,7 @@ UAttributeSet* ACPlayerCharacter::GetAttributeSet() const
     return PS->GetAttributeSet();
 }
 
-void ACPlayerCharacter::PossessedBy(AController* NewController)
-{
-    Super::PossessedBy(NewController);
 
-    if (!IsValid(GetAbilitySystemComponent()) || !HasAuthority()) return;
-
-    GetAbilitySystemComponent()->InitAbilityActorInfo(GetPlayerState(), this);
-    OnASCInitialized.Broadcast(GetAbilitySystemComponent(), GetAttributeSet());
-
-    if (IsValid(GetAbilitySystemComponent()))
-    {
-        ConfigureOverHeadStatusWidget();
-        //CAbilitySystemComponent->ServerSideInit();
-        //BindGASChangeDelegate();
-    }
-    
-    CAttributeSet = Cast<UCAttributeSet>(GetAttributeSet());
-    if (!IsValid(CAttributeSet)) return;
-
-    GetAbilitySystemComponent()->GetGameplayAttributeValueChangeDelegate(CAttributeSet->GetHealthAttribute()).AddUObject(this, &ThisClass::OnHealthChanged);
-    GetAbilitySystemComponent()->GetGameplayAttributeValueChangeDelegate(CAttributeSet->GetStaminaAttribute()).AddUObject(this, &ThisClass::OnStaminaChanged);
-    
-   
-}
-
-void ACPlayerCharacter::OnRep_PlayerState()
-{
-    Super::OnRep_PlayerState();
-    
-    if (!IsValid(GetAbilitySystemComponent())) return;
-
-    GetAbilitySystemComponent()->InitAbilityActorInfo(GetPlayerState(), this);
-    OnASCInitialized.Broadcast(GetAbilitySystemComponent(), GetAttributeSet());
-
-
-    CAttributeSet = Cast<UCAttributeSet>(GetAttributeSet());
-    if (!IsValid(CAttributeSet)) return;
-	
-    GetAbilitySystemComponent()->GetGameplayAttributeValueChangeDelegate(CAttributeSet->GetHealthAttribute()).AddUObject(this, &ThisClass::OnHealthChanged);
-    GetAbilitySystemComponent()->GetGameplayAttributeValueChangeDelegate(CAttributeSet->GetStaminaAttribute()).AddUObject(this, &ThisClass::OnStaminaChanged);
-
-    ConfigureOverHeadStatusWidget();
-    
-    // ACPlayerState* PS = GetPlayerState<ACPlayerState>();
-    //
-    // if (!PS)
-    // {
-    //     UE_LOG(LogTemp,Warning,TEXT("ClientSideInit: PlayerState is NULL!"));
-    //     return;
-    // }
-    // CAbilitySystemComponent = Cast<UCAbilitySystemComponent> (PS->GetAbilitySystemComponent());
-    // if (CAbilitySystemComponent)
-    // {
-    //     CAbilitySystemComponent->InitAbilityActorInfo(PS, this);   // 클라 동기화
-    //     ConfigureOverHeadStatusWidget();
-    //     BindGASChangeDelegate();
-    // }
-    
-}
 
 void ACPlayerCharacter::OnStun()
 {

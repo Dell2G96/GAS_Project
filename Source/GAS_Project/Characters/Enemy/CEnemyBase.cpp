@@ -7,6 +7,7 @@
 #include "GAS_Project/GAS/CAbilitySystemComponent.h"
 
 
+
 ACEnemyBase::ACEnemyBase()
 {
 	PrimaryActorTick.bCanEverTick = false;
