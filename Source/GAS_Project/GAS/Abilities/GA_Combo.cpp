@@ -325,7 +325,7 @@ void UGA_Combo::HitScanTick()
 		// 여기서부터 실제 처리
 		FGameplayEventData Payload;
 		Payload.Instigator = GetAvatarActorFromActorInfo();
-		UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(HitActor,MyTags::Events::Enemy::HitReact,Payload);
+		UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(HitActor,MyTags::Events::Hit::LightHit,Payload);
 	}
 
 	SendHitReacEventToActors(HitActors);
