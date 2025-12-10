@@ -161,8 +161,10 @@ private:
 	/*								  AI			                     */
 	/*********************************************************************/
 private:
-	
-};
+
+public:
+	UFUNCTION(NetMulticast, Unreliable)
+   void Multicast_SendGameplayEvent(AActor* Target, FGameplayTag EventTag, FGameplayEventData Payload);};
 
 
 	

@@ -3,6 +3,8 @@
 
 #include "GA_HitReact.h"
 
+#include "Abilities/Tasks/AbilityTask_PlayMontageAndWait.h"
+
 void UGA_HitReact::CacheHitDirectionVectors(AActor* Instigator)
 {
 	AvatarForward = GetAvatarActorFromActorInfo()->GetActorForwardVector();
@@ -13,3 +15,4 @@ void UGA_HitReact::CacheHitDirectionVectors(AActor* Instigator)
 	ToInstigator = InstigatorLocation - AvatarLocation;
 	ToInstigator.Normalize();
 }
+

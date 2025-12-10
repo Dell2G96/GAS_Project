@@ -187,6 +187,8 @@ void UGA_Combo::DoDamage(FGameplayEventData Data)
 	}
 }
 
+
+
 void UGA_Combo::DoDamageNew(FGameplayEventData Data)
 {
 	const IAbilitySystemInterface* InstASI = Cast<IAbilitySystemInterface>(Data.Instigator);
@@ -338,19 +340,29 @@ void UGA_Combo::HitScanTick()
 		if (AlreadyHitActors.Contains(HitActor)) continue;
 
 		AlreadyHitActors.Add(HitActor);
-
+		
 		if (K2_HasAuthority())
 		{
-			SendHitReactEventToActors(HitActors);
+			// 내 캐릭터(공격자) 가져오기
+			FGameplayEventData Payload;
+			Payload.Instigator = CachedOwnerCharacter;
+			
+			if (CachedOwnerCharacter)
+			{
+				// "야, 저 녀석(HitActor)한테 맞았다는 이벤트 좀 다 뿌려라"
+				CachedOwnerCharacter->Multicast_SendGameplayEvent(HitActor, MyTags::Events::Hit::LightHit, Payload);
+			}
+			
 			FGameplayEventData Data;
 			Data.Instigator = CachedOwnerCharacter;
 			Data.Target = HitActor;
 			DoDamageNew(Data);
-			// 여기서부터 실제 처리
-
-			// FGameplayEventData Payload;
-			// Payload.Instigator = GetAvatarActorFromActorInfo();
-			// UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(HitActor,MyTags::Events::Hit::LightHit,Payload);	
+		}
+		else
+		{
+			FGameplayEventData Payload;
+			Payload.Instigator = GetAvatarActorFromActorInfo();
+			UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(HitActor, MyTags::Events::Hit::LightHit,Payload);
 		}
 	}
 

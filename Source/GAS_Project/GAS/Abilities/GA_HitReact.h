@@ -17,7 +17,7 @@ class GAS_PROJECT_API UGA_HitReact : public UCGameplayAbility
 public:
 	UFUNCTION(BlueprintCallable, Category="GAS|Abilities")
 	void CacheHitDirectionVectors(AActor* Instigator);
-
+	
 	UPROPERTY(BlueprintReadOnly, Category = "GAS|Abilities")
 	FVector AvatarForward;
 

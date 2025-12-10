@@ -11,6 +11,8 @@
 #include "GAS_Project/GAS/CAttributeSet.h"
 #include "GAS_Project/Widgets/OverHeadStatsGauge.h"
 #include "Kismet/GameplayStatics.h"
+#include "GameplayEffect.h"
+#include "GAS_Project/MyTags.h"
 #include "Perception/AIPerceptionStimuliSourceComponent.h"
 
 ACCharacter::ACCharacter()
@@ -72,11 +74,11 @@ void ACCharacter::HandleRespawn()
 
 void ACCharacter::ResetAttributes()
 {
-    checkf(IsValid(ResetAttributesEffects), TEXT("InitializeAttributeEffect not Set"));
-	   
-    FGameplayEffectContextHandle ContextHandle = GetAbilitySystemComponent()->MakeEffectContext();
-    FGameplayEffectSpecHandle SpecHandle = GetAbilitySystemComponent()->MakeOutgoingSpec(ResetAttributesEffects, 1.f,ContextHandle);
-    GetAbilitySystemComponent()->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
+    // checkf(IsValid(ResetAttributesEffects), TEXT("InitializeAttributeEffect not Set"));
+	   //
+    // FGameplayEffectContextHandle ContextHandle = GetAbilitySystemComponent()->MakeEffectContext();
+    // FGameplayEffectSpecHandle SpecHandle = GetAbilitySystemComponent()->MakeOutgoingSpec(ResetAttributesEffects, 1.f,ContextHandle);
+    // GetAbilitySystemComponent()->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
 
 }
 
@@ -322,24 +324,34 @@ void ACCharacter::StartDeathSequence()
 {
     //UE_LOG(LogTemp,Warning,TEXT("ACCharacter::StartDeathSequence"));
     OnDead();
-    // if (CAbilitySystemComponent)
-    // {
-    //     CAbilitySystemComponent->CancelAllAbilities();
-    // }
+    if (CAbilitySystemComponent)
+    {
+        CAbilitySystemComponent->TryActivateAbilitiesByTag(FGameplayTagContainer(UCAbilitySystemStatics::GetDeadStatTag()));
+        //CAbilitySystemComponent->CancelAllAbilities();
+       
+    }
     PlayDeathAnim();
     SetStatusGaugeEnable(false);
     
     //GetCharacterMovement()->SetMovementMode(MOVE_None);
     GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-    if (CAbilitySystemComponent)
-    {
-        CAbilitySystemComponent->MakeOutgoingSpec(death)
-    }
+   
 
 }
 
 void ACCharacter::Respawn()
 {
+    // FGameplayTagContainer TagsToRemove;
+    // TagsToRemove.AddTag(UCAbilitySystemStatics::GetDeadStatTag());
+    //
+    // // FGameplayEffectQuery Query;
+    // // Query.OwningTagQuery = TagsToRemove;
+    //
+    // FActiveGameplayEffectQuery Query;
+    // Query.OwnedTags = TagsToRemove;
+    //
+    // CAbilitySystemComponent->RemoveActiveEffects(TagsToRemove);
+
     OnRespawn();
     //SetAIPerceptionStimuliSourceEnabled(true);
     SetRagdollEnabled(false);
@@ -388,6 +400,15 @@ void ACCharacter::OnRep_TeamID()
 {
     //Overide Inchild		
 }
+
+void ACCharacter::Multicast_SendGameplayEvent_Implementation(AActor* Target, FGameplayTag EventTag,
+    FGameplayEventData Payload)
+{
+    // 각 클라이언트(Proxy)의 로컬에서 이 줄이 실행됨
+    // 즉, 각자의 컴퓨터에서 "이벤트가 발생했다"고 ASC에 알림 -> WaitGameplayEvent가 반응함
+    UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(Target, EventTag, Payload);
+}
+
 
 void ACCharacter::OnStun()
 {

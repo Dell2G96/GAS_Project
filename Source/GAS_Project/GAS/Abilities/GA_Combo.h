@@ -112,6 +112,7 @@ private:
 	
 	UFUNCTION()
 	void DoDamage(FGameplayEventData Data);
+
 	
 
 	
