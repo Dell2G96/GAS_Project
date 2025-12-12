@@ -38,8 +38,8 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="GAS|AttackTrace")
 	float HitBoxRadius = 5.f;
 
-	UFUNCTION(BlueprintCallable,  category="GAS|Combo")
-	void SendHitReactEventToActors(const TArray<class AActor*>& HitActors);
+	// UFUNCTION(BlueprintCallable,  category="GAS|Combo")
+	// void SendEventsToActors(class USkeletalMeshComponent* MeshComp, const TArray<FHitResult>& HitActors) const;
 
 	UFUNCTION(BlueprintCallable,  category="GAS|Combo")
 	TArray<class AActor*> HitBoxTrace();
@@ -58,6 +58,8 @@ public:
 	
 	void DrawDebugHitTrace(const TArray<FHitResult>& Hits, const FVector& HitBoxLocation) const;
 
+	UFUNCTION(BlueprintCallable,  category="GAS|Combo")
+	void SendEventsToActors(class AActor* Owner, const TArray<FHitResult>& Hits) const;
 	
 protected:
 	UPROPERTY()
@@ -75,7 +77,6 @@ protected:
 	// 이미 맞은 액터 (한 공격 창 동안 중복 히트 방지 + 불필요 처리 감소)
 	TSet<TWeakObjectPtr<class AActor>> AlreadyHitActors;
 
-	
 private:
 	void SetupWaitComboInputPress();
 
@@ -85,9 +86,7 @@ private:
 	void TryCommitCombo();
 	
 	UPROPERTY(EditDefaultsOnly, Category="Targetting")
-	float TargetSweepShpereRadius = 30.f;
-	
-
+	float TargetSweepSphereRadius = 30.f;
 	
 	UPROPERTY(EditDefaultsOnly, Category="Gameplay Effect")
 	TSubclassOf<UGameplayEffect> DefaultDamageEffect;
@@ -99,7 +98,6 @@ private:
 	TMap<FName, TSubclassOf<UGameplayEffect>> DamageEffectMap;
 
 	TSubclassOf<UGameplayEffect> GetDamageEffectForCurrentCombo() const;
-
 	
 	UPROPERTY(EditDefaultsOnly, Category="Animation")
 	UAnimMontage* ComboMontage;
@@ -112,8 +110,6 @@ private:
 	
 	UFUNCTION()
 	void DoDamage(FGameplayEventData Data);
-
-	
 
 	
 	FName NextComboName;

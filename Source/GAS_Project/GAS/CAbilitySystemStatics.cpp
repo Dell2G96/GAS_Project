@@ -252,8 +252,54 @@ FName UCAbilitySystemStatics::GetHitDirectionName(const EHitDirection& HitDirect
 	}
 }
 
+void UCAbilitySystemStatics::SendDamageEventToPlayer(AActor* Target, const TSubclassOf<UGameplayEffect>& DamageEffect,
+	FGameplayEventData& Payload, const FGameplayTag& DataTag, float Damage, const FGameplayTag& EventTagOverride,
+	UObject* OptionalParticleSystem)
+{
+	ACCharacter* PlayerCharacter = Cast<ACCharacter>(Target);
+	if (!IsValid(PlayerCharacter)) return;
+	if (!PlayerCharacter->IsAlive()) return;
+
+	FGameplayTag EventTag;
+	if (!EventTagOverride.MatchesTagExact(MyTags::None))
+	{
+		EventTag = EventTagOverride;
+	}
+	else
+	{
+		UCAttributeSet* AttributeSet = Cast<UCAttributeSet>(PlayerCharacter->GetAttributeSet());
+		if (!IsValid(AttributeSet)) return;
+
+		const bool bLethal = AttributeSet->GetHealth() - Damage <= 0.f;
+		EventTag = bLethal ? MyTags::Events::Player::Death : MyTags::Events::Player::HitReact;
+	}
+	
+	Payload.OptionalObject = OptionalParticleSystem;
+	UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(PlayerCharacter, EventTag, Payload);
+
+	UAbilitySystemComponent* TargetASC = PlayerCharacter->GetAbilitySystemComponent();
+	if (!IsValid(TargetASC)) return;
+
+	FGameplayEffectContextHandle ContextHandle = TargetASC->MakeEffectContext();
+	FGameplayEffectSpecHandle SpecHandle = TargetASC->MakeOutgoingSpec(DamageEffect, 1.f, ContextHandle);
+
+	UAbilitySystemBlueprintLibrary::AssignTagSetByCallerMagnitude(SpecHandle, DataTag, -Damage);
+
+	TargetASC->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
+}
+
+void UCAbilitySystemStatics::SendDamageEventToPlayers(TArray<AActor*> Targets,
+	const TSubclassOf<UGameplayEffect>& DamageEffect, FGameplayEventData& Payload, const FGameplayTag& DataTag,
+	float Damage, const FGameplayTag& EventTagOverride, UObject* OptionalParticleSystem)
+{
+	for (AActor* Target : Targets)
+	{
+		SendDamageEventToPlayer(Target, DamageEffect, Payload, DataTag, Damage, EventTagOverride, OptionalParticleSystem);
+	}
+}
+
 TArray<AActor*> UCAbilitySystemStatics::HitBoxHitTest(AActor* AvatarActor, float HitBoxRadius,
-	float HitBoxForwardOffset, float HitBoxElevatOffset, bool bDrawDebugs)
+                                                      float HitBoxForwardOffset, float HitBoxElevatOffset, bool bDrawDebugs)
 {
 	if (!IsValid(AvatarActor)) return TArray<AActor*>();
 
@@ -343,30 +389,30 @@ FClosestActorWithTagResult UCAbilitySystemStatics::FindClosestActorWithTag(const
 	return Result;
 	
 }
-
-void UCAbilitySystemStatics::SendDamageEventToPlayer(AActor* Target,
-	const TSubclassOf<class UGameplayEffect>& DamageEffect, const struct FGameplayEventData& Payload,
-	const struct FGameplayTag& DataTag, float Damage)
-{
-	ACCharacter* PlayerCharacter = Cast<ACCharacter>(Target);
-	if (!IsValid(PlayerCharacter)) return;
-	if (!PlayerCharacter->IsAlive()) return;
-
-	UCAttributeSet* AttributeSet = Cast<UCAttributeSet>(PlayerCharacter->GetAttributeSet());
-	if (!IsValid(AttributeSet)) return;
-
-	const bool bLethal = AttributeSet->GetHealth() - Damage <= 0.f;
-	const FGameplayTag EventTag = bLethal ? MyTags::Events::Player::Death : MyTags::Events::Player::HitReact;
-
-	UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(PlayerCharacter, EventTag, Payload);
-
-	UAbilitySystemComponent* TargetASC = PlayerCharacter->GetAbilitySystemComponent();
-	if (!IsValid(TargetASC)) return;
-
-	FGameplayEffectContextHandle ContextHandle = TargetASC->MakeEffectContext();
-	FGameplayEffectSpecHandle SpecHandle = TargetASC->MakeOutgoingSpec(DamageEffect, 1.f, ContextHandle);
-
-	UAbilitySystemBlueprintLibrary::AssignTagSetByCallerMagnitude(SpecHandle, DataTag, -Damage);
-
-	TargetASC->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
-}
+//
+// void UCAbilitySystemStatics::SendDamageEventToPlayer(AActor* Target,
+// 	const TSubclassOf<class UGameplayEffect>& DamageEffect, const struct FGameplayEventData& Payload,
+// 	const struct FGameplayTag& DataTag, float Damage)
+// {
+// 	ACCharacter* PlayerCharacter = Cast<ACCharacter>(Target);
+// 	if (!IsValid(PlayerCharacter)) return;
+// 	if (!PlayerCharacter->IsAlive()) return;
+//
+// 	UCAttributeSet* AttributeSet = Cast<UCAttributeSet>(PlayerCharacter->GetAttributeSet());
+// 	if (!IsValid(AttributeSet)) return;
+//
+// 	const bool bLethal = AttributeSet->GetHealth() - Damage <= 0.f;
+// 	const FGameplayTag EventTag = bLethal ? MyTags::Events::Player::Death : MyTags::Events::Player::HitReact;
+//
+// 	UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(PlayerCharacter, EventTag, Payload);
+//
+// 	UAbilitySystemComponent* TargetASC = PlayerCharacter->GetAbilitySystemComponent();
+// 	if (!IsValid(TargetASC)) return;
+//
+// 	FGameplayEffectContextHandle ContextHandle = TargetASC->MakeEffectContext();
+// 	FGameplayEffectSpecHandle SpecHandle = TargetASC->MakeOutgoingSpec(DamageEffect, 1.f, ContextHandle);
+//
+// 	UAbilitySystemBlueprintLibrary::AssignTagSetByCallerMagnitude(SpecHandle, DataTag, -Damage);
+//
+// 	TargetASC->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
+// }

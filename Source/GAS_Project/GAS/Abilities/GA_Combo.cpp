@@ -9,6 +9,7 @@
 #include "Abilities/Tasks/AbilityTask_WaitInputPress.h"
 #include "GAS_Project/MyTags.h"
 #include "GAS_Project/Characters/Player/CPlayerCharacter.h"
+#include "GAS_Project/Characters/Player/CPlayerController.h"
 #include "GAS_Project/Components/CWeaponComponent.h"
 #include "GAS_Project/GAS/CAbilitySystemStatics.h"
 #include "GAS_Project/Item/Weapon/CWeapon.h"
@@ -202,6 +203,7 @@ void UGA_Combo::DoDamageNew(FGameplayEventData Data)
 		
 		UAbilitySystemComponent* InstASC = InstASI->GetAbilitySystemComponent();
 		UAbilitySystemComponent* TgtASC  = TgtASI->GetAbilitySystemComponent();
+		
 		if (InstASC && TgtASC)
 		{
 			FGameplayEffectContextHandle ContextHandle = InstASC->MakeEffectContext();
@@ -217,15 +219,15 @@ void UGA_Combo::DoDamageNew(FGameplayEventData Data)
 }
 
 
-void UGA_Combo::SendHitReactEventToActors(const TArray<class AActor*>& HitActors)
-{
-	for (AActor* HitActor : HitActors)
-	{
-		FGameplayEventData Payload;
-		Payload.Instigator = GetAvatarActorFromActorInfo();
-		UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(HitActor, MyTags::Events::Hit::LightHit,Payload);
-	}
-}
+// void UGA_Combo::SendHitReactEventToActors(const TArray<class AActor*>& HitActors)
+// {
+// 	for (AActor* HitActor : HitActors)
+// 	{
+// 		FGameplayEventData Payload;
+// 		Payload.Instigator = GetAvatarActorFromActorInfo();
+// 		UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(HitActor, MyTags::Events::Hit::LightHit,Payload);
+// 	}
+// }
 
 TArray<class AActor*> UGA_Combo::HitBoxTrace()
 { TArray<AActor*> OutActors;
@@ -302,6 +304,29 @@ TArray<class AActor*> UGA_Combo::HitBoxTrace()
 	}
 	return OutActors;
 }
+//
+// void UGA_Combo::SendEventsToActors(class USkeletalMeshComponent* MeshComp, const TArray< FHitResult>& HitActors) const
+// {
+// 	for (const FHitResult& HitActor : HitActors )
+// 	{
+// 		ACPlayerCharacter* PlayerCharacter = Cast<ACPlayerCharacter>(HitActor.GetActor());
+// 		if (!IsValid(PlayerCharacter)) continue;
+// 		if (!PlayerCharacter->IsAlive()) continue;
+// 		UAbilitySystemComponent* ASC = PlayerCharacter->GetAbilitySystemComponent();
+// 		if (!IsValid(ASC)) continue;
+//
+// 		FGameplayEffectContextHandle ContextHandle = ASC->MakeEffectContext();
+// 		ContextHandle.AddHitResult(HitActor);
+//
+// 		FGameplayEventData Payload;
+// 		Payload.Target = PlayerCharacter;
+// 		Payload.ContextHandle = ContextHandle;
+// 		Payload.Instigator = MeshComp->GetOwner();
+//
+// 		UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(MeshComp->GetOwner(), MyTags::Events::Enemy::HitReact, Payload);
+// 		
+// 	}
+// }
 
 void UGA_Combo::HitScanStart()
 {
@@ -343,15 +368,21 @@ void UGA_Combo::HitScanTick()
 		
 		if (K2_HasAuthority())
 		{
+
+			// 플레이어 확인 용 임시 코드
+			
+			// 임시코드
+
+			
 			// 내 캐릭터(공격자) 가져오기
 			FGameplayEventData Payload;
 			Payload.Instigator = CachedOwnerCharacter;
 			
 			if (CachedOwnerCharacter)
 			{
-				// "야, 저 녀석(HitActor)한테 맞았다는 이벤트 좀 다 뿌려라"
 				CachedOwnerCharacter->Multicast_SendGameplayEvent(HitActor, MyTags::Events::Hit::LightHit, Payload);
 			}
+			
 			
 			FGameplayEventData Data;
 			Data.Instigator = CachedOwnerCharacter;
@@ -360,6 +391,9 @@ void UGA_Combo::HitScanTick()
 		}
 		else
 		{
+			// 플레이어 확인 용 임시 코드
+			
+			
 			FGameplayEventData Payload;
 			Payload.Instigator = GetAvatarActorFromActorInfo();
 			UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(HitActor, MyTags::Events::Hit::LightHit,Payload);
@@ -400,4 +434,26 @@ void UGA_Combo::DrawDebugHitTrace(const TArray<FHitResult>& Hits, const FVector&
 		}
 	}
 
+}
+
+void UGA_Combo::SendEventsToActors(class AActor* Owner, const TArray<FHitResult>& Hits) const
+{
+	for (const FHitResult& Hit : Hits)
+	{
+		ACPlayerCharacter* PlayerCharacter = Cast<ACPlayerCharacter>(Hit.GetActor());
+		if (!IsValid(PlayerCharacter)) continue;
+		if (!PlayerCharacter->IsAlive()) continue;
+		UAbilitySystemComponent* ASC = PlayerCharacter->GetAbilitySystemComponent();
+		if (!IsValid(ASC)) continue;
+
+		FGameplayEffectContextHandle ContextHandle = ASC->MakeEffectContext();
+		ContextHandle.AddHitResult(Hit);
+
+		FGameplayEventData Payload;
+		Payload.Target = PlayerCharacter;
+		Payload.ContextHandle = ContextHandle;
+		Payload.Instigator = Owner;
+
+		UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(Owner, MyTags::Events::Player::HitReact, Payload);
+	}
 }
