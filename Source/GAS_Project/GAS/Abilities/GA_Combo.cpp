@@ -392,8 +392,6 @@ void UGA_Combo::HitScanTick()
 		else
 		{
 			// 플레이어 확인 용 임시 코드
-			
-			
 			FGameplayEventData Payload;
 			Payload.Instigator = GetAvatarActorFromActorInfo();
 			UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(HitActor, MyTags::Events::Hit::LightHit,Payload);

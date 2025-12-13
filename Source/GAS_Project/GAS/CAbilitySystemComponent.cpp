@@ -134,7 +134,6 @@ void UCAbilitySystemComponent::HealthUpdate(const FOnAttributeChangeData& Change
 	if (!GetOwner() || !GetOwner()->HasAuthority()) return;
 
 	bool bFound = false;
-
 	float Maxhealth = GetGameplayAttributeValue(UCAttributeSet::GetMaxHealthAttribute(),bFound);
 
 	// 피가 다 차있으면
@@ -149,35 +148,22 @@ void UCAbilitySystemComponent::HealthUpdate(const FOnAttributeChangeData& Change
 	{
 		RemoveLooseGameplayTag(UCAbilitySystemStatics::GetHealthFullStatTag());
 	}
-
-
+	
 	// 죽으면
 	if (ChangeData.NewValue <= 0)
 	{
-		if (GetOwner()->HasAuthority() && DeadEffect)
-		{
-			FGameplayEffectSpecHandle EffectSpecHandle = MakeOutgoingSpec(DeadEffect, 1, MakeEffectContext());
-			ApplyGameplayEffectSpecToSelf(*EffectSpecHandle.Data.Get());
-		}
 		if (!HasMatchingGameplayTag(UCAbilitySystemStatics::GetHealthEmptyStatTag()))
 		{
 			AddLooseGameplayTag(UCAbilitySystemStatics::GetHealthEmptyStatTag());
-			AddLooseGameplayTag(UCAbilitySystemStatics::GetDeadStatTag());
 
-			FGameplayEventData DeadEventData;
-			if (ChangeData.GEModData)
-				DeadEventData.ContextHandle = ChangeData.GEModData->EffectSpec.GetContext();
+			if(AbilitySystemGenerics && AbilitySystemGenerics->GetDeathEffect())
+				AuthApplyGameplayEffect(AbilitySystemGenerics->GetDeathEffect());
 
-			UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(
-				GetOwner(),
-				UCAbilitySystemStatics::GetDeadStatTag(),
-				DeadEventData);
-			
-		// 	FGameplayEventData DeadAbilityEventData;
-		// 	if (ChangeData.GEModData)
-		// 		DeadAbilityEventData.ContextHandle = ChangeData.GEModData->EffectSpec.GetContext();
-		// 	UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(GetOwner(), UCAbilitySystemStatics::GetDeadStatTag(), DeadAbilityEventData); 
-		//
+			FGameplayEventData DeadAbilityEventData;
+			if(ChangeData.GEModData)
+				DeadAbilityEventData.ContextHandle = ChangeData.GEModData->EffectSpec.GetContext();
+
+			UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(GetOwner(), UCAbilitySystemStatics::GetDeadStatTag(), DeadAbilityEventData);
 		}
 	}
 	else
@@ -207,9 +193,8 @@ void UCAbilitySystemComponent::StaminaUpdate(const FOnAttributeChangeData& Chang
 	{
 		RemoveLooseGameplayTag(UCAbilitySystemStatics::GetStaminaFullStatTag());
 	}
-
-
-	// 죽으면
+	
+	// 스태미나 고갈 시
 	if (ChangeData.NewValue <= 0)
 	{
 		if (!HasMatchingGameplayTag(UCAbilitySystemStatics::GetStaminaEmptyStatTag()))

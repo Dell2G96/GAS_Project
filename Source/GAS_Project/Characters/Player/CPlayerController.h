@@ -14,24 +14,22 @@ class GAS_PROJECT_API ACPlayerController : public APlayerController, public IGen
 	GENERATED_BODY()
 
 public:
-	virtual void BeginPlay() override;
-
 	// 서버에서만 실행
-	virtual void OnPossess(APawn* InPawn) override;
+	//void OnPossess(APawn* InPawn) override;
+	void OnPossess(APawn* NewPawn) override;
 	
 	//클라이언트에서만 실행 , ListenServer
 	void AcknowledgePossession(class APawn* NewPawn) override;
+	virtual void SetGenericTeamId(const FGenericTeamId& NewTeamID) override;
 
-	
-	// //Ability 입력 이벤트 전송(항상 Pawn/Character로 보냄)
- //   void SendAbilityInputEvent(const FGameplayTag& EventTag, bool bPressed);
-	
+
+	//
+	virtual FGenericTeamId GetGenericTeamId() const override;
 	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
-
+	virtual void SetupInputComponent() override;
+	
 	UFUNCTION(Server, Reliable, WithValidation)
 	void Server_SendGameplayEventToSelf(const FGameplayTag& EventTag, const FGameplayEventData& EventData);
-protected:
-	virtual void SetupInputComponent() override;
 
 private:
 	void Jump();
@@ -44,14 +42,13 @@ private:
 
 	// ✅ 추가: Started/Completed로 분리
 	void HandleAbilityInputPressed(ECabilityInputID InputId);
-
-	
 	void HandleAbilityInput(const FInputActionValue& InputActionValue, ECabilityInputID InputID);
-	void LearnAbiltiyLeaderDown(const FInputActionValue& InputActionValue);
-	void LearnAbiltiyLeaderUp(const FInputActionValue& InputActionValue);
-	bool bIsLearnAbilityLeaderDown = false;
-
 	void HandleAbilityInputReleased(ECabilityInputID InputId);
+	
+	// void LearnAbiltiyLeaderDown(const FInputActionValue& InputActionValue);
+	// void LearnAbiltiyLeaderUp(const FInputActionValue& InputActionValue);
+	// bool bIsLearnAbilityLeaderDown = false;
+
 
 	void ActivateAbility(const struct FGameplayTag& AbilityTag) const;
 

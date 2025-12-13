@@ -17,19 +17,23 @@
 #include "GAS_Project/Widgets/GameplayWidget.h"
 #include "Net/UnrealNetwork.h"
 
-void ACPlayerController::BeginPlay()
+
+void ACPlayerController::OnPossess(APawn* NewPawn)
 {
-    Super::BeginPlay();
-    FInputModeGameOnly Mode;
-    SetInputMode(Mode);
-    bShowMouseCursor = false;
-    
+    Super::OnPossess(NewPawn);
+
+    OwnerCharacter = Cast<ACPlayerCharacter>(NewPawn);
+    if (OwnerCharacter)
+    {
+        OwnerCharacter->ServerSideInit();
+        // 팀아이디는 빙의 되기전에 실행되어야한다
+        OwnerCharacter->SetGenericTeamId(TeamID);
+    }
 }
 
 void ACPlayerController::AcknowledgePossession(class APawn* NewPawn)
 {
     Super::AcknowledgePossession(NewPawn);
-
     OwnerCharacter = Cast<ACPlayerCharacter>(NewPawn);
     if (OwnerCharacter)
     {
@@ -38,22 +42,14 @@ void ACPlayerController::AcknowledgePossession(class APawn* NewPawn)
     }
 }
 
-// void ACPlayerController::SendAbilityInputEvent(const FGameplayTag& EventTag, bool bPressed)
-// {
-//     return;
-// }
-
-void ACPlayerController::OnPossess(APawn* InPawn)
+void ACPlayerController::SetGenericTeamId(const FGenericTeamId& NewTeamID)
 {
-    Super::OnPossess(InPawn);
+    TeamID = NewTeamID;
+}
 
-    OwnerCharacter = Cast<ACPlayerCharacter>(InPawn);
-    if (OwnerCharacter)
-    {
-        OwnerCharacter->ServerSideInit();
-        // 팀아이디는 빙의 되기전에 실행되어야한다
-        OwnerCharacter->SetGenericTeamId(TeamID);
-    }
+FGenericTeamId ACPlayerController::GetGenericTeamId() const
+{
+    return TeamID;
 }
 
 void ACPlayerController::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
@@ -79,22 +75,13 @@ void ACPlayerController::SetupInputComponent()
     Super::SetupInputComponent(); 
     // ✅ 1. Enhanced Input Component 캐스팅 확인
     UEnhancedInputComponent* EnhancedInputComp = Cast<UEnhancedInputComponent>(InputComponent);
-    if (!EnhancedInputComp)
-    {
-        return;
-    }
+    if (!EnhancedInputComp)  return;
     
     // ✅ 2. LocalPlayer 체크 (클라이언트에서만 유효)
-    if (!IsLocalPlayerController())
-    {
-        return;
-    }
+    if (!IsLocalPlayerController()) return;
     
     ULocalPlayer* LocalPlayer = GetLocalPlayer();
-    if (!LocalPlayer)
-    {
-        return;
-    }
+    if (!LocalPlayer)  return;
     
     // ✅ 3. InputMappingContext 등록 (안전하게)
     UEnhancedInputLocalPlayerSubsystem* InputSubsystem =
@@ -282,7 +269,6 @@ void ACPlayerController::HandleAbilityInputReleased(ECabilityInputID InputId)
 
 void ACPlayerController::ActivateAbility(const FGameplayTag& AbilityTag) const
 {
-
     UAbilitySystemComponent* ASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(GetPawn());
     if (!IsValid(ASC)) return;
 

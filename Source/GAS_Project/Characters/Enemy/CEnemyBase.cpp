@@ -36,8 +36,8 @@ void ACEnemyBase::BeginPlay()
 
 	//ConfigureOverHeadStatusWidget();
 
-	GetAbilitySystemComponent()->GetGameplayAttributeValueChangeDelegate(CAttributeSet->GetHealthAttribute()).AddUObject(this, &ThisClass::OnHealthChanged);
-	GetAbilitySystemComponent()->GetGameplayAttributeValueChangeDelegate(CAttributeSet->GetStaminaAttribute()).AddUObject(this, &ThisClass::OnStaminaChanged);
+	// GetAbilitySystemComponent()->GetGameplayAttributeValueChangeDelegate(CAttributeSet->GetHealthAttribute()).AddUObject(this, &ThisClass::OnHealthChanged);
+	// GetAbilitySystemComponent()->GetGameplayAttributeValueChangeDelegate(CAttributeSet->GetStaminaAttribute()).AddUObject(this, &ThisClass::OnStaminaChanged);
 	
 }
 
@@ -64,13 +64,12 @@ void ACEnemyBase::HandleDeath()
 
 void ACEnemyBase::OnDead()
 {
-	Super::OnDead();
-	
+	//ToDo	
 }
 
 void ACEnemyBase::OnRespawn()
 {
-	Super::OnRespawn();
+	//ToDo
 }
 
 

@@ -76,15 +76,7 @@ void ACPlayerCharacter::PossessedBy(AController* NewController)
     {
         ConfigureOverHeadStatusWidget();
         //CAbilitySystemComponent->ServerSideInit();
-        //BindGASChangeDelegate();
     }
-
-    //없어도 되는거 아닌가
-    // CAttributeSet = Cast<UCAttributeSet>(GetAttributeSet());
-    // if (!IsValid(CAttributeSet)) return;
-
-    GetAbilitySystemComponent()->GetGameplayAttributeValueChangeDelegate(CAttributeSet->GetHealthAttribute()).AddUObject(this, &ThisClass::OnHealthChanged);
-    GetAbilitySystemComponent()->GetGameplayAttributeValueChangeDelegate(CAttributeSet->GetStaminaAttribute()).AddUObject(this, &ThisClass::OnStaminaChanged);
     
 }
 
@@ -98,29 +90,7 @@ void ACPlayerCharacter::OnRep_PlayerState()
     GetAbilitySystemComponent()->InitAbilityActorInfo(GetPlayerState(), this);
     OnASCInitialized.Broadcast(GetAbilitySystemComponent(), GetAttributeSet());
 
-    //없어도 되는거 아닌가
-    // CAttributeSet = Cast<UCAttributeSet>(GetAttributeSet());
-    // if (!IsValid(CAttributeSet)) return;
-	
-    GetAbilitySystemComponent()->GetGameplayAttributeValueChangeDelegate(CAttributeSet->GetHealthAttribute()).AddUObject(this, &ThisClass::OnHealthChanged);
-    GetAbilitySystemComponent()->GetGameplayAttributeValueChangeDelegate(CAttributeSet->GetStaminaAttribute()).AddUObject(this, &ThisClass::OnStaminaChanged);
-
     ConfigureOverHeadStatusWidget();
-    
-    // ACPlayerState* PS = GetPlayerState<ACPlayerState>();
-    //
-    // if (!PS)
-    // {
-    //     UE_LOG(LogTemp,Warning,TEXT("ClientSideInit: PlayerState is NULL!"));
-    //     return;
-    // }
-    // CAbilitySystemComponent = Cast<UCAbilitySystemComponent> (PS->GetAbilitySystemComponent());
-    // if (CAbilitySystemComponent)
-    // {
-    //     CAbilitySystemComponent->InitAbilityActorInfo(PS, this);   // 클라 동기화
-    //     ConfigureOverHeadStatusWidget();
-    //     BindGASChangeDelegate();
-    // }
     
 }
 
@@ -134,14 +104,15 @@ void ACPlayerCharacter::ServerSideInit()
     CAbilitySystemComponent = Cast<UCAbilitySystemComponent>(PS->GetAbilitySystemComponent());
     if (CAbilitySystemComponent)
     {
+        BindGASChangeDelegate();
         CAbilitySystemComponent->ServerSideInit();
         CAbilitySystemComponent->InitAbilityActorInfo(PS,this);
     }
-    
 }
 
 void ACPlayerCharacter::ClientSideInit()
 {
+    // PlayerController 에서 호출
     ACPlayerState* PS = GetPlayerState<ACPlayerState>();
 
     if (!PS)
@@ -155,33 +126,6 @@ void ACPlayerCharacter::ClientSideInit()
     }
  }
 
-void ACPlayerCharacter::BindGASChangeDelegate()
-{
-    Super::BindGASChangeDelegate();
-
-    CAbilitySystemComponent = Cast<UCAbilitySystemComponent>(GetAbilitySystemComponent());
-    if (CAbilitySystemComponent)
-    {
-        CAbilitySystemComponent->RegisterGameplayTagEvent(UCAbilitySystemStatics::GetDeadStatTag()).AddUObject(this,&ThisClass::DeathTagUpdated);
-    }
-   
-}
-
-void ACPlayerCharacter::DeathTagUpdated(const FGameplayTag Tag, int32 NewCount)
-{
-    //Super::DeathTagUpdated(Tag, NewCount);
-    //UE_LOG(LogTemp,Warning,TEXT("ACCharacter::StartDeathSequence"));
-    OnDead();
-    // if (CAbilitySystemComponent)
-    // {
-    //     CAbilitySystemComponent->CancelAllAbilities();
-    // }
-  //  PlayDeathAnim();
-    SetStatusGaugeEnable(false);
-    
-    //GetCharacterMovement()->SetMovementMode(MOVE_None);
-    GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-}
 
 void ACPlayerCharacter::MaxHealthUpdated(const struct FOnAttributeChangeData& Data)
 {

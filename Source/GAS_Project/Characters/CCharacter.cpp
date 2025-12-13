@@ -29,6 +29,7 @@ ACCharacter::ACCharacter()
     //
     OverHeadWidgetComponent = CreateDefaultSubobject<UWidgetComponent>("OverHead Widget Component");
     OverHeadWidgetComponent->SetupAttachment(GetRootComponent());
+    BindGASChangeDelegate();
     
 }
 
@@ -87,6 +88,7 @@ void ACCharacter::OnHealthChanged(const FOnAttributeChangeData& AttributeChangeD
     if (AttributeChangeData.NewValue <= 0.f)
     {
         HandleDeath();
+        UE_LOG(LogTemp,Warning,TEXT("OnHealthChanged : StartDeathSequence"));
     }
 }
 
@@ -105,26 +107,16 @@ void ACCharacter::HandleDeath()
     bAlive = false;
     //StartDeathSequence();
 
-    if (HasAuthority())
-    {
-      Multicast_StartDeathSequence();  
-    }
+    // if (HasAuthority())
+    // {
+    //   Multicast_StartDeathSequence();  
+    // }
     if (IsValid(GEngine))
     {
         GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Red, FString::Printf(TEXT("%s has died!"), *GetName()));
     }
 }
 
-void ACCharacter::ServerSideInit()
-{
-    CAbilitySystemComponent->InitAbilityActorInfo(this,this);
-    CAbilitySystemComponent->ServerSideInit();
-}
-
-void ACCharacter::ClientSideInit()
-{
-    CAbilitySystemComponent->InitAbilityActorInfo(this,this);
-}
 
 bool ACCharacter::IsLocallyControlledByPlayer() const
 {
@@ -150,7 +142,8 @@ void ACCharacter::PossessedBy(AController* NewController)
     // 서버에서 실행될때 컨트롤러가 있고, 그게 픒레이어 가 아니라면 -> AI 컨트롤러라면
     if (NewController && !NewController->IsPlayerController())
     {
-        ServerSideInit();
+        CAbilitySystemComponent->InitAbilityActorInfo(this,this);
+        CAbilitySystemComponent->ServerSideInit();
     }
 }
 
@@ -163,15 +156,22 @@ void ACCharacter::BindGASChangeDelegate()
 {
     if (CAbilitySystemComponent)
     {
-        //CAbilitySystemComponent->RegisterGameplayTagEvent(UCAbilitySystemStatics::GetDeadStatTag()).AddUObject(this,&ACCharacter::DeathTagUpdated);
+        CAbilitySystemComponent->RegisterGameplayTagEvent(UCAbilitySystemStatics::GetDeadStatTag()).AddUObject(this,&ACCharacter::DeathTagUpdated);
         
+        CAbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(UCAttributeSet::GetHealthAttribute()).AddUObject(this, &ACCharacter::OnHealthChanged);
+        CAbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(UCAttributeSet::GetStaminaAttribute()).AddUObject(this, &ACCharacter::OnStaminaChanged);
         CAbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(UCAttributeSet::GetMaxHealthAttribute()).AddUObject(this, &ACCharacter::MaxHealthUpdated);
         CAbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(UCAttributeSet::GetMaxStaminaAttribute()).AddUObject(this, &ACCharacter::MaxStaminaUpdated);
+        if (IsValid(GEngine))
+        {
+            GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Red, FString::Printf(TEXT("%s BindGASDelegate"), *GetName()));
+        }
     }
 }
 
 void ACCharacter::DeathTagUpdated(const FGameplayTag Tag, int32 NewCount)
 {
+    //여기서 NewCount 는 = Stack Count이다 즉 1이상이면 죽은것... Dead Effect가 증가하므로? 
     UE_LOG(LogTemp,Warning,TEXT("=== DeathTagUpdated ==="));
     if (NewCount != 0)
     {
@@ -180,8 +180,7 @@ void ACCharacter::DeathTagUpdated(const FGameplayTag Tag, int32 NewCount)
     else
     {
         UE_LOG(LogTemp,Warning,TEXT("=== Respawned ==="));
-        //Respawn();
-        return;
+        Respawn();
     }
 }
 
@@ -200,10 +199,6 @@ void ACCharacter::StunTagUpdated(const FGameplayTag Tag, int32 NewCount)
     }
 }
 
-// void ACCharacter::AimTagUpdated(const FGameplayTag Tag, int32 NewCount)
-// {
-//     SetIsAimming(NewCount != 0);
-// }
 
 void ACCharacter::MaxHealthUpdated(const FOnAttributeChangeData& Data)
 {
@@ -226,7 +221,7 @@ void ACCharacter::ConfigureOverHeadStatusWidget()
     if (!OverHeadWidgetComponent)
         return;
 
-    IsPlayerControlled();
+    //IsPlayerControlled();
 
     // 내 케릭터라면 머리 위 위젯은 숨겨야됨 , 화면 중앙아래에 있기때문
     if (IsLocallyControlledByPlayer())
@@ -324,9 +319,11 @@ void ACCharacter::StartDeathSequence()
 {
     //UE_LOG(LogTemp,Warning,TEXT("ACCharacter::StartDeathSequence"));
     OnDead();
+    bAlive = false;
+
     if (CAbilitySystemComponent)
     {
-        CAbilitySystemComponent->TryActivateAbilitiesByTag(FGameplayTagContainer(UCAbilitySystemStatics::GetDeadStatTag()));
+        //CAbilitySystemComponent->TryActivateAbilitiesByTag(FGameplayTagContainer(UCAbilitySystemStatics::GetDeadStatTag()));
         //CAbilitySystemComponent->CancelAllAbilities();
        
     }
@@ -352,6 +349,7 @@ void ACCharacter::Respawn()
     //
     // CAbilitySystemComponent->RemoveActiveEffects(TagsToRemove);
 
+    bAlive = true;
     OnRespawn();
     //SetAIPerceptionStimuliSourceEnabled(true);
     SetRagdollEnabled(false);

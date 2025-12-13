@@ -24,6 +24,8 @@ public:
 	virtual  UAttributeSet* GetAttributeSet() const ;
 	bool IsAlive() const { return bAlive; }
 	void SetAlive(bool bAliveStatus) { bAlive = bAliveStatus; }
+	void BindGASChangeDelegate();
+
 
 	UFUNCTION(NetMulticast, Reliable)
 	void Multicast_StartDeathSequence();
@@ -47,8 +49,6 @@ private:
 	bool bAlive = true;
 	
 public:
-	virtual void ServerSideInit(); 
-	virtual void ClientSideInit();
 	bool IsLocallyControlledByPlayer() const ;
 	const TMap<ECabilityInputID, TSubclassOf<class UGameplayAbility>>& GetAbilities() const;
 
@@ -66,15 +66,11 @@ public:
 public:
 	UFUNCTION(Server, Reliable,WithValidation)
 	void Server_SendGameplayEventToSelf(const FGameplayTag& EventTag,const FGameplayEventData& EventData);
-	
 
 protected:
-	virtual void BindGASChangeDelegate();
-	virtual void DeathTagUpdated(const FGameplayTag Tag, int32 NewCount);
+	void DeathTagUpdated(const FGameplayTag Tag, int32 NewCount);
 	void StunTagUpdated(const FGameplayTag Tag, int32 NewCount);
-	//void AimTagUpdated(const FGameplayTag Tag, int32 NewCount);
-	// void SetIsAimming(bool bIsAimming);
-	// virtual void OnAimStateChanged(bool bIsAimming);
+	
 	virtual void MaxHealthUpdated(const struct FOnAttributeChangeData& Data);
 	virtual void MaxStaminaUpdated(const struct FOnAttributeChangeData& Data);
 	
@@ -129,6 +125,7 @@ protected:
 	
 	virtual void OnDead();
 	virtual void OnRespawn();
+	
 private:
 	FTransform MeshRelativeTransform;
 	
@@ -138,7 +135,7 @@ private:
 protected:
 	UPROPERTY(EditDefaultsOnly, Category="GAS|Death")
 	UAnimMontage* DeathMontage;
-
+	
 	FTimerHandle DeathMontageTimerHandle;
 	void DeathMontageFinished();
 	void SetRagdollEnabled(bool bIsEnabled);
