@@ -27,7 +27,12 @@ private:
 	void AuthApplyGameplayEffect(TSubclassOf<UGameplayEffect> GameplayEffect, int Level = 1);
 	void HealthUpdate(const FOnAttributeChangeData& ChangeData);
 	void StaminaUpdate(const FOnAttributeChangeData& ChangeData);
-	 
+
+	FTimerHandle BleedOutTimerHandle;
+
+	UPROPERTY(EditDefaultsOnly, Category = "GAS|Gameplay Abilitys")
+	TSubclassOf<class UGameplayEffect> KnockdownEffect;
+	
 	UPROPERTY(EditDefaultsOnly, Category = "GAS|Gameplay Abilitys")
 	TSubclassOf<class UGameplayEffect> DeadEffect;
 	
@@ -41,3 +46,5 @@ private:
 	class UDA_AbilitySystemGenerics* AbilitySystemGenerics;
 	
 };
+
+

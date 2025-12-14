@@ -60,7 +60,6 @@ bool ACCharacter::Server_SendGameplayEventToSelf_Validate(const FGameplayTag& Ev
     const FGameplayEventData& EventData)
 {
     return true;
-
 }
 
 void ACCharacter::Multicast_StartDeathSequence_Implementation()
@@ -83,24 +82,24 @@ void ACCharacter::ResetAttributes()
 
 }
 
-void ACCharacter::OnHealthChanged(const FOnAttributeChangeData& AttributeChangeData)
-{
-    if (AttributeChangeData.NewValue <= 0.f)
-    {
-        HandleDeath();
-        UE_LOG(LogTemp,Warning,TEXT("OnHealthChanged : StartDeathSequence"));
-    }
-}
+// void ACCharacter::OnHealthChanged(const FOnAttributeChangeData& AttributeChangeData)
+// {
+//     if (AttributeChangeData.NewValue <= 0.f)
+//     {
+//         HandleDeath();
+//         UE_LOG(LogTemp,Warning,TEXT("OnHealthChanged : StartDeathSequence"));
+//     }
+// }
 
-void ACCharacter::OnStaminaChanged(const FOnAttributeChangeData& AttributeChangeData)
-{
-    if (AttributeChangeData.NewValue <= 0.f)
-    {
-        //HandleDeath();
-        UE_LOG(LogTemp,Warning,TEXT("ACCharacter::Stamina Now Zero"));
-        //To Do : 탈진 상태 추가?
-    }
-}
+// void ACCharacter::OnStaminaChanged(const FOnAttributeChangeData& AttributeChangeData)
+// {
+//     if (AttributeChangeData.NewValue <= 0.f)
+//     {
+//         //HandleDeath();
+//         UE_LOG(LogTemp,Warning,TEXT("ACCharacter::Stamina Now Zero"));
+//         //To Do : 탈진 상태 추가?
+//     }
+// }
 
 void ACCharacter::HandleDeath()
 {
@@ -116,7 +115,6 @@ void ACCharacter::HandleDeath()
         GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Red, FString::Printf(TEXT("%s has died!"), *GetName()));
     }
 }
-
 
 bool ACCharacter::IsLocallyControlledByPlayer() const
 {
@@ -157,9 +155,8 @@ void ACCharacter::BindGASChangeDelegate()
     if (CAbilitySystemComponent)
     {
         CAbilitySystemComponent->RegisterGameplayTagEvent(UCAbilitySystemStatics::GetDeadStatTag()).AddUObject(this,&ACCharacter::DeathTagUpdated);
+
         
-        CAbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(UCAttributeSet::GetHealthAttribute()).AddUObject(this, &ACCharacter::OnHealthChanged);
-        CAbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(UCAttributeSet::GetStaminaAttribute()).AddUObject(this, &ACCharacter::OnStaminaChanged);
         CAbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(UCAttributeSet::GetMaxHealthAttribute()).AddUObject(this, &ACCharacter::MaxHealthUpdated);
         CAbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(UCAttributeSet::GetMaxStaminaAttribute()).AddUObject(this, &ACCharacter::MaxStaminaUpdated);
         if (IsValid(GEngine))
@@ -168,6 +165,7 @@ void ACCharacter::BindGASChangeDelegate()
         }
     }
 }
+
 
 void ACCharacter::DeathTagUpdated(const FGameplayTag Tag, int32 NewCount)
 {
@@ -187,6 +185,7 @@ void ACCharacter::DeathTagUpdated(const FGameplayTag Tag, int32 NewCount)
 void ACCharacter::StunTagUpdated(const FGameplayTag Tag, int32 NewCount)
 {
     if (IsDead()) return;
+    
     if (NewCount != 0)
     {
         OnStun();
@@ -336,6 +335,7 @@ void ACCharacter::StartDeathSequence()
 
 }
 
+
 void ACCharacter::Respawn()
 {
     // FGameplayTagContainer TagsToRemove;
@@ -383,10 +383,19 @@ FGenericTeamId ACCharacter::GetGenericTeamId() const
     return TeamID;
 }
 
+void ACCharacter::Multicast_SendGameplayEventToActor_Implementation(AActor* Target, FGameplayTag EventTag,
+    FGameplayEventData Payload)
+{
+    // 각 클라이언트(Proxy)의 로컬에서 이 줄이 실행됨
+    // 즉, 각자의 컴퓨터에서 "이벤트가 발생했다"고 ASC에 알림 -> WaitGameplayEvent가 반응함
+    UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(Target, EventTag, Payload);
+}
+
 void ACCharacter::OnDead()
 {
     //Overide In child		
 }
+
 
 void ACCharacter::OnRespawn()
 {
@@ -398,15 +407,6 @@ void ACCharacter::OnRep_TeamID()
 {
     //Overide Inchild		
 }
-
-void ACCharacter::Multicast_SendGameplayEvent_Implementation(AActor* Target, FGameplayTag EventTag,
-    FGameplayEventData Payload)
-{
-    // 각 클라이언트(Proxy)의 로컬에서 이 줄이 실행됨
-    // 즉, 각자의 컴퓨터에서 "이벤트가 발생했다"고 ASC에 알림 -> WaitGameplayEvent가 반응함
-    UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(Target, EventTag, Payload);
-}
-
 
 void ACCharacter::OnStun()
 {

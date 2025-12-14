@@ -84,6 +84,7 @@ namespace MyTags
 		namespace Player
 		{
 			UE_DEFINE_GAMEPLAY_TAG_COMMENT(HitReact, "MyTags.Events.Player.HitReact", "Tag for the Player HitReact Event")
+			UE_DEFINE_GAMEPLAY_TAG_COMMENT(Knockdown, "MyTags.Events.Player.Knockdown", "Tag for the Player Death Event")
 			UE_DEFINE_GAMEPLAY_TAG_COMMENT(Death, "MyTags.Events.Player.Death", "Tag for the Player Death Event")
 		}
 	
@@ -100,6 +101,7 @@ namespace MyTags
 		UE_DEFINE_GAMEPLAY_TAG(UnEquip, "MyTags.Status.UnEquip")
 		UE_DEFINE_GAMEPLAY_TAG(BattleMode, "MyTags.Status.Battle")
 		UE_DEFINE_GAMEPLAY_TAG(IdleMode, "MyTags.Status.IdleMode")
+		UE_DEFINE_GAMEPLAY_TAG(Knockdown, "MyTags.Status.Knockdown")
 		UE_DEFINE_GAMEPLAY_TAG(Dead, "MyTags.Status.Dead")
 		UE_DEFINE_GAMEPLAY_TAG(Stun, "MyTags.Status.Stun")
 		UE_DEFINE_GAMEPLAY_TAG(HealthFull, "MyTags.Status.Health.Full")

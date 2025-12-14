@@ -380,7 +380,7 @@ void UGA_Combo::HitScanTick()
 			
 			if (CachedOwnerCharacter)
 			{
-				CachedOwnerCharacter->Multicast_SendGameplayEvent(HitActor, MyTags::Events::Hit::LightHit, Payload);
+				CachedOwnerCharacter->Multicast_SendGameplayEventToActor(HitActor, MyTags::Events::Hit::LightHit, Payload);
 			}
 			
 			

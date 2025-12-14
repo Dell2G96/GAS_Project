@@ -41,6 +41,25 @@ private:
 	virtual void OnStun() override;
 	virtual void OnRecoverFromStun() override;
 
+	/**********************************************************/
+	/*					Knocked Down State                    */
+	/**********************************************************/
+public:
+	UFUNCTION(BlueprintCallable, Category="GAS|Knockdown")
+	bool IsKnockedDown() const;
+
+	void KnockdownTagUpdated(const FGameplayTag Tag, int32 NewCount);
+private:
+	void StartKnockdownSequence();
+	virtual void OnKnockdown();
+
+	
+private:
+	// UPROPERTY(EditDefaultsOnly, Category="GAS|UI")
+	// TSubclassOf<>
+	
+	
+
 	/********************************************************/
 	/*                     Death and Respawn                */
 	/********************************************************/

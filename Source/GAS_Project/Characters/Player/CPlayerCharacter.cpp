@@ -7,7 +7,6 @@
 #include "EnhancedInputSubsystems.h"
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
-#include "Components/WidgetComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "GAS_Project/MyTags.h"
@@ -15,9 +14,6 @@
 #include "GAS_Project/GAS/CAbilitySystemComponent.h"
 #include "GAS_Project/GAS/CAbilitySystemStatics.h"
 #include "GAS_Project/GAS/CAttributeSet.h"
-#include "GAS_Project/GAS/Abilities/GA_Dead.h"
-#include "GAS_Project/Widgets/OverHeadStatsGauge.h"
-#include "Kismet/GameplayStatics.h"
 
 ACPlayerCharacter::ACPlayerCharacter()
 {
@@ -107,6 +103,8 @@ void ACPlayerCharacter::ServerSideInit()
         BindGASChangeDelegate();
         CAbilitySystemComponent->ServerSideInit();
         CAbilitySystemComponent->InitAbilityActorInfo(PS,this);
+        CAbilitySystemComponent->RegisterGameplayTagEvent(UCAbilitySystemStatics::GetKnockdownStatTag()).AddUObject(this,&ACPlayerCharacter::KnockdownTagUpdated);
+
     }
 }
 
@@ -194,6 +192,43 @@ void ACPlayerCharacter::OnStun()
 void ACPlayerCharacter::OnRecoverFromStun()
 {
     //ToDo CPlayerController
+}
+
+bool ACPlayerCharacter::IsKnockedDown() const
+{
+    return GetAbilitySystemComponent()->HasMatchingGameplayTag(MyTags::Status::Knockdown);
+}
+
+void ACPlayerCharacter::KnockdownTagUpdated(const FGameplayTag Tag, int32 NewCount)
+{
+    //여기서 NewCount 는 = Stack Count이다 즉 1이상이면 죽은것... Dead Effect가 증가하므로? 
+    UE_LOG(LogTemp,Warning,TEXT("=== KnockdownTag ==="));
+    if (NewCount != 0)
+    {
+        StartKnockdownSequence();
+    }
+    else
+    {
+        UE_LOG(LogTemp,Warning,TEXT("=== KnockdownTag ==="));
+    }
+}
+
+void ACPlayerCharacter::StartKnockdownSequence()
+{
+    OnKnockdown();
+    if (CAbilitySystemComponent)
+    {
+        CAbilitySystemComponent->CancelAllAbilities();
+    
+        FGameplayTagContainer Tag;
+        Tag.AddTag(MyTags::Status::Knockdown);
+
+        GetAbilitySystemComponent()->TryActivateAbilitiesByTag(Tag, false);
+    }
+}
+
+void ACPlayerCharacter::OnKnockdown()
+{
 }
 
 

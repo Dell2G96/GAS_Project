@@ -16,6 +16,7 @@ class GAS_PROJECT_API UDA_AbilitySystemGenerics : public UPrimaryDataAsset
 public:
 	FORCEINLINE TSubclassOf<class UGameplayEffect> GetFullStatEffect() const { return FullStatEffect; }
 	FORCEINLINE TSubclassOf<class UGameplayEffect> GetDeathEffect() const { return DeathEffect; }
+	FORCEINLINE TSubclassOf<class UGameplayEffect> GetKnockdownEffect() const { return KnockdownEffect; }
 	FORCEINLINE const TArray<TSubclassOf<class UGameplayEffect>>& GetInitialEffects() const { return InitialEffects; }
 	FORCEINLINE const TArray<TSubclassOf<class UGameplayAbility>>& GetPassiveAbilities() const { return PassiveAbilities; }
 
@@ -25,6 +26,9 @@ private:
 	
 	UPROPERTY(EditDefaultsOnly, Category = "GAS|Gameplay Effects")
 	TSubclassOf<class UGameplayEffect> DeathEffect;
+
+	UPROPERTY(EditDefaultsOnly, Category = "GAS|Gameplay Effects")
+	TSubclassOf<class UGameplayEffect> KnockdownEffect;;
 	
 	UPROPERTY(EditDefaultsOnly, Category = "GAS|Gameplay Effects")
 	TArray<TSubclassOf<class UGameplayEffect>> InitialEffects;

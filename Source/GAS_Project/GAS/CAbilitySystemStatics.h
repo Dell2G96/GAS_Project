@@ -39,6 +39,7 @@ public:
 	static FGameplayTag GetBasicAttackInputReleasedTag();
 	static FGameplayTag GetBattleModeTag();
 	static FGameplayTag GetIdleModeTag();
+	static FGameplayTag GetKnockdownStatTag();
 	static FGameplayTag GetDeadStatTag();
 	static FGameplayTag GetStunStatTag();
 	static FGameplayTag GetAimStatTag();

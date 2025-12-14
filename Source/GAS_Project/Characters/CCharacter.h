@@ -24,6 +24,7 @@ public:
 	virtual  UAttributeSet* GetAttributeSet() const ;
 	bool IsAlive() const { return bAlive; }
 	void SetAlive(bool bAliveStatus) { bAlive = bAliveStatus; }
+	
 	void BindGASChangeDelegate();
 
 
@@ -40,14 +41,14 @@ public:
 	void ResetAttributes();
 
 protected:
-	void OnHealthChanged(const FOnAttributeChangeData& AttributeChangeData);
-	void OnStaminaChanged(const FOnAttributeChangeData& AttributeChangeData);
+	// void OnHealthChanged(const FOnAttributeChangeData& AttributeChangeData);
+	// void OnStaminaChanged(const FOnAttributeChangeData& AttributeChangeData);
 	virtual void HandleDeath();
 
 private:
 	UPROPERTY(BlueprintReadOnly, meta = (AllowPrivateAccess = true), Replicated)
 	bool bAlive = true;
-	
+
 public:
 	bool IsLocallyControlledByPlayer() const ;
 	const TMap<ECabilityInputID, TSubclassOf<class UGameplayAbility>>& GetAbilities() const;
@@ -139,7 +140,7 @@ protected:
 	FTimerHandle DeathMontageTimerHandle;
 	void DeathMontageFinished();
 	void SetRagdollEnabled(bool bIsEnabled);
-
+	
 
 	/*********************************************************************/
 	/*								Team ID			                     */
@@ -160,8 +161,12 @@ private:
 private:
 
 public:
-	UFUNCTION(NetMulticast, Unreliable)
-   void Multicast_SendGameplayEvent(AActor* Target, FGameplayTag EventTag, FGameplayEventData Payload);};
+	UFUNCTION(NetMulticast, reliable)
+   void Multicast_SendGameplayEventToActor(AActor* Target, FGameplayTag EventTag, FGameplayEventData Payload);
+
+
+
+};
 
 
 	

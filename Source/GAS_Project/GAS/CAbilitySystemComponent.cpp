@@ -207,4 +207,3 @@ void UCAbilitySystemComponent::StaminaUpdate(const FOnAttributeChangeData& Chang
 		RemoveLooseGameplayTag(UCAbilitySystemStatics::GetStaminaEmptyStatTag());
 	}
 }
-

@@ -6,6 +6,7 @@
 #include "AbilitySystemBlueprintLibrary.h"
 #include "AbilitySystemComponent.h"
 #include "AbilitySystemInterface.h"
+#include "CAbilitySystemComponent.h"
 #include "GAS_Project/MyTags.h"
 #include "GAS_Project/Characters/CCharacter.h"
 #include "Kismet/GameplayStatics.h"
@@ -36,6 +37,11 @@ FGameplayTag UCAbilitySystemStatics::GetBattleModeTag()
 FGameplayTag UCAbilitySystemStatics::GetIdleModeTag()
 {
 	return MyTags::Status::IdleMode;
+}
+
+FGameplayTag UCAbilitySystemStatics::GetKnockdownStatTag()
+{
+	return MyTags::Status::Knockdown;
 }
 
 FGameplayTag UCAbilitySystemStatics::GetDeadStatTag()
@@ -260,6 +266,16 @@ void UCAbilitySystemStatics::SendDamageEventToPlayer(AActor* Target, const TSubc
 	if (!IsValid(PlayerCharacter)) return;
 	if (!PlayerCharacter->IsAlive()) return;
 
+	UCAbilitySystemComponent* TargetASC =
+	   Cast<UCAbilitySystemComponent>(UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(Target));
+	if (!IsValid(TargetASC)) return;
+
+	// 이미 죽었거나 쓰러져 있으면 추가 데미지 처리/이벤트 스팸 방지
+	if (TargetASC->HasMatchingGameplayTag(MyTags::Status::Dead) || TargetASC->HasMatchingGameplayTag(MyTags::Status::Knockdown))
+	{
+		return;
+	}
+
 	FGameplayTag EventTag;
 	if (!EventTagOverride.MatchesTagExact(MyTags::None))
 	{
@@ -271,13 +287,12 @@ void UCAbilitySystemStatics::SendDamageEventToPlayer(AActor* Target, const TSubc
 		if (!IsValid(AttributeSet)) return;
 
 		const bool bLethal = AttributeSet->GetHealth() - Damage <= 0.f;
-		EventTag = bLethal ? MyTags::Events::Player::Death : MyTags::Events::Player::HitReact;
+		EventTag = bLethal ? MyTags::Events::Player::Knockdown : MyTags::Events::Player::HitReact;
 	}
 	
 	Payload.OptionalObject = OptionalParticleSystem;
 	UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(PlayerCharacter, EventTag, Payload);
 
-	UAbilitySystemComponent* TargetASC = PlayerCharacter->GetAbilitySystemComponent();
 	if (!IsValid(TargetASC)) return;
 
 	FGameplayEffectContextHandle ContextHandle = TargetASC->MakeEffectContext();
