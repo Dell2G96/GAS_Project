@@ -156,14 +156,38 @@ void UCAbilitySystemComponent::HealthUpdate(const FOnAttributeChangeData& Change
 		{
 			AddLooseGameplayTag(UCAbilitySystemStatics::GetHealthEmptyStatTag());
 
-			if(AbilitySystemGenerics && AbilitySystemGenerics->GetDeathEffect())
+			if (!AbilitySystemGenerics->GetKnockdownEffect() && AbilitySystemGenerics->GetDeathEffect())
+			{
 				AuthApplyGameplayEffect(AbilitySystemGenerics->GetDeathEffect());
+				FGameplayEventData DeadAbilityEventData;
+				if(ChangeData.GEModData)
+					DeadAbilityEventData.ContextHandle = ChangeData.GEModData->EffectSpec.GetContext();
+				UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(GetOwner(), UCAbilitySystemStatics::GetDeadStatTag(), DeadAbilityEventData);	
+			}
+			
+			if(AbilitySystemGenerics && AbilitySystemGenerics->GetKnockdownEffect())
+			{
+				AuthApplyGameplayEffect(AbilitySystemGenerics->GetKnockdownEffect());
 
-			FGameplayEventData DeadAbilityEventData;
-			if(ChangeData.GEModData)
-				DeadAbilityEventData.ContextHandle = ChangeData.GEModData->EffectSpec.GetContext();
+				FGameplayEventData knockdownAbilityEventData;
+				if(ChangeData.GEModData)
+					knockdownAbilityEventData.ContextHandle = ChangeData.GEModData->EffectSpec.GetContext();
+				
+				UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(GetOwner(), UCAbilitySystemStatics::GetDeadStatTag(), knockdownAbilityEventData);	
 
-			UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(GetOwner(), UCAbilitySystemStatics::GetDeadStatTag(), DeadAbilityEventData);
+			}
+
+			// if (HasMatchingGameplayTag(UCAbilitySystemStatics::GetDeadStatTag()))
+			// {
+			// 	if(AbilitySystemGenerics && AbilitySystemGenerics->GetDeathEffect())
+			// 		AuthApplyGameplayEffect(AbilitySystemGenerics->GetDeathEffect());
+			//
+			// 	FGameplayEventData DeadAbilityEventData;
+			// 	if(ChangeData.GEModData)
+			// 		DeadAbilityEventData.ContextHandle = ChangeData.GEModData->EffectSpec.GetContext();
+			//
+			// 	UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(GetOwner(), UCAbilitySystemStatics::GetDeadStatTag(), DeadAbilityEventData);	
+			// }
 		}
 	}
 	else
@@ -206,4 +230,108 @@ void UCAbilitySystemComponent::StaminaUpdate(const FOnAttributeChangeData& Chang
 	{
 		RemoveLooseGameplayTag(UCAbilitySystemStatics::GetStaminaEmptyStatTag());
 	}
+}
+
+
+void UCAbilitySystemComponent::ApplyKnockdown()
+{
+	if (!IsOwnerActorAuthoritative())
+		return;
+
+	if (HasMatchingGameplayTag(UCAbilitySystemStatics::GetDeadStatTag()))
+		return;
+
+	CancelAllAbilities();
+
+	if (AbilitySystemGenerics->GetKnockdownEffect())
+	{
+		KnockdownGEHandle = ApplyGameplayEffectToSelf(AbilitySystemGenerics->GetKnockdownEffect().GetDefaultObject(),1.f,MakeEffectContext());
+	}
+}
+
+void UCAbilitySystemComponent::RemoveKnockdown()
+{
+	if (!IsOwnerActorAuthoritative())
+		return;
+
+	if (KnockdownGEHandle.IsValid())
+	{
+		RemoveActiveGameplayEffect(KnockdownGEHandle);
+
+		// FGameplayEffectQuery const Query = FGameplayEffectQuery::MakeQuery_MatchAnyOwningTags(WithGrantedTags);
+		//AbilitySystemComponent->RemoveActiveEffects(Query, StacksToRemove);
+		
+		FGameplayTagContainer MyTags;
+		MyTags.AddTag(UCAbilitySystemStatics::GetKnockdownStatTag());
+		FGameplayEffectQuery Query = FGameplayEffectQuery::MakeQuery_MatchAnyOwningTags(MyTags);
+		RemoveActiveEffects(Query,1);
+		
+		
+		KnockdownGEHandle.Invalidate();
+	}
+}
+
+bool UCAbilitySystemComponent::TryRevive(float ReviveHealthRatio)
+{
+	if (!IsOwnerActorAuthoritative())
+		return false;
+
+	if (!HasMatchingGameplayTag(UCAbilitySystemStatics::GetKnockdownStatTag()))
+		return false;
+
+	if (HasMatchingGameplayTag(UCAbilitySystemStatics::GetDeadStatTag()))
+		return false;
+
+	const float MaxHealth = GetNumericAttribute(UCAttributeSet::GetMaxHealthAttribute());
+
+	const float ReviveHealth =FMath::Max(1.f, MaxHealth * ReviveHealthRatio);
+
+	SetNumericAttributeBase(UCAttributeSet::GetHealthAttribute(),ReviveHealth);
+
+	RemoveKnockdown();
+	
+	return true;
+}
+
+void UCAbilitySystemComponent::ApplyDeath()
+{
+	if (!IsOwnerActorAuthoritative())
+		return;
+
+	if (HasMatchingGameplayTag(UCAbilitySystemStatics::GetDeadStatTag()))
+		return;
+
+	if (AbilitySystemGenerics->GetDeathEffect())
+	{
+		//ApplyGameplayEffectToSelf(DeadEffect.GetDefaultObject(),1.f,MakeEffectContext());
+		AuthApplyGameplayEffect(AbilitySystemGenerics->GetDeathEffect());
+
+		FGameplayEventData EventData;
+		UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(GetOwner(), UCAbilitySystemStatics::GetDeadStatTag(), EventData);
+	}
+}
+
+void UCAbilitySystemComponent::RemoveDeath()
+{
+	FGameplayTagContainer MyTags;
+	MyTags.AddTag(UCAbilitySystemStatics::GetDeadStatTag());
+	FGameplayEffectQuery Query = FGameplayEffectQuery::MakeQuery_MatchAnyOwningTags(MyTags);
+	RemoveActiveEffects(Query,1);
+}
+
+bool UCAbilitySystemComponent::IsPlayer()
+{
+	AActor* OwningActor = GetAvatarActor();
+	if (APawn* AvatarPawn = Cast<APawn>(OwningActor))
+	{
+		if (AvatarPawn->IsPlayerControlled())
+		{
+			return true;
+		}
+		else
+		{
+			return false;
+		}
+	}
+	return false;
 }

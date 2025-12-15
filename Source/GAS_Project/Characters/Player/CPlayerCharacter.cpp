@@ -14,6 +14,7 @@
 #include "GAS_Project/GAS/CAbilitySystemComponent.h"
 #include "GAS_Project/GAS/CAbilitySystemStatics.h"
 #include "GAS_Project/GAS/CAttributeSet.h"
+#include "Net/UnrealNetwork.h"
 
 ACPlayerCharacter::ACPlayerCharacter()
 {
@@ -165,6 +166,13 @@ void ACPlayerCharacter::PawnClientRestart()
     }
 }
 
+void ACPlayerCharacter::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
+{
+    Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+    DOREPLIFETIME(ThisClass, bKnockdown);
+    
+}
+
 
 UAbilitySystemComponent* ACPlayerCharacter::GetAbilitySystemComponent() const
 {
@@ -205,7 +213,8 @@ void ACPlayerCharacter::KnockdownTagUpdated(const FGameplayTag Tag, int32 NewCou
     UE_LOG(LogTemp,Warning,TEXT("=== KnockdownTag ==="));
     if (NewCount != 0)
     {
-        StartKnockdownSequence();
+        //StartKnockdownSequence();
+        EnterKnockdown();
     }
     else
     {
@@ -218,12 +227,7 @@ void ACPlayerCharacter::StartKnockdownSequence()
     OnKnockdown();
     if (CAbilitySystemComponent)
     {
-        CAbilitySystemComponent->CancelAllAbilities();
-    
-        FGameplayTagContainer Tag;
-        Tag.AddTag(MyTags::Status::Knockdown);
-
-        GetAbilitySystemComponent()->TryActivateAbilitiesByTag(Tag, false);
+       
     }
 }
 
@@ -251,4 +255,66 @@ void ACPlayerCharacter::OnRespawn()
     {
         EnableInput(PC);
     }
+}
+
+
+
+
+void ACPlayerCharacter::EnterKnockdown()
+{
+    if (!HasAuthority()) return;
+    
+    if (!CAbilitySystemComponent) return;
+
+    CAbilitySystemComponent->ApplyKnockdown();
+
+    KnockdownRemainingTime = KnockdownTotalTime;
+    StartKnockdownTimer(KnockdownRemainingTime);
+}
+
+void ACPlayerCharacter::BeginRevive(AActor* Reviver)
+{
+    if (!HasAuthority()) return;
+    if (bBeingRevived) return;
+
+    bBeingRevived = true;
+
+    const float TimeLeft =GetWorldTimerManager().GetTimerRemaining(KnockdownTimerHandle);
+
+    KnockdownRemainingTime = TimeLeft;
+    GetWorldTimerManager().ClearTimer(KnockdownTimerHandle);
+}
+
+void ACPlayerCharacter::CancleRevive()
+{
+    if (!HasAuthority()) return;
+    if (!bBeingRevived) return;
+
+    bBeingRevived = false;
+    StartKnockdownTimer(KnockdownRemainingTime);
+}
+
+void ACPlayerCharacter::CompleteRevive()
+{
+    if (!HasAuthority()) return;
+    
+    if (!CAbilitySystemComponent) return;
+
+    bBeingRevived = false;
+    CAbilitySystemComponent->TryRevive();
+}
+
+void ACPlayerCharacter::StartKnockdownTimer(float Time)
+{
+    GetWorldTimerManager().SetTimer(KnockdownTimerHandle,this,&ACPlayerCharacter::OnKnockdownExpired,Time,false);
+}
+
+void ACPlayerCharacter::OnKnockdownExpired()
+{
+    if (!HasAuthority()) return;
+    
+    if (!CAbilitySystemComponent) return;
+
+    CAbilitySystemComponent->RemoveKnockdown();
+    CAbilitySystemComponent->ApplyDeath();
 }

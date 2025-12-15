@@ -28,7 +28,8 @@ private:
 	void HealthUpdate(const FOnAttributeChangeData& ChangeData);
 	void StaminaUpdate(const FOnAttributeChangeData& ChangeData);
 
-	FTimerHandle BleedOutTimerHandle;
+	FTimerHandle TimeLimitToRevive;
+	FActiveGameplayEffectHandle KnockdownGEHandle;
 
 	UPROPERTY(EditDefaultsOnly, Category = "GAS|Gameplay Abilitys")
 	TSubclassOf<class UGameplayEffect> KnockdownEffect;
@@ -44,7 +45,18 @@ private:
 
 	UPROPERTY(EditDefaultsOnly, Category = "GAS|Gameplay Ability")
 	class UDA_AbilitySystemGenerics* AbilitySystemGenerics;
-	
+
+	// 추가
+public:
+	void ApplyKnockdown();
+	void RemoveKnockdown();
+
+	bool TryRevive(float ReviveHealthRatio = 0.3f);
+	void ApplyDeath();
+	void RemoveDeath();
+
+	bool IsPlayer();
 };
+
 
 

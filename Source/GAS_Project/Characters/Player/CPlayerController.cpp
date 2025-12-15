@@ -137,6 +137,7 @@ void ACPlayerController::SetupInputComponent()
 void ACPlayerController::Jump()
 {
     if (!IsValid(GetCharacter())) return;
+    if (!IsAlive() || IsKnockdown()) return;
     
     GetCharacter()->Jump();
 }
@@ -144,24 +145,28 @@ void ACPlayerController::Jump()
 void ACPlayerController::Run()
 {
     if (!IsValid(GetCharacter())) return;
+    if (!IsAlive() || IsKnockdown()) return;
     GetCharacter()->GetCharacterMovement()->MaxWalkSpeed = 600.f;
 }
 
 void ACPlayerController::StopRuning()
 {
     if (!IsValid(GetCharacter())) return;
+    if (!IsAlive() || IsKnockdown()) return;
     GetCharacter()->GetCharacterMovement()->MaxWalkSpeed = 400.f;
 }
 
 void ACPlayerController::StopJumping()
 {
     if (!IsValid(GetCharacter())) return;
+    if (!IsAlive() || IsKnockdown()) return;
     GetCharacter()->StopJumping();
 }
 
 void ACPlayerController::Move(const FInputActionValue& Value)
 {
     if (!IsValid(GetPawn())) return;
+    if (!IsAlive() || IsKnockdown()) return;
 
     const FVector2D MovementVector = Value.Get<FVector2D>();
 
@@ -282,6 +287,20 @@ void ACPlayerController::SendEventToPawn(const struct FGameplayTag& Tag)
 
     FGameplayEventData Data;   // 필요 시 Payload 채워넣기
     UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(Owner, Tag, Data);
+}
+
+bool ACPlayerController::IsKnockdown()
+{
+    ACPlayerCharacter* PlayerCharacter = Cast<ACPlayerCharacter>(GetPawn());
+    if (!IsValid(PlayerCharacter)) return false;
+    return PlayerCharacter->IsKnockedDown();
+}
+
+bool ACPlayerController::IsAlive()
+{
+    ACCharacter* Playercharacter = Cast<ACCharacter>(GetPawn());
+    if (!IsValid(Playercharacter)) return false;
+    return Playercharacter->IsAlive();
 }
 
 void ACPlayerController::SpawnGameplayWidget()

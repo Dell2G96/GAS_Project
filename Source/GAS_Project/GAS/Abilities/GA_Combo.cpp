@@ -284,7 +284,7 @@ TArray<class AActor*> UGA_Combo::HitBoxTrace()
 	{
 		DrawDebugSphere(GetWorld(), Start, HitBoxRadius, 12, FColor::Green, false, 1.0f);
 		DrawDebugSphere(GetWorld(), End,   HitBoxRadius, 12, FColor::Green, false, 1.0f);
-		DrawDebugLine(GetWorld(), Start, End, FColor::Green, false, 1.0f, 0, 1.5f);
+		DrawDebugLine(GetWorld(), Start, End, FColor::Green, false, 1.0f, 0, 10.f);
 
 		for (const FHitResult& Result : HitResults)
 		{
@@ -304,29 +304,6 @@ TArray<class AActor*> UGA_Combo::HitBoxTrace()
 	}
 	return OutActors;
 }
-//
-// void UGA_Combo::SendEventsToActors(class USkeletalMeshComponent* MeshComp, const TArray< FHitResult>& HitActors) const
-// {
-// 	for (const FHitResult& HitActor : HitActors )
-// 	{
-// 		ACPlayerCharacter* PlayerCharacter = Cast<ACPlayerCharacter>(HitActor.GetActor());
-// 		if (!IsValid(PlayerCharacter)) continue;
-// 		if (!PlayerCharacter->IsAlive()) continue;
-// 		UAbilitySystemComponent* ASC = PlayerCharacter->GetAbilitySystemComponent();
-// 		if (!IsValid(ASC)) continue;
-//
-// 		FGameplayEffectContextHandle ContextHandle = ASC->MakeEffectContext();
-// 		ContextHandle.AddHitResult(HitActor);
-//
-// 		FGameplayEventData Payload;
-// 		Payload.Target = PlayerCharacter;
-// 		Payload.ContextHandle = ContextHandle;
-// 		Payload.Instigator = MeshComp->GetOwner();
-//
-// 		UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(MeshComp->GetOwner(), MyTags::Events::Enemy::HitReact, Payload);
-// 		
-// 	}
-// }
 
 void UGA_Combo::HitScanStart()
 {
@@ -355,7 +332,6 @@ void UGA_Combo::HitScanEnd()
 
 void UGA_Combo::HitScanTick()
 {
-	
 	TArray<AActor*> HitActors = HitBoxTrace();
 
 	for (AActor* HitActor : HitActors)
@@ -368,70 +344,25 @@ void UGA_Combo::HitScanTick()
 		
 		if (K2_HasAuthority())
 		{
-
-			// 플레이어 확인 용 임시 코드
-			
-			// 임시코드
-
-			
-			// 내 캐릭터(공격자) 가져오기
+			// 내(공격자) 가져오기
 			FGameplayEventData Payload;
 			Payload.Instigator = CachedOwnerCharacter;
+			Payload.Target = HitActor;
 			
 			if (CachedOwnerCharacter)
 			{
 				CachedOwnerCharacter->Multicast_SendGameplayEventToActor(HitActor, MyTags::Events::Hit::LightHit, Payload);
+				DoDamageNew(Payload);
 			}
-			
-			
-			FGameplayEventData Data;
-			Data.Instigator = CachedOwnerCharacter;
-			Data.Target = HitActor;
-			DoDamageNew(Data);
 		}
 		else
 		{
-			// 플레이어 확인 용 임시 코드
 			FGameplayEventData Payload;
-			Payload.Instigator = GetAvatarActorFromActorInfo();
+			Payload.Instigator = CachedOwnerCharacter;
+			Payload.Target = HitActor;
 			UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(HitActor, MyTags::Events::Hit::LightHit,Payload);
 		}
 	}
-
-}
-
-void UGA_Combo::DrawDebugHitTrace(const TArray<FHitResult>& Hits, const FVector& HitBoxLocation) const
-{
-	DrawDebugSphere(GetWorld(), HitBoxLocation, HitBoxRadius, 16, FColor::Red, false, 3.f);
-	
-	for (const FHitResult& Result : Hits)
-	{
-		
-		if (IsValid(Result.GetActor()))
-		{
-			
-			
-			// 표면 충돌 지점
-			FVector HitPoint = Result.ImpactPoint;
-
-			// 혹시 ImpactPoint 가 비어있는 경우를 대비해 Location fallback
-			if (HitPoint.IsNearlyZero())
-			{
-				HitPoint = Result.Location;
-			}
-
-			DrawDebugSphere(
-				GetWorld(),
-				HitPoint,
-				30.f,
-				10,
-				FColor::Green,
-				false,
-				3.f
-			);
-		}
-	}
-
 }
 
 void UGA_Combo::SendEventsToActors(class AActor* Owner, const TArray<FHitResult>& Hits) const

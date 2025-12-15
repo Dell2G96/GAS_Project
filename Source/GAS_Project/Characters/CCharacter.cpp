@@ -284,7 +284,11 @@ void ACCharacter::DeathMontageFinished()
     if (IsDead())
     {
         SetRagdollEnabled(true);
-		 
+        if (CAbilitySystemComponent->IsPlayer())
+        {
+            RespawnImmediately();    
+        }
+        
     }
 }
 
@@ -331,8 +335,8 @@ void ACCharacter::StartDeathSequence()
     
     //GetCharacterMovement()->SetMovementMode(MOVE_None);
     GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-   
-
+    //RespawnImmediately();
+    
 }
 
 
@@ -350,6 +354,7 @@ void ACCharacter::Respawn()
     // CAbilitySystemComponent->RemoveActiveEffects(TagsToRemove);
 
     bAlive = true;
+    //RespawnImmediately();
     OnRespawn();
     //SetAIPerceptionStimuliSourceEnabled(true);
     SetRagdollEnabled(false);

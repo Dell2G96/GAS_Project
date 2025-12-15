@@ -77,6 +77,8 @@ private:
 	UPROPERTY(EditDefaultsOnly, Category="GAS|Input")
 	TMap<ECabilityInputID, UInputAction*> GameplayAbilityInputActions;
 
+	bool IsKnockdown();
+	bool IsAlive();
 	/*********************************************************************/
 	/*								UI							        */
 	/*********************************************************************/

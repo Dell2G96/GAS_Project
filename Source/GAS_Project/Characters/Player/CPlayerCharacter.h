@@ -29,6 +29,8 @@ public:
 	
 	virtual void BeginPlay() override;
 	virtual void PawnClientRestart() override;
+	virtual  void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
+
 	
 	// 무기 컴포넌트: 플레이어 전용 컴포넌트로 단일화
 	UFUNCTION(BlueprintCallable)
@@ -52,7 +54,9 @@ public:
 private:
 	void StartKnockdownSequence();
 	virtual void OnKnockdown();
-
+private:
+	UPROPERTY(BlueprintReadOnly, meta = (AllowPrivateAccess = true), Replicated)
+	bool bKnockdown = false;
 	
 private:
 	// UPROPERTY(EditDefaultsOnly, Category="GAS|UI")
@@ -84,4 +88,22 @@ private:
 
 	UPROPERTY(Transient)
 	class ACPlayerState* CachedPlayerState = nullptr;
+
+	//추가 함수
+public:
+	void EnterKnockdown();
+	void BeginRevive(AActor* Reviver);
+	void CancleRevive();
+	void CompleteRevive();
+
+private:
+	FTimerHandle KnockdownTimerHandle;
+
+	float KnockdownTotalTime = 10.f;
+	float KnockdownRemainingTime = 10.f;
+
+	bool bBeingRevived = false;
+
+	void StartKnockdownTimer(float Time);
+	void OnKnockdownExpired();
 };
