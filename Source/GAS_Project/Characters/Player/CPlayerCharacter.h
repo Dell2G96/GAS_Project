@@ -89,6 +89,14 @@ private:
 	UPROPERTY(Transient)
 	class ACPlayerState* CachedPlayerState = nullptr;
 
+	/*********************************************************************/
+	/*								Team ID			                     */
+	/*********************************************************************/
+public:
+	virtual void SetGenericTeamId(const FGenericTeamId& NewTeamID) override;
+	virtual FGenericTeamId GetGenericTeamId() const override;
+	
+	
 	//추가 함수
 public:
 	void EnterKnockdown();

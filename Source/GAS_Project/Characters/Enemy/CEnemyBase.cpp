@@ -34,6 +34,7 @@ void ACEnemyBase::BeginPlay()
 	CAttributeSet = Cast<UCAttributeSet>(GetAttributeSet());
 	if (!IsValid(CAttributeSet)) return;
 
+	SetGenericTeamId(2);
 	//ConfigureOverHeadStatusWidget();
 
 	// GetAbilitySystemComponent()->GetGameplayAttributeValueChangeDelegate(CAttributeSet->GetHealthAttribute()).AddUObject(this, &ThisClass::OnHealthChanged);
@@ -60,6 +61,16 @@ void ACEnemyBase::HandleDeath()
 	AAIController* AIController = GetController<AAIController>();
 	if (!IsValid(AIController)) return;
 	AIController->StopMovement();
+}
+
+FGenericTeamId ACEnemyBase::GetGenericTeamId() const
+{
+	return Super::GetGenericTeamId();
+}
+
+void ACEnemyBase::SetGenericTeamId(const FGenericTeamId& NewTeamID)
+{
+	Super::SetGenericTeamId(NewTeamID);
 }
 
 void ACEnemyBase::OnDead()

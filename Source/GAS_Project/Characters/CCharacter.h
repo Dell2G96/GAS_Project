@@ -14,7 +14,7 @@
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FASCInitialized, UAbilitySystemComponent*, ASC, UAttributeSet*, AS);
 
 UCLASS(Abstract)
-class GAS_PROJECT_API ACCharacter : public ACharacter, public IAbilitySystemInterface
+class GAS_PROJECT_API ACCharacter : public ACharacter, public IAbilitySystemInterface, public IGenericTeamAgentInterface
 {
     GENERATED_BODY()
 public:
@@ -148,8 +148,8 @@ protected:
 public:
 	virtual void SetGenericTeamId(const FGenericTeamId& NewTeamID);
 	virtual FGenericTeamId GetGenericTeamId() const;
-private:
-	UPROPERTY(ReplicatedUsing= OnRep_TeamID)
+protected:
+	UPROPERTY(EditDefaultsOnly,ReplicatedUsing= OnRep_TeamID)
 	FGenericTeamId TeamID;
 
 	UFUNCTION()

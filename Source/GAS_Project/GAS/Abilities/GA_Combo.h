@@ -78,6 +78,9 @@ protected:
 	TSet<TWeakObjectPtr<class AActor>> AlreadyHitActors;
 
 private:
+	UPROPERTY(EditAnywhere, Category="GAS|Team")
+	TEnumAsByte<ETeamAttitude::Type> TargetTeam = ETeamAttitude::Hostile;
+	
 	void SetupWaitComboInputPress();
 
 	UFUNCTION()

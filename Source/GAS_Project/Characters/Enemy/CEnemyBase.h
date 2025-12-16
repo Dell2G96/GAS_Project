@@ -21,6 +21,15 @@ protected:
 	virtual void HandleDeath() override;
 
 	/*********************************************************************/
+	/*								Team ID                              */
+	/*********************************************************************/
+public:
+	virtual FGenericTeamId GetGenericTeamId() const override;
+	virtual void SetGenericTeamId(const FGenericTeamId& NewTeamID) override;
+	
+	
+
+	/*********************************************************************/
 	/*						Death And Respawn                            */
 	/*********************************************************************/
 private:

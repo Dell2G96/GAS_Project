@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "AbilitySystemInterface.h"
+#include "GenericTeamAgentInterface.h"
 #include "GAS_Project/GAS/CAbilitySystemComponent.h"
 #include "GameFramework/PlayerState.h"
 #include "CPlayerState.generated.h"
@@ -12,7 +13,7 @@
  * 
  */
 UCLASS()
-class GAS_PROJECT_API ACPlayerState : public APlayerState, public  IAbilitySystemInterface
+class GAS_PROJECT_API ACPlayerState : public APlayerState, public  IAbilitySystemInterface, public  IGenericTeamAgentInterface
 {
 	GENERATED_BODY()
     
@@ -25,12 +26,15 @@ public:
 
 	// UFUNCTION(BlueprintCallable,Category="GAS|Abilitys")
 	// class UCAbilitySystemComponent* GetAbilitySystemComponent2() const {return AbilitySystemComponent;}
- //    
-    
+
+	
 private:
 	UPROPERTY(VisibleAnywhere, Category = "GAS|Abilities")
 	TObjectPtr<UAbilitySystemComponent> AbilitySystemComponent;
 
 	UPROPERTY(VisibleAnywhere, Category = "GAS|Attributes")
 	TObjectPtr<class UAttributeSet> AttributeSet;
+
+	
+	
 };

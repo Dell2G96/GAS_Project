@@ -57,6 +57,7 @@ void ACPlayerCharacter::BeginPlay()
     OwnerController = Cast<ACPlayerController>(GetController());
     CachedPlayerState = GetPlayerState<ACPlayerState>();
     ConfigureOverHeadStatusWidget();
+    SetGenericTeamId(1);
 }
 
 
@@ -258,7 +259,15 @@ void ACPlayerCharacter::OnRespawn()
 }
 
 
+void ACPlayerCharacter::SetGenericTeamId(const FGenericTeamId& NewTeamID)
+{
+   Super::SetGenericTeamId(NewTeamID);
+}
 
+FGenericTeamId ACPlayerCharacter::GetGenericTeamId() const
+{
+    return Super::GetGenericTeamId();
+}
 
 void ACPlayerCharacter::EnterKnockdown()
 {

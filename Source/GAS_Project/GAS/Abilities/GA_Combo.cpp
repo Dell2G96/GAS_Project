@@ -232,6 +232,8 @@ void UGA_Combo::DoDamageNew(FGameplayEventData Data)
 TArray<class AActor*> UGA_Combo::HitBoxTrace()
 { TArray<AActor*> OutActors;
 
+
+	
 	UWorld* World = GetWorld();
 	if (!World || !CachedWeaponMesh || !CachedOwnerCharacter)
 	{
@@ -275,9 +277,9 @@ TArray<class AActor*> UGA_Combo::HitBoxTrace()
 		{
 			continue;
 		}
-
+	
 		OutActors.AddUnique(HitActor);
-		UE_LOG(LogTemp,Warning,TEXT("HitActor : %s"),*HitActor->GetName());
+		//UE_LOG(LogTemp,Warning,TEXT("HitActor : %s"),*HitActor->GetName());
 	}
 
 	if (bShouldDrawDebug)
@@ -334,6 +336,8 @@ void UGA_Combo::HitScanTick()
 {
 	TArray<AActor*> HitActors = HitBoxTrace();
 
+	IGenericTeamAgentInterface* OwnerTeamInterface = Cast<IGenericTeamAgentInterface>(CachedOwnerCharacter);
+
 	for (AActor* HitActor : HitActors)
 	{
 		if (!IsValid(HitActor)) continue;
@@ -341,6 +345,15 @@ void UGA_Combo::HitScanTick()
 		if (AlreadyHitActors.Contains(HitActor)) continue;
 
 		AlreadyHitActors.Add(HitActor);
+
+		if (OwnerTeamInterface)
+		{
+			if (OwnerTeamInterface->GetTeamAttitudeTowards(*HitActor) != TargetTeam)
+			{
+				UE_LOG(LogTemp,Warning,TEXT("%s : is My Team"),*HitActor->GetName());
+				continue;
+			}
+		}
 		
 		if (K2_HasAuthority())
 		{
@@ -348,7 +361,8 @@ void UGA_Combo::HitScanTick()
 			FGameplayEventData Payload;
 			Payload.Instigator = CachedOwnerCharacter;
 			Payload.Target = HitActor;
-			
+
+		
 			if (CachedOwnerCharacter)
 			{
 				CachedOwnerCharacter->Multicast_SendGameplayEventToActor(HitActor, MyTags::Events::Hit::LightHit, Payload);

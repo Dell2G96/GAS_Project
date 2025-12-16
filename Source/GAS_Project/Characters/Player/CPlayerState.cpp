@@ -28,4 +28,3 @@ UAbilitySystemComponent* ACPlayerState::GetAbilitySystemComponent() const
 {
 	return AbilitySystemComponent;
 }
-
