@@ -10,6 +10,8 @@
 
 ACEnemyBase::ACEnemyBase()
 {
+	AutoPossessAI = EAutoPossessAI::PlacedInWorldOrSpawned;
+	
 	PrimaryActorTick.bCanEverTick = false;
 	CAbilitySystemComponent = CreateDefaultSubobject<UCAbilitySystemComponent>(TEXT("AbilitySystemComponent"));
 	CAbilitySystemComponent->SetIsReplicated(true);
