@@ -149,7 +149,7 @@ public:
 	virtual void SetGenericTeamId(const FGenericTeamId& NewTeamID);
 	virtual FGenericTeamId GetGenericTeamId() const;
 protected:
-	UPROPERTY(EditDefaultsOnly,ReplicatedUsing= OnRep_TeamID)
+	UPROPERTY(VisibleAnywhere,ReplicatedUsing= OnRep_TeamID)
 	FGenericTeamId TeamID;
 
 	UFUNCTION()

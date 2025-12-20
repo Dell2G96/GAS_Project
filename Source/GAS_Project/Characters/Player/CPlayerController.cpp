@@ -27,7 +27,7 @@ void ACPlayerController::OnPossess(APawn* NewPawn)
     {
         OwnerCharacter->ServerSideInit();
         // 팀아이디는 빙의 되기전에 실행되어야한다
-        OwnerCharacter->SetGenericTeamId(TeamID);
+        OwnerCharacter->GetGenericTeamId();
     }
 }
 

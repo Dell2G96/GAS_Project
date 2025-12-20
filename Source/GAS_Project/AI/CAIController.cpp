@@ -1,6 +1,8 @@
 
 
 #include "CAIController.h"
+
+#include "BehaviorTree/BlackboardComponent.h"
 #include "Navigation/CrowdFollowingComponent.h"
 #include "Perception/AIPerceptionComponent.h"
 #include "Perception/AISenseConfig_Sight.h"
@@ -28,15 +30,21 @@ ACAIController::ACAIController(const FObjectInitializer& ObjectInitializer)
 	PerceptionComp->SetDominantSense(UAISenseConfig_Sight::StaticClass());
 	PerceptionComp->OnTargetPerceptionUpdated.AddUniqueDynamic(this,&ThisClass::OnEnemyPerceptionUpdated);
 
-	SetGenericTeamId(FGenericTeamId(2));
+//	SetGenericTeamId(FGenericTeamId(2));
 
+}
+
+void ACAIController::BeginPlay()
+{
+	Super::BeginPlay();
+	
 }
 
 ETeamAttitude::Type ACAIController::GetTeamAttitudeTowards(const AActor& Other) const
 {
 	const APawn* PawnToCheck = Cast<const APawn>(&Other);
 	
-	const IGenericTeamAgentInterface* OtherTeamAgent = Cast<const IGenericTeamAgentInterface>(PawnToCheck->GetController());
+	const IGenericTeamAgentInterface* OtherTeamAgent = Cast<const IGenericTeamAgentInterface>(PawnToCheck);
 	if (OtherTeamAgent && OtherTeamAgent->GetGenericTeamId() != GetGenericTeamId())
 	{
 		return ETeamAttitude::Hostile;
@@ -48,17 +56,14 @@ void ACAIController::OnEnemyPerceptionUpdated(AActor* Actor, FAIStimulus Stimulu
 {
 	if (Stimulus.WasSuccessfullySensed() && Actor)
 	{
-		if(GEngine)
+		if (UBlackboardComponent* BlackboardComp = GetBlackboardComponent())
 		{
-			GEngine->AddOnScreenDebugMessage(1, 5.f, FColor::Red, FString::Printf(TEXT("AIController : Name : %s"), *Actor->GetName()));
+			BlackboardComp->SetValueAsObject("TargetActor",Actor);
 		}
+		
 	}
 }
 
-void ACAIController::BeginPlay()
-{
-	Super::BeginPlay();
-	
-}
+
 
 
