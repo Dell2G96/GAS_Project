@@ -17,7 +17,10 @@ void UCAttributeSet::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLi
 	DOREPLIFETIME_CONDITION_NOTIFY(ThisClass, Stamina, COND_None, REPNOTIFY_Always);
 	DOREPLIFETIME_CONDITION_NOTIFY(ThisClass, MaxStamina, COND_None, REPNOTIFY_Always);
 
-	DOREPLIFETIME(ThisClass, bAttributesInitialized);
+
+	//DOREPLIFETIME_CONDITION_NOTIFY(ThisClass, bAttributesInitialized, COND_None, REPNOTIFY_OnChanged);
+
+	//DOREPLIFETIME(ThisClass, bAttributesInitialized);
 	
 }
 void UCAttributeSet::PreAttributeChange(const FGameplayAttribute& Attribute, float& NewValue)
@@ -39,11 +42,11 @@ void UCAttributeSet::PostGameplayEffectExecute(const FGameplayEffectModCallbackD
 {
 	Super::PostGameplayEffectExecute(Data);
 
-	if (!bAttributesInitialized)
-	{
-		bAttributesInitialized = true;
-		OnAttributesInitialized.Broadcast();
-	}
+	// if (!bAttributesInitialized)
+	// {
+	// 	bAttributesInitialized = true;
+	// 	OnAttributesInitialized.Broadcast();
+	// }
 	
 	if (Data.EvaluatedData.Attribute == GetHealthAttribute())
 	{
@@ -58,13 +61,13 @@ void UCAttributeSet::PostGameplayEffectExecute(const FGameplayEffectModCallbackD
 	}
 }
 
-void UCAttributeSet::OnRep_AttributesInitialized()
-{
-	if (bAttributesInitialized)
-	{
-		OnAttributesInitialized.Broadcast();
-	}
-}
+// void UCAttributeSet::OnRep_AttributesInitialized()
+// {
+// 	if (bAttributesInitialized)
+// 	{
+// 		OnAttributesInitialized.Broadcast();
+// 	}
+// }
 
 void UCAttributeSet::RescaleHealth()
 {

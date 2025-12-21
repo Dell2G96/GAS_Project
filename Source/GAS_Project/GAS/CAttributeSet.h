@@ -31,15 +31,15 @@ public:
 	//사후 게임 속성 변경
 	virtual void PostGameplayEffectExecute(const struct FGameplayEffectModCallbackData &Data)  override;
 
-	UPROPERTY(BlueprintAssignable)
-	FAttributesInitialized OnAttributesInitialized;
+	// UPROPERTY(BlueprintAssignable)
+	// FAttributesInitialized OnAttributesInitialized;
+	//
+	// UPROPERTY(ReplicatedUsing = OnRep_AttributesInitialized)
+	// bool bAttributesInitialized = false;
 
-	UPROPERTY(ReplicatedUsing = OnRep_AttributesInitialized)
-	bool bAttributesInitialized = false;
-
-	UFUNCTION()
-	void OnRep_AttributesInitialized();
-	
+	// UFUNCTION()
+	// void OnRep_AttributesInitialized();
+	//
 	void RescaleHealth();
 	void RescaleStamina();
 	

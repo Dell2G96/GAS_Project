@@ -12,10 +12,6 @@
 ACAIController::ACAIController(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer.SetDefaultSubobjectClass<UCrowdFollowingComponent>("PathFollowingComponent"))
 {
-	if (UCrowdFollowingComponent* CrowdComp = Cast<UCrowdFollowingComponent>(GetPathFollowingComponent()))
-	{
-		UE_LOG(LogTemp, Warning, TEXT("------------- CrowdFollowingComponent is Readdy -------------"));
-	}
 
 	AISenseConfig_Sight = CreateDefaultSubobject<UAISenseConfig_Sight>("EnemySenseConfig_Sight");
 	AISenseConfig_Sight->DetectionByAffiliation.bDetectEnemies = true;
@@ -37,6 +33,24 @@ ACAIController::ACAIController(const FObjectInitializer& ObjectInitializer)
 void ACAIController::BeginPlay()
 {
 	Super::BeginPlay();
+
+	if (UCrowdFollowingComponent* CrowdComp = Cast<UCrowdFollowingComponent>(GetPathFollowingComponent()))
+	{
+		CrowdComp->SetCrowdSimulationState(bEnableDetourCrowdAvoidance? ECrowdSimulationState::Enabled : ECrowdSimulationState::Disabled);
+		switch (DetourCrowdAvoidanceQuality)
+		{
+		case 1:CrowdComp->SetCrowdAvoidanceQuality(ECrowdAvoidanceQuality::Low); break;
+		case 2:CrowdComp->SetCrowdAvoidanceQuality(ECrowdAvoidanceQuality::Medium); break;
+		case 3:CrowdComp->SetCrowdAvoidanceQuality(ECrowdAvoidanceQuality::Good); break;
+		case 4:CrowdComp->SetCrowdAvoidanceQuality(ECrowdAvoidanceQuality::High); break;
+			default:
+				break;
+		}
+		CrowdComp->SetAvoidanceGroup(1);
+		CrowdComp->SetGroupsToAvoid(1);
+		CrowdComp->SetCrowdCollisionQueryRange(CollisionQueryRange);
+	}
+
 	
 }
 
@@ -45,7 +59,8 @@ ETeamAttitude::Type ACAIController::GetTeamAttitudeTowards(const AActor& Other) 
 	const APawn* PawnToCheck = Cast<const APawn>(&Other);
 	
 	const IGenericTeamAgentInterface* OtherTeamAgent = Cast<const IGenericTeamAgentInterface>(PawnToCheck);
-	if (OtherTeamAgent && OtherTeamAgent->GetGenericTeamId() != GetGenericTeamId())
+	
+	if (OtherTeamAgent && OtherTeamAgent->GetGenericTeamId() == 1 /*GetGenericTeamId()*/)
 	{
 		return ETeamAttitude::Hostile;
 	}
@@ -54,13 +69,15 @@ ETeamAttitude::Type ACAIController::GetTeamAttitudeTowards(const AActor& Other) 
 
 void ACAIController::OnEnemyPerceptionUpdated(AActor* Actor, FAIStimulus Stimulus)
 {
-	if (Stimulus.WasSuccessfullySensed() && Actor)
+	if (UBlackboardComponent* BlackboardComponent = GetBlackboardComponent())
 	{
-		if (UBlackboardComponent* BlackboardComp = GetBlackboardComponent())
+		if (!BlackboardComponent->GetValueAsObject(FName("TargetActor")))
 		{
-			BlackboardComp->SetValueAsObject("TargetActor",Actor);
+			if (Stimulus.WasSuccessfullySensed() && Actor)
+			{
+				BlackboardComponent->SetValueAsObject(FName("TargetActor"),Actor);
+			}
 		}
-		
 	}
 }
 

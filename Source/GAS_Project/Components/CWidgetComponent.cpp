@@ -34,14 +34,15 @@ bool UCWidgetComponent::IsASCInitialized() const
 
 void UCWidgetComponent::InitializeAttributeDelegate()
 {
-	if (!AttributeSet->bAttributesInitialized)
-	{
-		AttributeSet->OnAttributesInitialized.AddDynamic(this,&ThisClass::BindToAttributeChange);
-	}
-	else
-	{
-		BindToAttributeChange();
-	}
+	// if (!AttributeSet->bAttributesInitialized)
+	// {
+	// 	AttributeSet->OnAttributesInitialized.AddDynamic(this,&ThisClass::BindToAttributeChange);
+	// }
+	// else
+	// {
+	// 	BindToAttributeChange();
+	// }
+	BindToAttributeChange();
 }
 
 void UCWidgetComponent::BindWidgetToAttributeChanges(UWidget* WidgetObject,

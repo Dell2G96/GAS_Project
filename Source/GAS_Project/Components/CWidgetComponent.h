@@ -17,7 +17,6 @@ class GAS_PROJECT_API UCWidgetComponent : public UWidgetComponent
 	
 protected:
 	virtual void BeginPlay() override;
-
 	
 	UPROPERTY(EditAnywhere)
 	TMap<struct FGameplayAttribute, struct FGameplayAttribute> AttributeMap;
