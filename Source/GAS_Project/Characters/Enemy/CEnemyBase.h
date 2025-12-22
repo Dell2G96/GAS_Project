@@ -35,6 +35,13 @@ public:
 private:
 	virtual void OnDead() override;
 	virtual void OnRespawn() override;
+
+public:
+	UFUNCTION(BlueprintCallable)
+	FORCEINLINE UCAbilitySystemComponent* GetMyAbilitySystemComponent() const { return MyAbilitySystemComponent; }
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="GAS|Ability")
+	class UCAbilitySystemComponent* MyAbilitySystemComponent;
 //
 // private:
 // 	UPROPERTY(VisibleAnywhere)

@@ -101,4 +101,23 @@ private:
 	
 	FRotator PreBodyRotation;
 	FRotator LookRotOffset;
+
+	// Enemy //
+protected:
+	UFUNCTION(BlueprintPure, Category="GAS|AnimInstance", meta=(BlueprintThreadSafe))
+	bool DoseOwnerHaveTag(FGameplayTag TagToCheck) const;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AnimData|LocomotionData")
+	float LocomotionDirection;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AnimData|LocomotionData")
+	float GroundSpeed;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AnimData|LocomotionData")
+	bool bHasAcceleration;
+
+	UPROPERTY()
+	class UCharacterMovementComponent* OwningMovementComponent;
+
+	
 };

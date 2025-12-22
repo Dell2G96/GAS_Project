@@ -8,7 +8,9 @@
 #include "AbilitySystemComponent.h"
 #include "KismetAnimationLibrary.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "GAS_Project/MyTags.h"
 #include "GAS_Project/Characters/Player/CPlayerCharacter.h"
+#include "GAS_Project/GAS/CAbilitySystemStatics.h"
 #include "Kismet/KismetMathLibrary.h"
 
 
@@ -24,7 +26,11 @@ void UCAniminstance::NativeInitializeAnimation()
 
 	}
 	UAbilitySystemComponent* OwnerASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(TryGetPawnOwner());
-
+	
+	// if (DoseOwnerHaveTag(MyTags::Status::Strafing))
+	// {
+	// 	UE_LOG(LogTemp,Warning,TEXT("=== Strafing Is True ==="));
+	// }
 }
 
 void UCAniminstance::NativeUpdateAnimation(float DeltaTime)
@@ -58,23 +64,41 @@ void UCAniminstance::NativeUpdateAnimation(float DeltaTime)
 		const FVector V = OwnerCharacter->GetVelocity();
 		const FRotator Base = OwnerCharacter->GetActorRotation(); // 시점 기준 원하면 GetControlRotation()
 		Direction = UKismetAnimationLibrary::CalculateDirection(V, Base);
-		
+
+		GroundSpeed = OwnerMovement->Velocity.Size2D();
+		LocomotionDirection = UKismetAnimationLibrary::CalculateDirection(V, OwnerCharacter->GetActorRotation());
 		
 	}
 	if (OwnerCharacter)
 	{
 		bIsJumping = OwnerMovement->IsFalling();
-	}}
+	}
+
+}
 
 void UCAniminstance::NativeThreadSafeUpdateAnimation(float DeltaSeconds)
 {
-	Super::NativeThreadSafeUpdateAnimation(DeltaSeconds);
+
+	if (!OwnerCharacter || !OwningMovementComponent)
+	{
+		return;
+	}
+
+	
+
 }
 
 void UCAniminstance::OnWeaponTypeChanged(EWeaponType InPrevType, EWeaponType InNewType)
 {
 	WeaponType = InNewType;
 
+}
+
+bool UCAniminstance::DoseOwnerHaveTag(FGameplayTag TagToCheck) const
+{
+	if(!OwnerCharacter) return false;
+	
+	return UCAbilitySystemStatics::NativeDoseActorHaveTag(OwnerCharacter,TagToCheck);
 }
 
 

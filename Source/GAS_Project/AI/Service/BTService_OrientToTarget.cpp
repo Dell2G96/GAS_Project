@@ -41,15 +41,45 @@ void UBTService_OrientToTarget::TickNode(UBehaviorTreeComponent& OwnerComp, uint
 {
 	Super::TickNode(OwnerComp, NodeMemory, DeltaSeconds);
 
+	AAIController* AIC = OwnerComp.GetAIOwner();
 	UObject* ActorObject = OwnerComp.GetBlackboardComponent()->GetValueAsObject(InTargetKey.SelectedKeyName);
 	AActor* TargetActor = Cast<AActor>(ActorObject);
+	//
+	// APawn* OwningPawn = OwnerComp.GetAIOwner()->GetPawn();
+	// if (OwningPawn && TargetActor)
+	// {
+	// 	const FRotator LookAtRot = UKismetMathLibrary::FindLookAtRotation(OwningPawn->GetActorLocation(), TargetActor->GetActorLocation());
+	// 	const FRotator TargetRot = FMath::RInterpTo(OwningPawn->GetActorRotation(), LookAtRot, DeltaSeconds, RotationInterpSpeed);
+	//
+	// 	OwningPawn->SetActorRotation(TargetRot);
+	// }
 
-	APawn* OwningPawn = OwnerComp.GetAIOwner()->GetPawn();
-	if (OwningPawn && TargetActor)
+
+	APawn* Pawn = AIC ? AIC->GetPawn() : nullptr;
+
+
+	if (!TargetActor)
 	{
-		const FRotator LookAtRot = UKismetMathLibrary::FindLookAtRotation(OwningPawn->GetActorLocation(), TargetActor->GetActorLocation());
-		const FRotator TargetRot = FMath::RInterpTo(OwningPawn->GetActorRotation(), LookAtRot, DeltaSeconds, RotationInterpSpeed);
-
-		OwningPawn->SetActorRotation(TargetRot);
+		AIC->ClearFocus(EAIFocusPriority::Gameplay);
 	}
+	if (!AIC || !Pawn)
+	{
+		
+		return;
+	}
+
+	// 1) 포커스를 타겟으로 고정 (스트레이프의 기준)
+	AIC->SetFocus(TargetActor);
+
+	// 2) (선택) 컨트롤러 회전을 직접 보간해서 부드럽게
+	const FVector PawnLoc = Pawn->GetActorLocation();
+	const FVector TargetLoc = TargetActor->GetActorLocation();
+
+	FRotator Desired = (TargetLoc - PawnLoc).Rotation();
+	Desired.Pitch = 0.f;
+	Desired.Roll  = 0.f;
+
+	const FRotator Current = AIC->GetControlRotation();
+	const FRotator NewRot = FMath::RInterpTo(Current, Desired, DeltaSeconds, 10.f /*회전속도*/);
+	AIC->SetControlRotation(NewRot);
 }

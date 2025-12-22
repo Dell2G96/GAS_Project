@@ -101,6 +101,23 @@ public:
 
 	// UFUNCTION(BlueprintCallable)
 	// static void SendDamageEventToPlayer(
-	// 	AActor* Target,	const TSubclassOf<class UGameplayEffect>& DamageEffect,	const struct FGameplayEventData& Payload,const struct FGameplayTag& DataTag, float Damage);																
+	// 	AActor* Target,	const TSubclassOf<class UGameplayEffect>& DamageEffect,	const struct FGameplayEventData& Payload,const struct FGameplayTag& DataTag, float Damage);
+	
+	//------------------------------------------------------------------------------------------------------------------------------
+	UFUNCTION(BlueprintCallable, Category="GAS|Functions")
+	static void AddGamePlayTagToActorIfNone(AActor* InActor, FGameplayTag TagToAdd);
 
+	UFUNCTION(BlueprintCallable, Category="GAS|Functions")
+	static void RemoveGameplayTagFromActorIfFound(AActor* InActor, FGameplayTag TagToRemove);
+
+	UFUNCTION(BlueprintCallable, Category="GAS|Functions")
+	static bool IsTargetPawnHostile(APawn* QueryPawn, APawn* TargetPawn);
+
+	UFUNCTION(BlueprintCallable, Category="GAS|Functions")
+	static bool IsValidBlock(AActor* InAttacker, AActor* InDefender);
+
+	UFUNCTION(BlueprintCallable, Category="GAS|Functions")
+	static bool ApplyGameplayEffectSpecHandleToTargetActor(AActor* InInstigator, AActor* InTargetActor, const FGameplayEffectSpecHandle& InSpecHandle);
+
+	static bool NativeDoseActorHaveTag(AActor* InActor, FGameplayTag TagToCheck);
 };

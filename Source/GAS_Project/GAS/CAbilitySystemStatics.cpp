@@ -404,6 +404,77 @@ FClosestActorWithTagResult UCAbilitySystemStatics::FindClosestActorWithTag(const
 	return Result;
 	
 }
+
+void UCAbilitySystemStatics::AddGamePlayTagToActorIfNone(AActor* InActor, FGameplayTag TagToAdd)
+{
+	UCAbilitySystemComponent* ASC = Cast<UCAbilitySystemComponent>(UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(InActor));
+	if (ASC)
+	{
+		if (!ASC->HasMatchingGameplayTag(TagToAdd))
+		{
+			ASC->AddLooseGameplayTag(TagToAdd);
+		}
+	}
+		
+}
+
+void UCAbilitySystemStatics::RemoveGameplayTagFromActorIfFound(AActor* InActor, FGameplayTag TagToRemove)
+{
+	UCAbilitySystemComponent* ASC = Cast<UCAbilitySystemComponent>(UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(InActor));
+	if (ASC)
+	{
+		if (ASC->HasMatchingGameplayTag(TagToRemove))
+		{
+			ASC->RemoveLooseGameplayTag(TagToRemove);
+		}
+	}
+}
+
+bool UCAbilitySystemStatics::IsTargetPawnHostile(APawn* QueryPawn, APawn* TargetPawn)
+{
+	check(QueryPawn && TargetPawn);
+
+	IGenericTeamAgentInterface* QueryTeamAgent = Cast<IGenericTeamAgentInterface>(QueryPawn);
+	IGenericTeamAgentInterface* TargetTeamAgent = Cast<IGenericTeamAgentInterface>(TargetPawn);
+
+	if (QueryTeamAgent && TargetTeamAgent)
+	{
+		return QueryTeamAgent->GetGenericTeamId() != TargetTeamAgent->GetGenericTeamId();
+	}
+
+	return false;
+}
+
+bool UCAbilitySystemStatics::IsValidBlock(AActor* InAttacker, AActor* InDefender)
+{
+	check(InAttacker && InDefender);
+
+	const float DotResult = FVector::DotProduct(InAttacker->GetActorForwardVector(),InDefender->GetActorForwardVector());
+
+	/* const FString DebugString = FString::Printf(TEXT("Dot Result: %f %s"),DotResult,DotResult<-0.1f? TEXT("Valid Block") : TEXT("InvalidBlock"));
+ 
+	 Debug::Print(DebugString,DotResult<-0.1f? FColor::Green : FColor::Red);*/
+
+	return DotResult < -0.1f;
+}
+
+bool UCAbilitySystemStatics::ApplyGameplayEffectSpecHandleToTargetActor(AActor* InInstigator, AActor* InTargetActor,
+	const FGameplayEffectSpecHandle& InSpecHandle)
+{
+	UCAbilitySystemComponent* SourceASC = Cast<UCAbilitySystemComponent>(UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(InInstigator));
+	UCAbilitySystemComponent* TargetASC = Cast<UCAbilitySystemComponent>(UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(InTargetActor));
+
+	FActiveGameplayEffectHandle SpecHandle = SourceASC->ApplyGameplayEffectSpecToTarget(*InSpecHandle.Data,TargetASC);
+	return SpecHandle.WasSuccessfullyApplied();
+	
+}
+
+bool UCAbilitySystemStatics::NativeDoseActorHaveTag(AActor* InActor, FGameplayTag TagToCheck)
+{
+	UCAbilitySystemComponent* ASC = Cast<UCAbilitySystemComponent>(UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(InActor));
+	return ASC->HasMatchingGameplayTag(TagToCheck);
+}
+
 //
 // void UCAbilitySystemStatics::SendDamageEventToPlayer(AActor* Target,
 // 	const TSubclassOf<class UGameplayEffect>& DamageEffect, const struct FGameplayEventData& Payload,

@@ -20,6 +20,9 @@ public:
 	void ApplyFullStatEffect();
 	
 	const TMap<ECabilityInputID, TSubclassOf<UGameplayAbility>>& GetAbilities() const;
+
+	UFUNCTION(BlueprintCallable, Category="GAS|Abilities")
+	bool TryActivateAbilityByTag(FGameplayTag AbilityTagToActivate);
 	
 private:
 	void ApplyInitialEffects();
