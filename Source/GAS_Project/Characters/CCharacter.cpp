@@ -14,6 +14,7 @@
 #include "GameplayEffect.h"
 #include "GAS_Project/MyTags.h"
 #include "Perception/AIPerceptionStimuliSourceComponent.h"
+#include "MotionWarpingComponent.h"
 
 ACCharacter::ACCharacter()
 {
@@ -26,7 +27,8 @@ ACCharacter::ACCharacter()
     
     // CAbilitySystemComponent = CreateDefaultSubobject<UCAbilitySystemComponent>("CAbility System Component");
     // CAttributeSet = CreateDefaultSubobject<UCAttributeSet>("CAttribute Set");
-    //
+
+    MotionWarpingComponent = CreateDefaultSubobject<UMotionWarpingComponent>("MotionWarpingComponent");
     OverHeadWidgetComponent = CreateDefaultSubobject<UWidgetComponent>("OverHead Widget Component");
     OverHeadWidgetComponent->SetupAttachment(GetRootComponent());
     BindGASChangeDelegate();

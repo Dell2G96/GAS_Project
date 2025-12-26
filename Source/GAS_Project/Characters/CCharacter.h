@@ -81,7 +81,13 @@ protected:
 
 	UPROPERTY()
 	class UCAttributeSet* CAttributeSet;
+	/*********************************************************************/
+	/*						       Component                             */
+	/*********************************************************************/
 
+public:
+	UPROPERTY(VisibleAnywhere,BlueprintReadOnly ,Category="GAS|Components")
+	class UMotionWarpingComponent* MotionWarpingComponent;
 	/*********************************************************************/
 	/*						       UI                                    */
 	/*********************************************************************/

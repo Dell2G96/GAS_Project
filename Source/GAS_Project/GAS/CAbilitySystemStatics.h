@@ -63,6 +63,8 @@ public:
 	static float GetStaminaCostFor(const UGameplayAbility* AbilityCDO, const UAbilitySystemComponent& ASC, int AbilityLevel);
 	static float GetCooldownDurationFor(const UGameplayAbility* AbilityCDO, const UAbilitySystemComponent& ASC, int AbilityLevel);
 	static float GetCooldownRemainingFor(const UGameplayAbility* AbilityCDO, const UAbilitySystemComponent& ASC);
+
+	static void DesideCombat(const FHitResult& HitActorToCheck, AActor* Instigactor);
 	//------------------------------------------------------------------------------------------------------------------------------
 	UFUNCTION(BlueprintPure)
 	static EHitDirection GetHitDirection(const FVector& TargetForward, const FVector& ToInstigator);

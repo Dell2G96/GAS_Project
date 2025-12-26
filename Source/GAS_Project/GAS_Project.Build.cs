@@ -20,6 +20,7 @@ public class GAS_Project : ModuleRules
 			"GameplayTasks",
 			"GameplayTags",
 			"AnimGraphRuntime",
+			"MotionWarping",
 			"UMG",
 			"AIModule",
 			"SlateCore",

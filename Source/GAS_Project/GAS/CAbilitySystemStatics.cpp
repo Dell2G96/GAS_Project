@@ -226,6 +226,39 @@ float UCAbilitySystemStatics::GetCooldownRemainingFor(const UGameplayAbility* Ab
 	return CooldownRemaining;
 }
 
+void UCAbilitySystemStatics::DesideCombat(const FHitResult& HitActorToCheck, AActor* Instigactor)
+{
+	
+	UAbilitySystemComponent* HitASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(HitActorToCheck.GetActor());
+	UAbilitySystemComponent* InstASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(Instigactor);
+	
+	bool bIsValidBlock = false;
+	const bool bIsPlayerBlocking = false;
+	const bool bIsMyAttackUnBlockalbe = false;
+
+	FGameplayEffectContextHandle Context = InstASC->MakeEffectContext();
+	Context.AddHitResult(HitActorToCheck);
+	
+	FGameplayEventData Payload;
+	Payload.Instigator = Instigactor;
+	Payload.Target = HitActorToCheck.GetActor();
+	Payload.ContextHandle = Context;
+	
+	if (bIsPlayerBlocking && !bIsMyAttackUnBlockalbe)
+	{
+		//ToDo : Check if block success by Stamina and other stats
+	}
+	if (bIsValidBlock)
+	{
+		// To Do : HandleSuccessful Block 
+	}
+
+	else
+	{
+		UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(HitActorToCheck.GetActor(), MyTags::Events::Hit::Hit, Payload);
+	}
+}
+
 EHitDirection UCAbilitySystemStatics::GetHitDirection(const FVector& TargetForward, const FVector& ToInstigator)
 {
 	const float Dot = FVector::DotProduct(TargetForward, ToInstigator);

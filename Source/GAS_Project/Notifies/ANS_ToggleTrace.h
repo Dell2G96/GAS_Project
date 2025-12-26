@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "GameplayTagContainer.h"
 #include "GenericTeamAgentInterface.h"
+#include "Abilities/GameplayAbilityTypes.h"
 #include "Animation/AnimNotifies/AnimNotifyState.h"
 #include "ANS_ToggleTrace.generated.h"
 
@@ -87,6 +88,10 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="MeleeTrace")
 	TSubclassOf<class UGameplayEffect> DefaultDamageEffect;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="MeleeTrace")
+	FGameplayTag HitTagEvent;
+	
+
 private:
 	// NotifyState 인스턴스는 애셋에 붙고, 런타임 데이터는 캐릭터별로 따로 들고 있어야 안전함
 	// MeshComp 기준으로 맵에 저장
@@ -115,36 +120,12 @@ private:
 		bool bLeftHand
 	) const;
 	
+	void DoDamageNew(struct FGameplayEventData Data) const;
+
 	//----------------------------------------------------------------------------//
 
 public:
-	class USkeletalMeshComponent* IsUsingWeaponMesh(USkeletalMeshComponent* MeshComp);
-
-	void DoDamageNew(struct FGameplayEventData Data) const;
-
-	// UFUNCTION(BlueprintCallable,  category="GAS|Combo")
-	// TArray<class AActor*> HitBoxTrace();
-	//
-	UPROPERTY(EditAnywhere, Category="GAS|Trace")
-	FName EndTraceSocket;
-
-	UPROPERTY(EditAnywhere, Category="GAS|Trace")
-	FName StartTraceSocket;
-
-	UPROPERTY(EditAnywhere, Category="GAS|Trace")
-	float Radius = 5.f;
-
-	UPROPERTY(EditAnywhere, Category="GAS|Trace")
-	bool bDebugDrawing = true;
-
-	UPROPERTY(EditAnywhere, Category="GAS|Trace")
-	bool IsWeapon = true;
 	
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="GAS|AttackTrace")
-	FGameplayTag HitTagEvent;
-
-
-	TArray<class AActor> HitActors;
 	class ACCharacter* OwnerCharacter;
 	
 	
