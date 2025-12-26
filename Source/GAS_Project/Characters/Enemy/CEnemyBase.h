@@ -16,10 +16,34 @@ public:
 	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
 	virtual UAttributeSet* GetAttributeSet() const override;
 
+	FORCEINLINE class UBoxComponent* GetLeftHandCollision() const { return LeftHandCollision; }
+	FORCEINLINE class UBoxComponent* GetRightHandCollision() const { return RightHandCollision;}
 protected:
 	virtual void BeginPlay() override;
 	virtual void HandleDeath() override;
 
+	/*********************************************************************/
+	/*								Collision                            */
+	/*********************************************************************/
+#if WITH_EDITOR
+	//~ Begin UObject Interface.
+	virtual void PostEditChangeProperty( struct FPropertyChangedEvent& PropertyChangedEvent) override;
+	//~ End UObject Interface
+#endif
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="GAS|Collision")
+	FName LeftHandSocket;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="GAS|Collision")
+	FName RightHandSocket;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="GAS|Collision")
+	class UBoxComponent* LeftHandCollision;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="GAS|Collision")
+	class UBoxComponent* RightHandCollision;
+
+	
 	/*********************************************************************/
 	/*								Team ID                              */
 	/*********************************************************************/

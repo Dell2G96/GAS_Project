@@ -72,11 +72,11 @@ void UGA_Combo::ActivateAbility(const FGameplayAbilitySpecHandle Handle, const F
 		WaitComboChangeEventTask->EventReceived.AddDynamic(this, &UGA_Combo::ComboChangedEventRecevied);
 		WaitComboChangeEventTask->ReadyForActivation();
 
-		UAbilityTask_WaitGameplayEvent* HitScanStartTask  = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(this, MyTags::Events::Trace::TraceStart, nullptr, false, false);
+		UAbilityTask_WaitGameplayEvent* HitScanStartTask  = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(this, MyTags::Events::Trace::Trace_Start, nullptr, false, false);
 		HitScanStartTask->EventReceived.AddDynamic(this,&UGA_Combo::OnHitScanStartEvent);
 		HitScanStartTask->ReadyForActivation();
 
-		UAbilityTask_WaitGameplayEvent* HitScanEndTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(this, MyTags::Events::Trace::TraceEnd, nullptr, false, false);
+		UAbilityTask_WaitGameplayEvent* HitScanEndTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(this, MyTags::Events::Trace::Trace_End, nullptr, false, false);
 		HitScanEndTask->EventReceived.AddDynamic(this, &UGA_Combo::OnHitScanEndEvent);
 		HitScanEndTask->ReadyForActivation();
 	}
@@ -230,7 +230,8 @@ void UGA_Combo::DoDamageNew(FGameplayEventData Data)
 // }
 
 TArray<class AActor*> UGA_Combo::HitBoxTrace()
-{ TArray<AActor*> OutActors;
+{
+	TArray<AActor*> OutActors;
 
 
 	
@@ -355,14 +356,21 @@ void UGA_Combo::HitScanTick()
 			}
 		}
 		
+		FVector ImpactPoint;
+		ImpactPoint = HitActor->GetActorLocation() + FVector(0.f,0.f,50.f);
+			
+		FGameplayEffectContextHandle ContextHandle;
+		ContextHandle.AddOrigin(ImpactPoint);
+			
+		FGameplayEventData Payload;
+		Payload.Instigator = CachedOwnerCharacter;
+		Payload.Target = HitActor;
+		Payload.ContextHandle = ContextHandle;
+		
 		if (K2_HasAuthority())
 		{
 			// 내(공격자) 가져오기
-			FGameplayEventData Payload;
-			Payload.Instigator = CachedOwnerCharacter;
-			Payload.Target = HitActor;
-
-		
+			
 			if (CachedOwnerCharacter)
 			{
 				CachedOwnerCharacter->Multicast_SendGameplayEventToActor(HitActor, MyTags::Events::Hit::LightHit, Payload);
@@ -371,9 +379,6 @@ void UGA_Combo::HitScanTick()
 		}
 		else
 		{
-			FGameplayEventData Payload;
-			Payload.Instigator = CachedOwnerCharacter;
-			Payload.Target = HitActor;
 			UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(HitActor, MyTags::Events::Hit::LightHit,Payload);
 		}
 	}

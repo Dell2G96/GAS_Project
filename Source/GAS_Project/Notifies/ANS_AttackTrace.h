@@ -37,7 +37,7 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="GAS|AttackTrace")
 	bool bSingleHitPerActor = true;
-
+	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="GAS|AttackTrace")
 	bool bClientAlsoTrace = true;
 	
@@ -48,7 +48,7 @@ public:
 	TSubclassOf<class UGameplayEffect> DamageEffect;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="GAS|AttackTrace")
-	bool bDrawDebug = false;
+	bool bDrawDebug = true;
 
 	// 서버만 실제 판정/적용을 수행 (클라는 디버그만)
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Net")

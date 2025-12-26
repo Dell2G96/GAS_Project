@@ -29,6 +29,7 @@ namespace MyTags
 		UE_DEFINE_GAMEPLAY_TAG(Combo4, "MyTags.Abilities.Combo.Change.Combo04")
 		UE_DEFINE_GAMEPLAY_TAG(ComboChangeEnd, "MyTags.Abilities.Combo.Change.End")
 		UE_DEFINE_GAMEPLAY_TAG(ComboDamage, "MyTags.Abilities.Combo.Damage")
+		UE_DEFINE_GAMEPLAY_TAG(HitStop, "MyTags.Abilities.HitStop")
 
 		namespace Equip
 		{
@@ -55,18 +56,19 @@ namespace MyTags
 	{
 		namespace Combo
 		{
-			UE_DEFINE_GAMEPLAY_TAG(ComboStart, "MyTags.Events.Combo.Start")
-			UE_DEFINE_GAMEPLAY_TAG(ComboEnd, "MyTags.Events.Combo.End")
+			UE_DEFINE_GAMEPLAY_TAG(Combo_Start, "MyTags.Events.Combo.Start")
+			UE_DEFINE_GAMEPLAY_TAG(Combo_End, "MyTags.Events.Combo.End")
 		}
 		namespace Trace
 		{
-			UE_DEFINE_GAMEPLAY_TAG(TraceStart, "MyTags.Events.Trace.Start")
-			UE_DEFINE_GAMEPLAY_TAG(TraceEnd, "MyTags.Events.Trace.End")
+			UE_DEFINE_GAMEPLAY_TAG(Trace_Start, "MyTags.Events.Trace.Start")
+			UE_DEFINE_GAMEPLAY_TAG(Trace_End, "MyTags.Events.Trace.End")
 		}
 		
 		namespace Hit
 		{
 			UE_DEFINE_GAMEPLAY_TAG(Hit, "MyTags.Events.Hit")
+			UE_DEFINE_GAMEPLAY_TAG(HitStop, "MyTags.Events.HitStop")
 			UE_DEFINE_GAMEPLAY_TAG(LightHit, "MyTags.Events.Hit.LightHit")
 			UE_DEFINE_GAMEPLAY_TAG(HeavyHit, "MyTags.Events.Hit.HeavyHit")
 		}

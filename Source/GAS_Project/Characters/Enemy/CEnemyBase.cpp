@@ -4,6 +4,7 @@
 #include "CEnemyBase.h"
 
 #include "AIController.h"
+#include "Components/BoxComponent.h"
 #include "GAS_Project/GAS/CAbilitySystemComponent.h"
 
 
@@ -13,6 +14,14 @@ ACEnemyBase::ACEnemyBase()
 	AutoPossessAI = EAutoPossessAI::PlacedInWorldOrSpawned;
 	
 	PrimaryActorTick.bCanEverTick = false;
+	LeftHandCollision = CreateDefaultSubobject<UBoxComponent>("LeftHandCollision");
+	LeftHandCollision->SetupAttachment(GetMesh());
+	RightHandCollision = CreateDefaultSubobject<UBoxComponent>("RightHandCollision");
+	RightHandCollision->SetupAttachment(GetMesh());
+	
+	LeftHandCollision->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	RightHandCollision->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	
 	CAbilitySystemComponent = CreateDefaultSubobject<UCAbilitySystemComponent>(TEXT("AbilitySystemComponent"));
 	CAbilitySystemComponent->SetIsReplicated(true);
 	CAbilitySystemComponent->SetReplicationMode(EGameplayEffectReplicationMode::Minimal);
@@ -64,6 +73,25 @@ void ACEnemyBase::HandleDeath()
 	if (!IsValid(AIController)) return;
 	AIController->StopMovement();
 }
+
+
+#if WITH_EDITOR
+void ACEnemyBase::PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent)
+{
+	Super::PostEditChangeProperty(PropertyChangedEvent);
+
+	if (PropertyChangedEvent.GetMemberPropertyName() == GET_MEMBER_NAME_CHECKED(ThisClass, LeftHandSocket))
+	{
+		LeftHandCollision->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, LeftHandSocket);
+	}
+
+	if (PropertyChangedEvent.GetMemberPropertyName() == GET_MEMBER_NAME_CHECKED(ThisClass, RightHandSocket))
+	{
+		RightHandCollision->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, RightHandSocket);
+	}
+}
+#endif
+
 
 FGenericTeamId ACEnemyBase::GetGenericTeamId() const
 {

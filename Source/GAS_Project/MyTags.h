@@ -30,6 +30,7 @@ namespace MyTags
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Combo4);
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(ComboChangeEnd);
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(ComboDamage);
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(HitStop);
 
 		namespace Equip
 		{
@@ -59,19 +60,20 @@ namespace MyTags
 	{
 		namespace Combo
 		{
-			UE_DECLARE_GAMEPLAY_TAG_EXTERN(ComboStart);
-			UE_DECLARE_GAMEPLAY_TAG_EXTERN(ComboEnd);
+			UE_DECLARE_GAMEPLAY_TAG_EXTERN(Combo_Start);
+			UE_DECLARE_GAMEPLAY_TAG_EXTERN(Combo_End);
 		}
 		namespace Trace
 		{
-			UE_DECLARE_GAMEPLAY_TAG_EXTERN(TraceStart);
-			UE_DECLARE_GAMEPLAY_TAG_EXTERN(TraceEnd);
+			UE_DECLARE_GAMEPLAY_TAG_EXTERN(Trace_Start);
+			UE_DECLARE_GAMEPLAY_TAG_EXTERN(Trace_End);
 		}
 		namespace Hit
 		{
 			UE_DECLARE_GAMEPLAY_TAG_EXTERN(Hit);			
 			UE_DECLARE_GAMEPLAY_TAG_EXTERN(LightHit);			
 			UE_DECLARE_GAMEPLAY_TAG_EXTERN(HeavyHit);			
+			UE_DECLARE_GAMEPLAY_TAG_EXTERN(HitStop);			
 		}
 		namespace Equip
 		{
