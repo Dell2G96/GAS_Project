@@ -508,6 +508,11 @@ bool UCAbilitySystemStatics::NativeDoseActorHaveTag(AActor* InActor, FGameplayTa
 	return ASC->HasMatchingGameplayTag(TagToCheck);
 }
 
+// void UCAbilitySystemStatics::BP_DoesActorHaveTag(AActor* InActor, FGameplayTag TagToCheck)
+// {
+// 	
+// }
+
 //
 // void UCAbilitySystemStatics::SendDamageEventToPlayer(AActor* Target,
 // 	const TSubclassOf<class UGameplayEffect>& DamageEffect, const struct FGameplayEventData& Payload,

@@ -100,6 +100,7 @@ namespace MyTags
 	namespace Status
 	{
 		UE_DEFINE_GAMEPLAY_TAG(Strafing, "MyTags.Status.Strafing")
+		UE_DEFINE_GAMEPLAY_TAG(UnderAttack, "MyTags.Status.UnderAttack")
 		UE_DEFINE_GAMEPLAY_TAG(Equip, "MyTags.Status.Equip")
 		UE_DEFINE_GAMEPLAY_TAG(UnEquip, "MyTags.Status.UnEquip")
 		UE_DEFINE_GAMEPLAY_TAG(BattleMode, "MyTags.Status.Battle")

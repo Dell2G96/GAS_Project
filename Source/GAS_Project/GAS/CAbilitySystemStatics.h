@@ -121,5 +121,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category="GAS|Functions")
 	static bool ApplyGameplayEffectSpecHandleToTargetActor(AActor* InInstigator, AActor* InTargetActor, const FGameplayEffectSpecHandle& InSpecHandle);
 
+
+	UFUNCTION(BlueprintCallable, Category="GAS|Functions", meta=(DisplayName="Does Actor Have Tag"))
 	static bool NativeDoseActorHaveTag(AActor* InActor, FGameplayTag TagToCheck);
+
+	// UFUNCTION(BlueprintCallable, Category="GAS|Functions", meta=(DisplayName="Does Actor Have Tag"))
+	// static void BP_DoesActorHaveTag(AActor* InActor,FGameplayTag TagToCheck);
 };
