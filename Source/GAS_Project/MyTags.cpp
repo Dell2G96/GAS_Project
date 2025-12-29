@@ -8,10 +8,10 @@ namespace MyTags
 	UE_DEFINE_GAMEPLAY_TAG(None,"MyTags.None")
 	
 	/** Input Tags **/
-	UE_DEFINE_GAMEPLAY_TAG(InputTag_Move,"InputTag.Move")
-	UE_DEFINE_GAMEPLAY_TAG(InputTag_Look,"InputTag.Look")
-	UE_DEFINE_GAMEPLAY_TAG(InputTag_EquipKnife,"InputTag.EquipKnife")
-	UE_DEFINE_GAMEPLAY_TAG(InputTag_UnEquipKnife,"InputTag.UnEquipKnife")
+	// UE_DEFINE_GAMEPLAY_TAG(InputTag_Move,"InputTag.Move")
+	// UE_DEFINE_GAMEPLAY_TAG(InputTag_Look,"InputTag.Look")
+	// UE_DEFINE_GAMEPLAY_TAG(InputTag_EquipKnife,"InputTag.EquipKnife")
+	// UE_DEFINE_GAMEPLAY_TAG(InputTag_UnEquipKnife,"InputTag.UnEquipKnife")
 
 	namespace SetByCaller
 	{
@@ -20,8 +20,9 @@ namespace MyTags
 	}	
 	namespace Abilities
 	{
-		UE_DEFINE_GAMEPLAY_TAG_COMMENT(ActivateOnGiven, "MyTags.Abilities.ActivateOnGiven", "Tag for Abilities that should activate immediately once given.")
+		UE_DEFINE_GAMEPLAY_TAG(ActivateOnGiven, "MyTags.Abilities.ActivateOnGiven")
 		UE_DEFINE_GAMEPLAY_TAG(Roll, "MyTags.Abilities.Roll")
+		UE_DEFINE_GAMEPLAY_TAG(Guard, "MyTags.Abilities.Guard")
 		
 		UE_DEFINE_GAMEPLAY_TAG(ComboChange, "MyTags.Abilities.Combo.Change")
 		UE_DEFINE_GAMEPLAY_TAG(Combo1, "MyTags.Abilities.Combo.Change.Combo01")
@@ -30,8 +31,17 @@ namespace MyTags
 		UE_DEFINE_GAMEPLAY_TAG(Combo4, "MyTags.Abilities.Combo.Change.Combo04")
 		UE_DEFINE_GAMEPLAY_TAG(ComboChangeEnd, "MyTags.Abilities.Combo.Change.End")
 		UE_DEFINE_GAMEPLAY_TAG(ComboDamage, "MyTags.Abilities.Combo.Damage")
+		
 		UE_DEFINE_GAMEPLAY_TAG(HitStop, "MyTags.Abilities.HitStop")
 
+		UE_DEFINE_GAMEPLAY_TAG(GuardPressed, "MyTags.Abilities.Guard.Pressed")
+		UE_DEFINE_GAMEPLAY_TAG(GuardReleased, "MyTags.Abilities.Guard.Released")
+
+		UE_DEFINE_GAMEPLAY_TAG(BasicAttack, "MyTags.Abilities.BasicAttack")
+		UE_DEFINE_GAMEPLAY_TAG(BasicAttackPressed, "MyTags.Abilities.BasicAttack.Pressed")
+		UE_DEFINE_GAMEPLAY_TAG(BasicAttackReleased, "MyTags.Abilities.BasicAttack.Released")
+		UE_DEFINE_GAMEPLAY_TAG(HeavyAttack, "MyTags.Abilities.HeavyAttack")
+		UE_DEFINE_GAMEPLAY_TAG(Tertiary, "MyTags.Abilities.Tertiary")
 		namespace Equip
 		{
 			UE_DEFINE_GAMEPLAY_TAG(EquipKnife, "MyTags.Abilities.Equip.Knife")
@@ -41,15 +51,10 @@ namespace MyTags
 			UE_DEFINE_GAMEPLAY_TAG(UnEquipKnife, "MyTags.Abilities.UnEquip.Knife")	
 		}
 		
-		UE_DEFINE_GAMEPLAY_TAG_COMMENT(BasicAttack, "MyTags.Abilities.BasicAttack", "Tag for the Primary Ability")
-		UE_DEFINE_GAMEPLAY_TAG_COMMENT(BasicAttackPressed, "MyTags.Abilities.BasicAttack.Pressed", "Tag for the Primary Ability")
-		UE_DEFINE_GAMEPLAY_TAG_COMMENT(BasicAttackReleased, "MyTags.Abilities.BasicAttack.Released", "Tag for the Primary Ability")
-		UE_DEFINE_GAMEPLAY_TAG_COMMENT(HeavyAttack, "MyTags.Abilities.HeavyAttack", "Tag for the Secondary Ability")
-		UE_DEFINE_GAMEPLAY_TAG_COMMENT(Tertiary, "MyTags.Abilities.Tertiary", "Tag for the Tertiary Ability")
 
 		namespace Enemy
 		{
-			UE_DEFINE_GAMEPLAY_TAG_COMMENT(Attack, "MyTags.Abilities.Enemy.Attack", "Enemy Attack Tag")
+			UE_DEFINE_GAMEPLAY_TAG(Attack, "MyTags.Abilities.Enemy.Attack")
 		}
 	}
 
@@ -86,30 +91,37 @@ namespace MyTags
 		
 		namespace Player
 		{
-			UE_DEFINE_GAMEPLAY_TAG_COMMENT(HitReact, "MyTags.Events.Player.HitReact", "Tag for the Player HitReact Event")
-			UE_DEFINE_GAMEPLAY_TAG_COMMENT(Knockdown, "MyTags.Events.Player.Knockdown", "Tag for the Player Death Event")
-			UE_DEFINE_GAMEPLAY_TAG_COMMENT(Death, "MyTags.Events.Player.Death", "Tag for the Player Death Event")
+			UE_DEFINE_GAMEPLAY_TAG(HitReact, "MyTags.Events.Player.HitReact")
+			UE_DEFINE_GAMEPLAY_TAG(Knockdown, "MyTags.Events.Player.Knockdown")
+			UE_DEFINE_GAMEPLAY_TAG(Death, "MyTags.Events.Player.Death")
 		}
 	
 		namespace Enemy
 		{
-			UE_DEFINE_GAMEPLAY_TAG_COMMENT(HitReact, "MyTags.Events.Enemy.HitReact", "Tag for the Enemy HitReact Event")
-			UE_DEFINE_GAMEPLAY_TAG_COMMENT(EndAttack, "MyTags.Events.Enemy.EndAttack", "Tag for the Enemy Ending an Attack")
-			UE_DEFINE_GAMEPLAY_TAG_COMMENT(MeleeTraceHit, "MyTags.Events.Enemy.MeleeTraceHit", "Tag for the Enemy Melee Trace Hit")
+			UE_DEFINE_GAMEPLAY_TAG(HitReact, "MyTags.Events.Enemy.HitReact")
+			UE_DEFINE_GAMEPLAY_TAG(EndAttack, "MyTags.Events.Enemy.EndAttack")
+			UE_DEFINE_GAMEPLAY_TAG(MeleeTraceHit, "MyTags.Events.Enemy.MeleeTraceHit")
 		}
 	}
 	namespace Status
 	{
+		UE_DEFINE_GAMEPLAY_TAG(Guarding, "MyTags.Status.Guarding")
+		UE_DEFINE_GAMEPLAY_TAG(PerfectGuard, "MyTags.Status.PerfectGuard")
+		
 		UE_DEFINE_GAMEPLAY_TAG(Strafing, "MyTags.Status.Strafing")
 		UE_DEFINE_GAMEPLAY_TAG(UnderAttack, "MyTags.Status.UnderAttack")
+		
 		UE_DEFINE_GAMEPLAY_TAG(Equip, "MyTags.Status.Equip")
 		UE_DEFINE_GAMEPLAY_TAG(UnEquip, "MyTags.Status.UnEquip")
+		
 		UE_DEFINE_GAMEPLAY_TAG(BattleMode, "MyTags.Status.Battle")
 		UE_DEFINE_GAMEPLAY_TAG(IdleMode, "MyTags.Status.IdleMode")
 		UE_DEFINE_GAMEPLAY_TAG(Rolling, "MyTags.Status.Rolling")
+		
 		UE_DEFINE_GAMEPLAY_TAG(Knockdown, "MyTags.Status.Knockdown")
 		UE_DEFINE_GAMEPLAY_TAG(Dead, "MyTags.Status.Dead")
 		UE_DEFINE_GAMEPLAY_TAG(Stun, "MyTags.Status.Stun")
+		
 		UE_DEFINE_GAMEPLAY_TAG(HealthFull, "MyTags.Status.Health.Full")
 		UE_DEFINE_GAMEPLAY_TAG(HealthEmpty, "MyTags.Status.Health.Empty")
 		UE_DEFINE_GAMEPLAY_TAG(StaminaFull, "MyTags.Status.Stamina.Full")

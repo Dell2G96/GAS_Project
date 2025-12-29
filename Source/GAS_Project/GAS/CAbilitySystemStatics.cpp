@@ -19,12 +19,26 @@ FGameplayTag UCAbilitySystemStatics::GetBasicAttackAbilityTag()
 FGameplayTag UCAbilitySystemStatics::GetBasicAttackInputPressedTag()
 {
 	return MyTags::Abilities::BasicAttackPressed;
-
 }
 
 FGameplayTag UCAbilitySystemStatics::GetBasicAttackInputReleasedTag()
 {
 	return MyTags::Abilities::BasicAttackReleased;
+}
+
+FGameplayTag UCAbilitySystemStatics::GetGuardInputPressedTag()
+{
+	return MyTags::Abilities::GuardPressed;
+}
+
+FGameplayTag UCAbilitySystemStatics::GetGuardInputReleasedTag()
+{
+	return MyTags::Abilities::GuardReleased;
+}
+
+FGameplayTag UCAbilitySystemStatics::GetGuardingTag()
+{
+	return MyTags::Status::Guarding;
 }
 
 
@@ -478,17 +492,27 @@ bool UCAbilitySystemStatics::IsTargetPawnHostile(APawn* QueryPawn, APawn* Target
 	return false;
 }
 
-bool UCAbilitySystemStatics::IsValidBlock(AActor* InAttacker, AActor* InDefender)
+bool UCAbilitySystemStatics::IsValidBlock(AActor* InAttacker, const FHitResult& HitResult)
 {
-	check(InAttacker && InDefender);
+	AActor* HitActor = Cast<AActor>(HitResult.GetActor());
+	check(InAttacker && HitActor);
 
-	const float DotResult = FVector::DotProduct(InAttacker->GetActorForwardVector(),InDefender->GetActorForwardVector());
+	UCAbilitySystemComponent* TargetASC = Cast<UCAbilitySystemComponent>(UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(HitActor));
+	UCAbilitySystemComponent* OwnerASC = Cast<UCAbilitySystemComponent>(UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(InAttacker));
 
-	/* const FString DebugString = FString::Printf(TEXT("Dot Result: %f %s"),DotResult,DotResult<-0.1f? TEXT("Valid Block") : TEXT("InvalidBlock"));
- 
-	 Debug::Print(DebugString,DotResult<-0.1f? FColor::Green : FColor::Red);*/
+	if (!TargetASC || !OwnerASC)
+	{
+		return false;
+	}
 
-	return DotResult < -0.1f;
+	if (ActorHasTag(HitActor, GetGuardingTag()))
+	{
+		return true;
+	}
+	else
+	{
+		return false;
+	}
 }
 
 bool UCAbilitySystemStatics::ApplyGameplayEffectSpecHandleToTargetActor(AActor* InInstigator, AActor* InTargetActor,

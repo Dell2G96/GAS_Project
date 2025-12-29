@@ -123,7 +123,7 @@ void ACPlayerController::SetupInputComponent()
     {
         if (InputActionPair.Value)
         {
-            EnhancedInputComp->BindAction(InputActionPair.Value, ETriggerEvent::Started,
+            EnhancedInputComp->BindAction(InputActionPair.Value, ETriggerEvent::Triggered,
                 this, &ACPlayerController::HandleAbilityInput, InputActionPair.Key);
             
             
@@ -245,6 +245,12 @@ void ACPlayerController::HandleAbilityInput(const FInputActionValue& InputAction
         FGameplayTag BasicAttackTag = bPressed ? UCAbilitySystemStatics::GetBasicAttackInputPressedTag() : UCAbilitySystemStatics::GetBasicAttackInputReleasedTag();
         UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(OwnerCharacter , BasicAttackTag, FGameplayEventData());
         OwnerCharacter->Server_SendGameplayEventToSelf(BasicAttackTag, FGameplayEventData());
+    }
+    if (InputID == ECabilityInputID::Guard)
+    {
+        FGameplayTag GuardTag = bPressed ? UCAbilitySystemStatics::GetGuardInputPressedTag() : UCAbilitySystemStatics::GetGuardInputReleasedTag();
+        UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(OwnerCharacter , GuardTag, FGameplayEventData());
+        OwnerCharacter->Server_SendGameplayEventToSelf(GuardTag, FGameplayEventData());
     }
 }
 

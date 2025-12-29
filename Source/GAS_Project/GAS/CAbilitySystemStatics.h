@@ -37,6 +37,9 @@ public:
 	static FGameplayTag GetBasicAttackAbilityTag();
 	static FGameplayTag GetBasicAttackInputPressedTag();
 	static FGameplayTag GetBasicAttackInputReleasedTag();
+	static FGameplayTag GetGuardInputPressedTag();
+	static FGameplayTag GetGuardInputReleasedTag();
+	static FGameplayTag GetGuardingTag();
 	static FGameplayTag GetBattleModeTag();
 	static FGameplayTag GetIdleModeTag();
 	static FGameplayTag GetKnockdownStatTag();
@@ -116,7 +119,7 @@ public:
 	static bool IsTargetPawnHostile(APawn* QueryPawn, APawn* TargetPawn);
 
 	UFUNCTION(BlueprintCallable, Category="GAS|Functions")
-	static bool IsValidBlock(AActor* InAttacker, AActor* InDefender);
+	static bool IsValidBlock(AActor* InAttacker, const FHitResult& HitResult);
 
 	UFUNCTION(BlueprintCallable, Category="GAS|Functions")
 	static bool ApplyGameplayEffectSpecHandleToTargetActor(AActor* InInstigator, AActor* InTargetActor, const FGameplayEffectSpecHandle& InSpecHandle);

@@ -37,7 +37,6 @@ protected:
 
 	// 타이머 핸들
 	FTimerHandle HitRecoveryTimerHandle;
-	bool OnActive(AActor* MyTarget, const FGameplayCueParameters& Parameters);
 
 private:
 	// 피격 파라미터 변경

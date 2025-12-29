@@ -47,41 +47,6 @@ bool AHitGameplayCue::OnExecute_Implementation(AActor* MyTarget, const FGameplay
 }
 
 
-bool AHitGameplayCue::OnActive(AActor* MyTarget, const FGameplayCueParameters& Parameters)
-{
-	if (!Super::OnActive(MyTarget, Parameters))
-	{
-		return false;
-	}
-
-	if (!MyTarget)
-	{
-		return false;
-	}
-
-	// 피격 효과 적용
-	ApplyHitEffect(MyTarget);
-
-	// N초 후 복원하는 타이머 설정
-	if (UWorld* World = GetWorld())
-	{
-		World->GetTimerManager().SetTimer(
-			HitRecoveryTimerHandle,
-			[this, WeakTarget = TWeakObjectPtr<AActor>(MyTarget)]()
-			{
-				if (AActor* Target = WeakTarget.Get())
-				{
-					RestoreHitEffect(Target);
-				}
-			},
-			HitDuration,
-			false // 반복 안함
-		);
-	}
-
-	return true;
-}
-
 void AHitGameplayCue::ApplyHitEffect(AActor* TargetActor)
 {
 	ACCharacter* Character = Cast<ACCharacter>(TargetActor);

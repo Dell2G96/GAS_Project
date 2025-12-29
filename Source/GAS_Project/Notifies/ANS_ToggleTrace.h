@@ -80,11 +80,7 @@ public:
 	// 디버그
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="MeleeTrace|Debug")
 	bool bDrawDebug = false;
-
-	// 히트 시 호출할 게임플레이 이벤트 태그(원하면 GAS로 연결)
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="MeleeTrace|GAS")
-	FName HitEventName = "MeleeHit"; // 간단히 Name으로. 프로젝트에 맞게 바꿔도 됨.
-
+	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="MeleeTrace")
 	TSubclassOf<class UGameplayEffect> DefaultDamageEffect;
 
@@ -118,7 +114,7 @@ private:
 		AActor* OwnerActor,
 		const FHitResult& HitResult,
 		bool bLeftHand
-	) const;
+	) ;
 	
 	void DoDamageNew(struct FGameplayEventData Data) const;
 
