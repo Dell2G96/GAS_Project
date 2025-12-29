@@ -4,6 +4,8 @@
 #include "GAS_Project/Characters/CCharacter.h"
 #include "CPlayerCharacter.generated.h"
 
+
+
 UCLASS()
 class GAS_PROJECT_API ACPlayerCharacter : public ACCharacter
 {
@@ -35,6 +37,28 @@ public:
 	// 무기 컴포넌트: 플레이어 전용 컴포넌트로 단일화
 	UFUNCTION(BlueprintCallable)
 	FORCEINLINE class UCWeaponComponent* GetWeaponComponent() const { return WeaponComponent.Get(); }
+
+	/********************************************************/
+	/*						Rolling                         */
+	/********************************************************/
+public:
+	
+	UFUNCTION(BlueprintCallable)
+	void ApplyRollWarpTarget_Local(const FVector& Dir2D, float Distance);
+	// 현재 머신에서 워프 타깃(위치/회전)을 설정합니다.
+
+	UFUNCTION(Server, Reliable)
+	void Server_SetRollWarpData(const FVector_NetQuantizeNormal& Direction, float Distance);
+	// 오너가 계산한 방향/거리를 서버에 전달합니다.
+
+	UFUNCTION(NetMulticast, Reliable)
+	void Multicast_ApplyRollWarpData(const FVector_NetQuantizeNormal& Direction, float Distance);
+	// 서버가 확정한 워프 타깃 세팅을 모든 클라에 반영합니다.
+	
+	
+private:
+	UPROPERTY(EditDefaultsOnly, Category="Rolling")
+	FName RollWarpTargetName = FName(TEXT("RollingDirection"));
 
 private:
 	/********************************************************/

@@ -136,6 +136,10 @@ void UCAbilitySystemComponent::GiveInitialAbilities()
 	{
 		GiveAbility(FGameplayAbilitySpec(PassiveAbility, 1, -1, nullptr));
 	}
+	for (const TSubclassOf<UGameplayAbility>& ActiveAbility : AbilitySystemGenerics->GetActiveAbilities())
+	{
+		GiveAbility(FGameplayAbilitySpec(ActiveAbility, 1, -1, nullptr));
+	}
 
     UE_LOG(LogTemp, Log, TEXT("=== GiveInitialAbilities END on %s ==="), *GetOwner()->GetName());
 }

@@ -21,7 +21,8 @@ namespace MyTags
 	namespace Abilities
 	{
 		UE_DEFINE_GAMEPLAY_TAG_COMMENT(ActivateOnGiven, "MyTags.Abilities.ActivateOnGiven", "Tag for Abilities that should activate immediately once given.")
-
+		UE_DEFINE_GAMEPLAY_TAG(Roll, "MyTags.Abilities.Roll")
+		
 		UE_DEFINE_GAMEPLAY_TAG(ComboChange, "MyTags.Abilities.Combo.Change")
 		UE_DEFINE_GAMEPLAY_TAG(Combo1, "MyTags.Abilities.Combo.Change.Combo01")
 		UE_DEFINE_GAMEPLAY_TAG(Combo2, "MyTags.Abilities.Combo.Change.Combo02")
@@ -105,6 +106,7 @@ namespace MyTags
 		UE_DEFINE_GAMEPLAY_TAG(UnEquip, "MyTags.Status.UnEquip")
 		UE_DEFINE_GAMEPLAY_TAG(BattleMode, "MyTags.Status.Battle")
 		UE_DEFINE_GAMEPLAY_TAG(IdleMode, "MyTags.Status.IdleMode")
+		UE_DEFINE_GAMEPLAY_TAG(Rolling, "MyTags.Status.Rolling")
 		UE_DEFINE_GAMEPLAY_TAG(Knockdown, "MyTags.Status.Knockdown")
 		UE_DEFINE_GAMEPLAY_TAG(Dead, "MyTags.Status.Dead")
 		UE_DEFINE_GAMEPLAY_TAG(Stun, "MyTags.Status.Stun")

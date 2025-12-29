@@ -19,6 +19,7 @@ public:
 	FORCEINLINE TSubclassOf<class UGameplayEffect> GetKnockdownEffect() const { return KnockdownEffect; }
 	FORCEINLINE const TArray<TSubclassOf<class UGameplayEffect>>& GetInitialEffects() const { return InitialEffects; }
 	FORCEINLINE const TArray<TSubclassOf<class UGameplayAbility>>& GetPassiveAbilities() const { return PassiveAbilities; }
+	FORCEINLINE const TArray<TSubclassOf<class UGameplayAbility>>& GetActiveAbilities() const { return ActiveAbilities; }
 
 private:
 	UPROPERTY(EditDefaultsOnly, Category = "GAS|Gameplay Effects")
@@ -33,6 +34,9 @@ private:
 	UPROPERTY(EditDefaultsOnly, Category = "GAS|Gameplay Effects")
 	TArray<TSubclassOf<class UGameplayEffect>> InitialEffects;
 
+	UPROPERTY(EditDefaultsOnly, Category = "GAS|Gameplay Abilitys")
+	TArray<TSubclassOf<class UGameplayAbility>> ActiveAbilities;
+	
 	UPROPERTY(EditDefaultsOnly, Category = "GAS|Gameplay Abilitys")
 	TArray<TSubclassOf<class UGameplayAbility>> PassiveAbilities;
 	

@@ -22,8 +22,6 @@ public:
 	void AcknowledgePossession(class APawn* NewPawn) override;
 	virtual void SetGenericTeamId(const FGenericTeamId& NewTeamID) override;
 
-
-	//
 	virtual FGenericTeamId GetGenericTeamId() const override;
 	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
 	virtual void SetupInputComponent() override;

@@ -5,6 +5,7 @@
 #include "CPlayerController.h"
 #include "CPlayerState.h"
 #include "EnhancedInputSubsystems.h"
+#include "MotionWarpingComponent.h"
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
@@ -47,8 +48,11 @@ ACPlayerCharacter::ACPlayerCharacter()
 
     WeaponComponent = CreateDefaultSubobject<UCWeaponComponent>(TEXT("WeaponComponent"));
     WeaponComponent->SetIsReplicated(true);
-    
+
+    // 런타임에 빈 이름(None)으로 들어가서 워핑이 안 걸리는 걸 방지합니다.
+    RollWarpTargetName = FName(TEXT("RollingDirection"));
 }
+
 
 void ACPlayerCharacter::BeginPlay()
 {
@@ -171,8 +175,157 @@ void ACPlayerCharacter::GetLifetimeReplicatedProps(TArray<class FLifetimePropert
 {
     Super::GetLifetimeReplicatedProps(OutLifetimeProps);
     DOREPLIFETIME(ThisClass, bKnockdown);
+    // DOREPLIFETIME(ThisClass, RollWarpData);
     
 }
+
+void ACPlayerCharacter::ApplyRollWarpTarget_Local(const FVector& Dir2D, float Distance)
+{
+    if (!MotionWarpingComponent)
+    {
+        return;
+        // 모션워핑 컴포넌트가 없으면 적용 불가입니다.
+    }
+
+    FVector Dir = Dir2D;
+    // 입력 방향을 복사합니다.
+
+    Dir.Z = 0.f;
+    // 수평 방향으로 고정합니다.
+
+    if (Dir.SizeSquared() < 0.0001f)
+    {
+        Dir = GetActorForwardVector();
+        // 방향이 0에 가까우면 전방으로 방어합니다.
+
+        Dir.Z = 0.f;
+        // 전방도 수평으로 고정합니다.
+    }
+
+    Dir.Normalize();
+    // 정규화합니다.
+
+    const float SafeDistance = FMath::Max(0.f, Distance);
+    // 음수 거리를 방어합니다.
+
+    const FVector TargetLocation = GetActorLocation() + (Dir * SafeDistance);
+    // 목표 위치를 계산합니다.
+
+    const FRotator TargetRotation = FRotationMatrix::MakeFromX(Dir).Rotator();
+    // 목표 회전을 계산합니다.
+
+    MotionWarpingComponent->AddOrUpdateWarpTargetFromLocationAndRotation(
+        RollWarpTargetName,
+        TargetLocation,
+        TargetRotation);
+    // 워프 타깃을 업데이트합니다.
+}
+
+void ACPlayerCharacter::Server_SetRollWarpData_Implementation(const FVector_NetQuantizeNormal& Direction,
+    float Distance)
+{
+    const FVector_NetQuantizeNormal SafeDir = (Direction.IsNearlyZero())
+        ? FVector_NetQuantizeNormal(GetActorForwardVector())
+        : Direction;
+    // 서버에서 방향이 0이면 전방으로 방어합니다.
+
+    const float SafeDistance = FMath::Max(0.f, Distance);
+    // 서버에서 거리도 방어합니다.
+
+    ApplyRollWarpTarget_Local(SafeDir, SafeDistance);
+    // 서버에서도 워프 타깃을 세팅합니다.
+
+    Multicast_ApplyRollWarpData(SafeDir, SafeDistance);
+    // 모든 클라에 워프 타깃을 적용합니다.
+}
+
+void ACPlayerCharacter::Multicast_ApplyRollWarpData_Implementation(const FVector_NetQuantizeNormal& Direction,
+    float Distance)
+{
+    ApplyRollWarpTarget_Local(Direction, Distance);
+    // 각 클라에서 워프 타깃을 세팅합니다.
+}
+
+//
+// void ACPlayerCharacter::ApplyRollWarpTarget_Local(const FVector& Dir2D, float Distance)
+// {
+//     if (!MotionWarpingComponent) return;
+//
+//     FVector Dir = Dir2D;                    // 입력 방향 복사
+//     Dir.Z = 0.f;                            // Z축 성분 제거
+//     if (Dir.SizeSquared() < 0.0001f)
+//     {
+//         Dir = GetActorForwardVector(); // 방향이 너무 작으면 전방 방향 사용
+//         Dir.Z = 0.f;
+//     }
+//
+//     Dir.Normalize();
+//
+//     // 현재 위치에서 거리만큼 이동한 지점을 워프타깃으로 지정
+//     const FVector TargetLocation = GetActorLocation() + (Dir * Distance);
+//
+//     const FRotator TargetRotation = FRotationMatrix::MakeFromX(Dir).Rotator();
+//
+//     MotionWarpingComponent->AddOrUpdateWarpTargetFromLocationAndRotation(RollWarpTargetName, TargetLocation, TargetRotation);
+//     
+// }
+//
+// void ACPlayerCharacter::Multicast_ApplyRollWarpData_Implementation(const FVector_NetQuantizeNormal& Direction,
+//     float Distance)
+// {
+// }
+//
+// void ACPlayerCharacter::Server_SetRollWarpData_Implementation(const FVector_NetQuantizeNormal& Direction,
+//                                                               float Distance)
+// {
+//     RollWarpData.Direction = Direction;
+//     // 서버에 방향을 저장합니다.
+//
+//     RollWarpData.Distance = Distance;
+//     // 서버에 거리를 저장합니다.
+//
+//     RollWarpData.Sequence++;
+//     // 같은 값이 반복돼도 변경으로 인식되도록 시퀀스를 증가시킵니다.
+//
+//     ApplyRollWarpTarget_Local(RollWarpData.Direction, RollWarpData.Distance);
+//     // 서버에서도 워프 타깃을 즉시 반영합니다.
+//
+//     Multicast_ApplyRollWarpWarpData(RollWarpData.Direction, RollWarpData.Distance, RollWarpData.Sequence);
+//     // 모든 클라에 즉시 반영하도록 멀티캐스트를 호출합니다.
+//
+//     ForceNetUpdate();
+//     // 네트워크 업데이트를 당겨서 타이밍 꼬임을 줄입니다.
+// }
+//
+// void ACPlayerCharacter::Multicast_ApplyRollWarpWarpData_Implementation(const FVector_NetQuantizeNormal& Direction,
+//     float Distance,uint8 Sequence)
+// {
+//     ApplyRollWarpTarget_Local(Direction, Distance);
+//     // 각 머신에서 워프 타깃을 적용합니다.
+// }
+//
+// void ACPlayerCharacter::OnRep_RollWarpData()
+// {
+//     ApplyRollWarpTarget_Local(RollWarpData.Direction, RollWarpData.Distance);
+//
+// }
+//
+// uint8 ACPlayerCharacter::GetRollWarpSequence()
+// {
+//     return RollWarpData.Sequence;
+//     // 복제 도착 시에도 워프 타깃을 재적용
+// }
+//
+// FVector ACPlayerCharacter::GetRollWarpDirection()
+// {
+//     return RollWarpData.Direction;
+//     // 저장된 방향을 반환
+// }
+//
+// float ACPlayerCharacter::GetRollWarpDistance()
+// {
+//     return RollWarpData.Distance;
+// }
 
 
 UAbilitySystemComponent* ACPlayerCharacter::GetAbilitySystemComponent() const
