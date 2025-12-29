@@ -44,12 +44,23 @@ public:
 	FORCEINLINE bool ShouldDrawDebug() const {return bShouldDrawDebug;}
 
 protected:
+	UFUNCTION(BlueprintCallable)
 	void PushSelf(const FVector& PushVel);
+
+	UFUNCTION(BlueprintCallable)
 	void PushTarget(AActor* Target, const FVector& PushVel);
+
+	UFUNCTION(BlueprintCallable)
 	void PushTargets(const TArray<AActor*>& Targets, const FVector& PushVel);
+
 	void PushTargets(const FGameplayAbilityTargetDataHandle& TargetDataHandle , const FVector& PushVel);
+
+	UFUNCTION(BlueprintCallable)
 	void PlayMontageLocally(UAnimMontage* MontageToPlay);
+
+	UFUNCTION(BlueprintCallable)
 	void StopMontageAfterCurrentSection(UAnimMontage* MontageToStop);
+	
 	FGenericTeamId GetOwnerTeamID() const;
 
 	ACharacter* GetOwningAvaterCharacter() ;

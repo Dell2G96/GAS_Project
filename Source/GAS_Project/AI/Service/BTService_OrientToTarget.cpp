@@ -9,6 +9,7 @@
 #include "BehaviorTree/BlackboardComponent.h"
 #include "BehaviorTree/BlackboardData.h"
 #include "GAS_Project/MyTags.h"
+#include "GAS_Project/Characters/Enemy/CEnemyBase.h"
 #include "Kismet/KismetMathLibrary.h"
 
 UBTService_OrientToTarget::UBTService_OrientToTarget()
@@ -48,22 +49,16 @@ void UBTService_OrientToTarget::TickNode(UBehaviorTreeComponent& OwnerComp, uint
 	UObject* ActorObject = OwnerComp.GetBlackboardComponent()->GetValueAsObject(InTargetKey.SelectedKeyName);
 	AActor* TargetActor = Cast<AActor>(ActorObject);
 	UAbilitySystemComponent* TargetASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(TargetActor);
-	//
-	// APawn* OwningPawn = OwnerComp.GetAIOwner()->GetPawn();
-	// if (OwningPawn && TargetActor)
-	// {
-	// 	const FRotator LookAtRot = UKismetMathLibrary::FindLookAtRotation(OwningPawn->GetActorLocation(), TargetActor->GetActorLocation());
-	// 	const FRotator TargetRot = FMath::RInterpTo(OwningPawn->GetActorRotation(), LookAtRot, DeltaSeconds, RotationInterpSpeed);
-	//
-	// 	OwningPawn->SetActorRotation(TargetRot);
-	// }
-
+	
 
 	APawn* Pawn = AIC ? AIC->GetPawn() : nullptr;
+
+	
 	if (!TargetASC)
 	{
 		return;
 	}
+	
 	if (TargetASC->HasMatchingGameplayTag(MyTags::Status::Knockdown))
 	{
 		AIC->ClearFocus(EAIFocusPriority::Gameplay);
@@ -74,17 +69,19 @@ void UBTService_OrientToTarget::TickNode(UBehaviorTreeComponent& OwnerComp, uint
 	if (!TargetActor)
 	{
 		AIC->ClearFocus(EAIFocusPriority::Gameplay);
+		return;
 	}
+	
 	if (!AIC || !Pawn)
 	{
-		
 		return;
 	}
 
-	// 1) 포커스를 타겟으로 고정 (스트레이프의 기준)
+
+	ACEnemyBase* Enemy = Cast<ACEnemyBase>(Pawn);
 	AIC->SetFocus(TargetActor);
-
-
+	
+	
 	// 2) (선택) 컨트롤러 회전을 직접 보간해서 부드럽게
 	if (TargetActor)
 	{
@@ -96,6 +93,7 @@ void UBTService_OrientToTarget::TickNode(UBehaviorTreeComponent& OwnerComp, uint
 		const FRotator Current = AIC->GetControlRotation();
 		const FRotator NewRot = FMath::RInterpTo(Current, Desired, DeltaSeconds, 10.f /*회전속도*/);
 		AIC->SetControlRotation(NewRot);
+		// Enemy->SetDesiredRotation(NewRot);
 	}
 	
 }

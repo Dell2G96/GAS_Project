@@ -212,8 +212,6 @@ void UANS_ToggleTrace::DoHandTrace(USkeletalMeshComponent* MeshComp, AActor* Own
 void UANS_ToggleTrace::HandleHit(USkeletalMeshComponent* MeshComp, AActor* OwnerActor,
 	const FHitResult& HitResult, bool bLeftHand) 
 {
-	UE_LOG(LogTemp,Warning,TEXT("Melee Hit Detected: %s"),*GetNameSafe(HitResult.GetActor()));
-	
 	if (GEngine)
 	{
 		GEngine->AddOnScreenDebugMessage(12345,2.f,FColor::Yellow,FString::Printf(TEXT("Melee Hit Detected: %s hand=%s"),*GetNameSafe(HitResult.GetActor()),bLeftHand ? TEXT("Left") : TEXT("Right")));
@@ -224,14 +222,17 @@ void UANS_ToggleTrace::HandleHit(USkeletalMeshComponent* MeshComp, AActor* Owner
 	
 	if (OwnerTeamInterface)
 	{
-		if (OwnerTeamInterface->GetTeamAttitudeTowards(*HitResult.GetActor()) != TargetTeam)
+		if (OwnerTeamInterface->GetTeamAttitudeTowards(*HitResult.GetActor()) != TargetTeam) 
 		{
-			UE_LOG(LogTemp,Warning,TEXT("%s : is Not My Team"),*HitResult.GetActor()->GetName());
+			UE_LOG(LogTemp,Warning,TEXT("%s : is Not Enemy"),*HitResult.GetActor()->GetName());
+			return;
 		}
 	}
 		
 	// FVector ImpactPoint;
 	// ImpactPoint = HitResult.ImpactPoint;
+	 UAbilitySystemComponent* TargetASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(HitResult.GetActor());
+	if (!TargetASC) return;
 	
 			
 	FGameplayEffectContextHandle ContextHandle = OwnerCharacter->GetAbilitySystemComponent()->MakeEffectContext();
@@ -256,8 +257,6 @@ void UANS_ToggleTrace::HandleHit(USkeletalMeshComponent* MeshComp, AActor* Owner
 		//UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(HitResult.GetActor(), HitTagEvent,Payload);
 		
 		DoDamageNew(Payload);
-		
-		UE_LOG(LogTemp,Warning,TEXT("%s : is My Team"),*HitResult.GetActor()->GetName());
 		
 		GEngine->AddOnScreenDebugMessage(12345,2.f,FColor::Blue,FString::Printf(TEXT("Melee Hit Detected: %s hand=%s"),*GetNameSafe(HitResult.GetActor()),bLeftHand ? TEXT("Left") : TEXT("Right")));
 	}

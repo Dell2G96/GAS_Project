@@ -16,6 +16,8 @@ public:
 	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
 	virtual UAttributeSet* GetAttributeSet() const override;
 
+	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
+
 	FORCEINLINE class UBoxComponent* GetLeftHandCollision() const { return LeftHandCollision; }
 	FORCEINLINE class UBoxComponent* GetRightHandCollision() const { return RightHandCollision;}
 protected:
@@ -66,11 +68,27 @@ public:
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="GAS|Ability")
 	class UCAbilitySystemComponent* MyAbilitySystemComponent;
-//
-// private:
-// 	UPROPERTY(VisibleAnywhere)
-// 	TObjectPtr<class UAbilitySystemComponent> AbilitySystemComponent;
-//
-// 	UPROPERTY()
-// 	TObjectPtr<class UAttributeSet> AttributeSet;
+
+	/*********************************************************************/
+	/*								AI									 */
+	/*********************************************************************/
+public:
+	// ✅ AnimBP에서 Strafing 태그가 클라에서 안 보일 때를 대비한 복제 상태
+	UFUNCTION(BlueprintCallable, BlueprintPure)
+	bool IsStrafing() const { return bIsStrafing; }
+
+	// ✅ 서버에서 Strafing 태그 변화를 감지해 bIsStrafing을 갱신
+	void SetupStrafingReplicationBridge();
+	void HandleStrafingTagChanged(const FGameplayTag Tag, int32 NewCount);
+
+	
+
+	// ✅ Strafing 상태(서버 → 모든 클라)
+	UPROPERTY(ReplicatedUsing = OnRep_IsStrafing, VisibleAnywhere, BlueprintReadOnly, Category="GAS|Locomotion")
+	bool bIsStrafing = false;
+
+	UFUNCTION()
+	void OnRep_IsStrafing();
+	
+
 };
