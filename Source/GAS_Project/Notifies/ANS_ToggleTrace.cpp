@@ -249,24 +249,24 @@ void UANS_ToggleTrace::HandleHit(USkeletalMeshComponent* MeshComp, AActor* Owner
 	UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(MeshComp->GetOwner(), MyTags::Abilities::Enemy::Trace,Payload);
 	//UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(HitResult.GetActor(), HitTagEvent,Payload);
 
-	if (OwnerActor->HasAuthority())
-	{
-		// 내(공격자) 가져오기
-		OwnerCharacter = Cast<ACCharacter>(OwnerActor);
-
-	
-		UCAbilitySystemStatics::DesideCombat(MeshComp->GetOwner(), HitResult, HitTagEvent,Payload,DefaultDamageEffect);
-		
-		//OwnerCharacter->Multicast_SendGameplayEventToActor(HitResult.GetActor(), HitTagEvent,Payload);
-		//UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(HitResult.GetActor(), HitTagEvent,Payload);
-		
-		//DoDamageNew(Payload);
-		
-		//GEngine->AddOnScreenDebugMessage(12345,2.f,FColor::Blue,FString::Printf(TEXT("Melee Hit Detected: %s hand=%s"),*GetNameSafe(HitResult.GetActor()),bLeftHand ? TEXT("Left") : TEXT("Right")));
-	}
-	else
-	{
-		//UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(HitResult.GetActor(), HitTagEvent,Payload);
-	}
+	// if (OwnerActor->HasAuthority())
+	// {
+	// 	// 내(공격자) 가져오기
+	// 	OwnerCharacter = Cast<ACCharacter>(OwnerActor);
+	//
+	//
+	// 	UCAbilitySystemStatics::DesideCombat(MeshComp->GetOwner(), HitResult, HitTagEvent,Payload,DefaultDamageEffect);
+	// 	
+	// 	//OwnerCharacter->Multicast_SendGameplayEventToActor(HitResult.GetActor(), HitTagEvent,Payload);
+	// 	//UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(HitResult.GetActor(), HitTagEvent,Payload);
+	// 	
+	// 	//DoDamageNew(Payload);
+	// 	
+	// 	//GEngine->AddOnScreenDebugMessage(12345,2.f,FColor::Blue,FString::Printf(TEXT("Melee Hit Detected: %s hand=%s"),*GetNameSafe(HitResult.GetActor()),bLeftHand ? TEXT("Left") : TEXT("Right")));
+	// }
+	// else
+	// {
+	// 	//UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(HitResult.GetActor(), HitTagEvent,Payload);
+	// }
 }
 

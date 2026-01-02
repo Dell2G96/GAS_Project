@@ -12,6 +12,9 @@ namespace MyTags
 	// UE_DEFINE_GAMEPLAY_TAG(InputTag_Look,"InputTag.Look")
 	// UE_DEFINE_GAMEPLAY_TAG(InputTag_EquipKnife,"InputTag.EquipKnife")
 	// UE_DEFINE_GAMEPLAY_TAG(InputTag_UnEquipKnife,"InputTag.UnEquipKnife")
+	UE_DEFINE_GAMEPLAY_TAG(InputTag_Toggleable,"InputTag.Toggleable")
+	UE_DEFINE_GAMEPLAY_TAG(InputTag_Toggleable_TargetLock,"InputTag.Toggleable.TargetLock")
+	
 
 	namespace SetByCaller
 	{
@@ -23,6 +26,8 @@ namespace MyTags
 		UE_DEFINE_GAMEPLAY_TAG(ActivateOnGiven, "MyTags.Abilities.ActivateOnGiven")
 		UE_DEFINE_GAMEPLAY_TAG(Roll, "MyTags.Abilities.Roll")
 		UE_DEFINE_GAMEPLAY_TAG(Guard, "MyTags.Abilities.Guard")
+		
+		UE_DEFINE_GAMEPLAY_TAG(TargetLock, "MyTags.Abilities.TargetLock")
 		
 		UE_DEFINE_GAMEPLAY_TAG(ComboChange, "MyTags.Abilities.Combo.Change")
 		UE_DEFINE_GAMEPLAY_TAG(Combo1, "MyTags.Abilities.Combo.Change.Combo01")
@@ -67,6 +72,8 @@ namespace MyTags
 
 	namespace Events
 	{
+		UE_DEFINE_GAMEPLAY_TAG(Block_Hit, "MyTags.Events.Block.Hit")
+		UE_DEFINE_GAMEPLAY_TAG(Block_Perfect, "MyTags.Events.Block.Perfect")
 		namespace Combo
 		{
 			UE_DEFINE_GAMEPLAY_TAG(Combo_Start, "MyTags.Events.Combo.Start")
@@ -114,6 +121,8 @@ namespace MyTags
 	{
 		UE_DEFINE_GAMEPLAY_TAG(Guarding, "MyTags.Status.Guarding")
 		UE_DEFINE_GAMEPLAY_TAG(PerfectGuard, "MyTags.Status.PerfectGuard")
+		
+		UE_DEFINE_GAMEPLAY_TAG(TargetLock, "MyTags.Status.TargetLock")
 		
 		UE_DEFINE_GAMEPLAY_TAG(Strafing, "MyTags.Status.Strafing")
 		UE_DEFINE_GAMEPLAY_TAG(UnderAttack, "MyTags.Status.UnderAttack")

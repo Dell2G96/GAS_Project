@@ -6,10 +6,12 @@
 #include "AbilitySystemBlueprintLibrary.h"
 #include "AbilitySystemComponent.h"
 #include "GAP_Launched.h"
+#include "GAS_Project/MyTags.h"
 #include "GAS_Project/Characters/Player/CPlayerCharacter.h"
 #include "GAS_Project/Characters/Player/CPlayerController.h"
 #include "GAS_Project/Components/CWeaponComponent.h"
 #include "GAS_Project/GAS/CAbilitySystemComponent.h"
+#include "GAS_Project/GAS/CAbilitySystemStatics.h"
 #include "Kismet/KismetMathLibrary.h"
 #include "Kismet/KismetSystemLibrary.h"
 
@@ -225,4 +227,53 @@ void UCGameplayAbility::SendLocalGameplayEvent(const FGameplayTag& EventTag, con
 	{
 		OwnerASC->HandleGameplayEvent(EventTag, &EventData);
 	}
+}
+
+
+void UCGameplayAbility::DesideCombat(AActor* InAttacker, const FHitResult& HitActorToCheck,
+	TSubclassOf<UGameplayEffect> DamageEffects, FGameplayEventData Payload)
+{
+	
+	UAbilitySystemComponent* InstASC = GetAbilitySystemComponentFromActorInfo();
+	UAbilitySystemComponent* HitASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(HitActorToCheck.GetActor());
+	
+
+	bool bIsValidBlock = false; 
+	const bool bIsCharacterBlocking = UCAbilitySystemStatics::NativeDoseActorHaveTag(HitActorToCheck.GetActor(), MyTags::Status::Guarding);
+	const bool bIsMyAttackUnBlockalbe = false;
+
+	if (bIsCharacterBlocking && !bIsMyAttackUnBlockalbe)
+	{
+		bIsValidBlock = UCAbilitySystemStatics::IsValidBlock(InAttacker, HitActorToCheck.GetActor());
+	}
+	
+	if (bIsValidBlock)
+	{
+		// To Do : HandleSuccessful Block
+		GEngine->AddOnScreenDebugMessage(1, 3.f, FColor::Blue, TEXT("Successful Block!"));
+		UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(HitActorToCheck.GetActor(), MyTags::Events::Block_Hit, Payload);
+		return;
+	}
+	else
+	{
+		if (InstASC && HitASC)
+		{
+			// HitResult 생성 및 위치 정보 설정
+			// FHitResult HitResult;
+			// HitResult.Location = Cast<AActor>(EventData.Target)->GetActorLocation();
+			
+			FGameplayEffectSpecHandle Spec = InstASC->MakeOutgoingSpec(DamageEffects, /*Lvl*/1.f, Payload.ContextHandle);
+			if (Spec.IsValid())
+			{
+				HitASC->ApplyGameplayEffectSpecToSelf(*Spec.Data.Get());
+			}
+			
+		}
+		ACCharacter* HitActor = Cast<ACCharacter>(HitActorToCheck.GetActor());
+		if (HitActor)
+		{
+			HitActor->Multicast_SendGameplayEventToActor(HitActorToCheck.GetActor(), HitActorTag, Payload);
+		}
+	}
+	
 }

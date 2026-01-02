@@ -44,8 +44,10 @@ public:
 	FORCEINLINE bool ShouldDrawDebug() const {return bShouldDrawDebug;}
 
 protected:
+	void DesideCombat(AActor* InAttacker, const FHitResult& HitActorToCheck,TSubclassOf<UGameplayEffect> DamageEffects, FGameplayEventData Payload);
+
 	//------------------------------------------------------------------//
-	//								넉백								//
+	//								넉백									//
 	//------------------------------------------------------------------//
 	UFUNCTION(BlueprintCallable)
 	void PushSelf(const FVector& PushVel);
@@ -76,6 +78,10 @@ protected:
 
 	
 protected:
+	UPROPERTY(EditDefaultsOnly, Category="GAS|Tag")
+	FGameplayTag HitActorTag;
+
+	
 	UPROPERTY(EditDefaultsOnly, Category="Debug")
 	bool bShouldDrawDebug = false;
 

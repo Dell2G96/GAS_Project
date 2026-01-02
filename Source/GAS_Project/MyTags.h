@@ -13,6 +13,8 @@ namespace MyTags
 	// UE_DECLARE_GAMEPLAY_TAG_EXTERN(InputTag_Move)
 	// UE_DECLARE_GAMEPLAY_TAG_EXTERN(InputTag_EquipKnife)
 	// UE_DECLARE_GAMEPLAY_TAG_EXTERN(InputTag_UnEquipKnife)
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(InputTag_Toggleable)
+	UE_DECLARE_GAMEPLAY_TAG_EXTERN(InputTag_Toggleable_TargetLock)
 
 	namespace SetByCaller
 	{
@@ -25,6 +27,8 @@ namespace MyTags
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(ActivateOnGiven);
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Roll);
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Guard);
+		
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(TargetLock);
 		
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(ComboChange);
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Combo1);
@@ -71,6 +75,9 @@ namespace MyTags
 	
 	namespace Events
 	{
+			UE_DECLARE_GAMEPLAY_TAG_EXTERN(Block_Hit);
+			UE_DECLARE_GAMEPLAY_TAG_EXTERN(Block_Perfect);
+		
 		namespace Combo
 		{
 			UE_DECLARE_GAMEPLAY_TAG_EXTERN(Combo_Start);
@@ -119,6 +126,7 @@ namespace MyTags
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Guarding);
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(PerfectGuard);
 		
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(TargetLock);
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Strafing);
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(UnderAttack);
 		

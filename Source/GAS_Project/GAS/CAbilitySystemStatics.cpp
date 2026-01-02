@@ -245,57 +245,6 @@ float UCAbilitySystemStatics::GetCooldownRemainingFor(const UGameplayAbility* Ab
 	return CooldownRemaining;
 }
 
-void UCAbilitySystemStatics::DesideCombat(AActor* InAttacker, const FHitResult& HitActorToCheck, FGameplayTag EventTag,
-	FGameplayEventData EventData, TSubclassOf<UGameplayEffect> DamageEffects)
-{
-	
-	UAbilitySystemComponent* HitASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(HitActorToCheck.GetActor());
-	UAbilitySystemComponent* InstASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(InAttacker);
-	
-
-	bool bIsValidBlock = false; 
-	const bool bIsCharacterBlocking = UCAbilitySystemStatics::NativeDoseActorHaveTag(HitActorToCheck.GetActor(), MyTags::Status::Guarding);
-	const bool bIsMyAttackUnBlockalbe = false;
-
-	if (bIsCharacterBlocking && !bIsMyAttackUnBlockalbe)
-	{
-		bIsValidBlock = IsValidBlock(InAttacker, HitActorToCheck.GetActor());
-	}
-
-	FGameplayEffectContextHandle Context = InstASC->MakeEffectContext();
-	Context.AddHitResult(HitActorToCheck);
-	
-	
-	if (bIsValidBlock)
-	{
-		// To Do : HandleSuccessful Block
-		GEngine->AddOnScreenDebugMessage(1, 3.f, FColor::Blue, TEXT("Successful Block!"));
-		return;
-	}
-
-	else
-	{
-		if (InstASC && HitASC)
-		{
-			// HitResult 생성 및 위치 정보 설정
-			// FHitResult HitResult;
-			// HitResult.Location = Cast<AActor>(EventData.Target)->GetActorLocation();
-			
-			FGameplayEffectSpecHandle Spec = InstASC->MakeOutgoingSpec(DamageEffects, /*Lvl*/1.f, EventData.ContextHandle);
-			if (Spec.IsValid())
-			{
-				HitASC->ApplyGameplayEffectSpecToSelf(*Spec.Data.Get());
-			}
-			
-		}
-		ACCharacter* HitActor = Cast<ACCharacter>(HitActorToCheck.GetActor());
-		if (HitActor)
-		{
-			HitActor->Multicast_SendGameplayEventToActor(HitActorToCheck.GetActor(), EventTag, EventData);
-		}
-		
-	}
-}
 
 EHitDirection UCAbilitySystemStatics::GetHitDirection(const FVector& TargetForward, const FVector& ToInstigator)
 {

@@ -71,8 +71,6 @@ public:
 	static float GetStaminaCostFor(const UGameplayAbility* AbilityCDO, const UAbilitySystemComponent& ASC, int AbilityLevel);
 	static float GetCooldownDurationFor(const UGameplayAbility* AbilityCDO, const UAbilitySystemComponent& ASC, int AbilityLevel);
 	static float GetCooldownRemainingFor(const UGameplayAbility* AbilityCDO, const UAbilitySystemComponent& ASC);
-
-	static void DesideCombat(AActor* InAttacker, const FHitResult& HitActorToCheck, FGameplayTag EventTag ,FGameplayEventData EventData, TSubclassOf<UGameplayEffect> DamageEffect = nullptr);
 	//------------------------------------------------------------------------------------------------------------------------------
 	UFUNCTION(BlueprintPure)
 	static EHitDirection GetHitDirection(const FVector& TargetForward, const FVector& ToInstigator);
@@ -125,6 +123,8 @@ public:
 
 	UFUNCTION(BlueprintPure, Category="GAS|Functions")
 	static bool IsValidBlock(AActor* InAttacker, AActor* InDefender);
+
+	static void DesideCombat(AActor* InAttacker, const FHitResult& HitActorToCheck);
 
 	UFUNCTION(BlueprintCallable, Category="GAS|Functions")
 	static bool ApplyGameplayEffectSpecHandleToTargetActor(AActor* InInstigator, AActor* InTargetActor, const FGameplayEffectSpecHandle& InSpecHandle);
