@@ -46,6 +46,8 @@ namespace MyTags
 
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(GuardPressed);
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(GuardReleased);
+		
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Launch);
 
 
 		namespace Equip
@@ -62,6 +64,7 @@ namespace MyTags
 		namespace Enemy
 		{
 			UE_DECLARE_GAMEPLAY_TAG_EXTERN(Attack);
+			UE_DECLARE_GAMEPLAY_TAG_EXTERN(Trace);
 		}
 	}	// Abilities
 

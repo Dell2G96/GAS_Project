@@ -8,35 +8,6 @@
 #include "GAS_Project/Utils/CStructTypes.h"
 #include "CWeaponComponent.generated.h"
 
-//
-// UCLASS(Blueprintable)
-// class GAS_PROJECT_API UCWeaponComponent : public UActorComponent
-// {
-// 	GENERATED_BODY()
-//
-//
-//
-// public:
-// 	UCWeaponComponent();
-// 	
-// 	UFUNCTION(BlueprintCallable, Category="GAS|Comp")
-// 	void RegisterSpawnedWeapon(struct FGameplayTag InWeaponTag, class ACWeapon* InWeapon , bool bRegister = false);
-//
-// 	UFUNCTION(BlueprintCallable, Category = "GAS|Combat")
-// 	ACWeapon* GetCarriedWeaponByTag(FGameplayTag InWeaponTagToGet) const;
-//
-// 	UPROPERTY(BlueprintReadWrite, Category = "GAS|Combat")
-// 	FGameplayTag CurrentEquippedWeaponTag;
-//
-// 	UFUNCTION(BlueprintCallable, Category = "GAS|Combat")
-// 	ACWeapon* GetCharacterCurrentEquippedWeapon() const;
-// 	
-// private:
-// 	TMap<struct FGameplayTag, class ACWeapon*> WeaponMap;
-// 	
-// };
-
-
 
 // 무기 한 칸을 표현하는 구조체
 USTRUCT()
@@ -48,7 +19,7 @@ struct FWeaponEntry
 	FGameplayTag WeaponTag;
 
 	UPROPERTY()
-	ACWeapon* Weapon = nullptr;
+	class ACWeapon* Weapon = nullptr;
 };
 
 UCLASS(Blueprintable)
@@ -58,6 +29,8 @@ class GAS_PROJECT_API UCWeaponComponent : public UActorComponent
 
 public:
 	UCWeaponComponent();
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+
 
 	UFUNCTION(BlueprintCallable, Category="GAS|Comp")
 	void RegisterSpawnedWeapon(FGameplayTag InWeaponTag, ACWeapon* InWeapon, bool bRegister = false);
@@ -71,8 +44,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category="GAS|Combat")
 	ACWeapon* GetCharacterCurrentEquippedWeapon() const;
 
+	UFUNCTION(BlueprintCallable, Category="GAS|Combat")
+	ACWeapon* GetPlayerCurrentEquippedWeapon(FGameplayTag InWeaponTagToGet) const;
+
 protected:
-	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
 	// 배열로 복제할 데이터
 	UPROPERTY(ReplicatedUsing=OnRep_WeaponEntries)

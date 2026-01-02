@@ -37,11 +37,16 @@ public:
 	static FGameplayTag GetBasicAttackAbilityTag();
 	static FGameplayTag GetBasicAttackInputPressedTag();
 	static FGameplayTag GetBasicAttackInputReleasedTag();
+	
 	static FGameplayTag GetGuardInputPressedTag();
 	static FGameplayTag GetGuardInputReleasedTag();
 	static FGameplayTag GetGuardingTag();
+	static FGameplayTag GetPerfectGuardTag();
+
+	
 	static FGameplayTag GetBattleModeTag();
 	static FGameplayTag GetIdleModeTag();
+	
 	static FGameplayTag GetKnockdownStatTag();
 	static FGameplayTag GetDeadStatTag();
 	static FGameplayTag GetStunStatTag();
@@ -67,7 +72,7 @@ public:
 	static float GetCooldownDurationFor(const UGameplayAbility* AbilityCDO, const UAbilitySystemComponent& ASC, int AbilityLevel);
 	static float GetCooldownRemainingFor(const UGameplayAbility* AbilityCDO, const UAbilitySystemComponent& ASC);
 
-	static void DesideCombat(const FHitResult& HitActorToCheck, AActor* Instigactor);
+	static void DesideCombat(AActor* InAttacker, const FHitResult& HitActorToCheck, FGameplayTag EventTag ,FGameplayEventData EventData, TSubclassOf<UGameplayEffect> DamageEffect = nullptr);
 	//------------------------------------------------------------------------------------------------------------------------------
 	UFUNCTION(BlueprintPure)
 	static EHitDirection GetHitDirection(const FVector& TargetForward, const FVector& ToInstigator);
@@ -118,8 +123,8 @@ public:
 	UFUNCTION(BlueprintCallable, Category="GAS|Functions")
 	static bool IsTargetPawnHostile(APawn* QueryPawn, APawn* TargetPawn);
 
-	UFUNCTION(BlueprintCallable, Category="GAS|Functions")
-	static bool IsValidBlock(AActor* InAttacker, const FHitResult& HitResult);
+	UFUNCTION(BlueprintPure, Category="GAS|Functions")
+	static bool IsValidBlock(AActor* InAttacker, AActor* InDefender);
 
 	UFUNCTION(BlueprintCallable, Category="GAS|Functions")
 	static bool ApplyGameplayEffectSpecHandleToTargetActor(AActor* InInstigator, AActor* InTargetActor, const FGameplayEffectSpecHandle& InSpecHandle);

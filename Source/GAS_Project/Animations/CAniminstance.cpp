@@ -20,101 +20,27 @@ void UCAniminstance::NativeInitializeAnimation()
 {
 	Super::NativeInitializeAnimation();
 
-	OwnerCharacter = Cast<ACharacter>(TryGetPawnOwner());
-	if (OwnerCharacter)
+	OwningCharacter = Cast<ACharacter>(TryGetPawnOwner());
+	if (OwningCharacter)
 	{
-		OwnerMovement = OwnerCharacter->GetCharacterMovement();
+		OwnerMovement = OwningCharacter->GetCharacterMovement();
 	}
-	//UAbilitySystemComponent* OwnerASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(TryGetPawnOwner());
 	
-	OwnerPlayerCharacter = Cast<ACPlayerCharacter>(OwnerCharacter);
-	// if (DoseOwnerHaveTag(MyTags::Status::Strafing))
-	// {
-	// 	UE_LOG(LogTemp,Warning,TEXT("=== Strafing Is True ==="));
-	// }
-}
-
-void UCAniminstance::NativeUpdateAnimation(float DeltaTime)
-{
-	Super::NativeUpdateAnimation(DeltaTime);
-	//
-	// if (OwnerCharacter)
-	// {
-	// 	FVector Velocity = OwnerCharacter->GetVelocity();
-	// 	Speed =  Velocity.Length();
-	// 	
-	// 	FRotator BodyRotation = OwnerCharacter->GetActorRotation();
-	//
-	// 	// FRotator ControlRot = OwnerCharacter->GetControlRotation();
-	// 	FRotator ControlRot;
-	// 	if (ACPlayerController* PlayerController = Cast<ACPlayerController>(OwnerCharacter->GetController()))
-	// 	{
-	// 		ControlRot = OwnerCharacter->GetControlRotation();
-	//
-	// 	}
-	// 	else if (ACEnemyBase* Enemy = Cast<ACEnemyBase>(OwnerCharacter))
-	// 	{
-	// 		ControlRot = Enemy->GetActorRotation();
-	// 	}
-	//
-	// 	//수정
-	// 	FRotator BodyRotationDelta = UKismetMathLibrary::NormalizedDeltaRotator(BodyRotation, PreBodyRotation);
-	// 	PreBodyRotation = BodyRotation;
-	//
-	// 	YawSpeed = BodyRotationDelta.Yaw / DeltaTime;
-	// 	float YawLerpSpeed = YawSpeedSmoothLerpSpeed;
-	// 	if (YawSpeed == 0)
-	// 	{
-	// 		YawLerpSpeed = YawSpeedLerpToZeroSpeed;
-	// 	} 
-	//
-	// 	
-	// 	SmoothedYawSpeed = UKismetMathLibrary::FInterpTo(SmoothedYawSpeed, YawSpeed, DeltaTime, YawLerpSpeed);
-	//
-	// 	//수정
-	// 	// FRotator ControlRot = OwnerCharacter->GetBaseAimRotation();
-	// 	
-	// 	LookRotOffset = UKismetMathLibrary::NormalizedDeltaRotator(ControlRot, BodyRotation);
-	//
-	// 	
-	// 	FwdSpeed = Velocity.Dot(ControlRot.Vector());
-	// 	RightSpeed = -Velocity.Dot(ControlRot.Vector().Cross(FVector::UpVector));
-	//
-	// 	
-	// 	const FVector V = OwnerCharacter->GetVelocity();
-	//
-	// 	//수정
-	// 	// const FRotator Base = OwnerCharacter->GetActorRotation(); // 시점 기준 원하면 GetControlRotation()
-	// 	
-	//
-	// 	GroundSpeed = OwnerMovement->Velocity.Size2D();
-	//
-	// 	//수정
-	// 	// Direction = UKismetAnimationLibrary::CalculateDirection(V, ControlRot);
-	// 	
-	// 	Direction = UKismetAnimationLibrary::CalculateDirection(V, ControlRot);
-	// 	LocomotionDirection = UKismetAnimationLibrary::CalculateDirection(V, ControlRot);
-	//
-	// 	
-	// 	
-	// }
-	// if (OwnerCharacter)
-	// {
-	// 	bIsJumping = OwnerMovement->IsFalling();
-	// }
+	// OwnerPlayerCharacter = Cast<ACPlayerCharacter>(OwnerCharacter);
 
 }
+
 
 void UCAniminstance::NativeThreadSafeUpdateAnimation(float DeltaSeconds)
 {
-	if (!OwnerCharacter || !OwnerMovement)
+	if (!OwningCharacter || !OwnerMovement)
 	{
 		return;
 	}
 
-	Speed = OwnerCharacter->GetVelocity().Size2D();
+	Speed = OwningCharacter->GetVelocity().Size2D();
 
-	FRotator CurRotation = OwnerCharacter->GetActorRotation();
+	FRotator CurRotation = OwningCharacter->GetActorRotation();
 
 	FRotator DeltaRotator = UKismetMathLibrary::NormalizedDeltaRotator(CurRotation, PreBodyRotation);
 
@@ -134,18 +60,18 @@ void UCAniminstance::NativeThreadSafeUpdateAnimation(float DeltaSeconds)
 
 	bIsJumping = OwnerMovement->IsFalling();
 
-	Direction = UKismetAnimationLibrary::CalculateDirection(OwnerCharacter->GetVelocity(), CurRotation);
+	Direction = UKismetAnimationLibrary::CalculateDirection(OwningCharacter->GetVelocity(), CurRotation);
 
 	PreBodyRotation = CurRotation;
-	LookRotOffset = OwnerCharacter->GetBaseAimRotation() - CurRotation;
+	LookRotOffset = OwningCharacter->GetBaseAimRotation() - CurRotation;
 
 	// Enemy
-	if (OwnerPlayerCharacter == nullptr)
+	if (OwningCharacter == nullptr)
 	{
-		const FRotator ControlRot = OwnerCharacter->GetControlRotation();
-		LocomotionDirection = UKismetAnimationLibrary::CalculateDirection(OwnerCharacter->GetVelocity(), ControlRot);
-		GroundSpeed = OwnerCharacter->GetVelocity().Size2D();
-		bHasAcceleration = OwningMovementComponent && OwningMovementComponent->GetCurrentAcceleration().SizeSquared2D() > 0.f;
+		const FRotator ControlRot = OwningCharacter->GetControlRotation();
+		LocomotionDirection = UKismetAnimationLibrary::CalculateDirection(OwningCharacter->GetVelocity(), ControlRot);
+		GroundSpeed = OwningCharacter->GetVelocity().Size2D();
+		bHasAcceleration = OwnerMovement && OwnerMovement->GetCurrentAcceleration().SizeSquared2D() > 0.f;
 	}
 }
 
@@ -154,31 +80,6 @@ void UCAniminstance::OnWeaponTypeChanged(EWeaponType InPrevType, EWeaponType InN
 	WeaponType = InNewType;
 }
 
-bool UCAniminstance::DoseOwnerHaveTag(FGameplayTag TagToCheck) const
-{
-	if(!OwnerCharacter) return false;
-
-	// 1) 정상 루트: ASC 태그가 클라에도 존재하면 그대로 True
-	if (UCAbilitySystemStatics::NativeDoseActorHaveTag(OwnerCharacter, TagToCheck))
-	{
-		return true;
-	}
-
-	// 2) 보정 루트: AI는 Minimal Replication에서 GE로 부여된 태그가 클라에 안 보일 수 있음
-	// ABP_Enemy가 체크하는 Strafing 태그에 한해서, Enemy가 복제해준 bool을 사용
-	static const FGameplayTag StrafingTag = MyTags::Status::Strafing;
-	if (TagToCheck.MatchesTagExact(StrafingTag))
-	{
-		if (const ACEnemyBase* Enemy = Cast<ACEnemyBase>(OwnerCharacter))
-		{
-			return Enemy->IsStrafing();
-		}
-	}
-
-	return false;
-	
-	// return UCAbilitySystemStatics::NativeDoseActorHaveTag(OwnerCharacter,TagToCheck);
-}
 
 
 // bool UCAniminstance::ShouldDoFullBody() const

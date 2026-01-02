@@ -31,11 +31,21 @@ enum class EWeaponType : uint8
 {
 	None							UMETA(DisplayName="None"),
 	Knife							UMETA(DisplayName="Knife"),
-	Sword							UMETA(DisplayName="Sword"),
 	Axe								UMETA(DisplayName="Axe"),
 	Mace							UMETA(DisplayName="Mace"),
 	Bow								UMETA(DisplayName="Bow"),
-	Staff							UMETA(DisplayName="Staff")
+	Staff							UMETA(DisplayName="Staff"),
+	Max								UMETA(DisplayName="Max")
+};
+
+USTRUCT(BlueprintType)
+struct FWeaponData
+{
+	GENERATED_BODY()
+
+public:
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
+	TSubclassOf<class UCLinkedAnimLayer> WeaponAnimLayerToLink;
 };
 
 USTRUCT(BlueprintType)

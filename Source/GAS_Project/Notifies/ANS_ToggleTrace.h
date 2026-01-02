@@ -116,8 +116,6 @@ private:
 		bool bLeftHand
 	) ;
 	
-	void DoDamageNew(struct FGameplayEventData Data) const;
-
 	//----------------------------------------------------------------------------//
 
 public:

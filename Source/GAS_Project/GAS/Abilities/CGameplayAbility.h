@@ -44,6 +44,9 @@ public:
 	FORCEINLINE bool ShouldDrawDebug() const {return bShouldDrawDebug;}
 
 protected:
+	//------------------------------------------------------------------//
+	//								넉백								//
+	//------------------------------------------------------------------//
 	UFUNCTION(BlueprintCallable)
 	void PushSelf(const FVector& PushVel);
 
@@ -60,10 +63,14 @@ protected:
 
 	UFUNCTION(BlueprintCallable)
 	void StopMontageAfterCurrentSection(UAnimMontage* MontageToStop);
+
+	UFUNCTION(BlueprintPure)
+	class UCWeaponComponent* GetWeaponComponent() const;
 	
 	FGenericTeamId GetOwnerTeamID() const;
 
-	ACharacter* GetOwningAvaterCharacter() ;
+	ACharacter* GetOwningAvatarCharacter() ;
+	
 	void ApplyGameplayEffectToHitResultActor(const FHitResult& HitResult, TSubclassOf<UGameplayEffect> GameplayEffect, int Level = 1);
 	void SendLocalGameplayEvent(const FGameplayTag& EventTag, const FGameplayEventData& EventData);
 

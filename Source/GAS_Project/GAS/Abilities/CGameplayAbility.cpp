@@ -5,10 +5,12 @@
 
 #include "AbilitySystemBlueprintLibrary.h"
 #include "AbilitySystemComponent.h"
+#include "GAP_Launched.h"
 #include "GAS_Project/Characters/Player/CPlayerCharacter.h"
 #include "GAS_Project/Characters/Player/CPlayerController.h"
 #include "GAS_Project/Components/CWeaponComponent.h"
 #include "GAS_Project/GAS/CAbilitySystemComponent.h"
+#include "Kismet/KismetMathLibrary.h"
 #include "Kismet/KismetSystemLibrary.h"
 
 void UCGameplayAbility::OnGiveAbility(const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilitySpec& Spec)
@@ -119,7 +121,7 @@ TArray<FHitResult> UCGameplayAbility::GetHitResultFromSweepLocationTargetData(
 
 void UCGameplayAbility::PushSelf(const FVector& PushVel)
 {
-	ACharacter* OwningAvatarCharacter = GetOwningAvaterCharacter();
+	ACharacter* OwningAvatarCharacter = GetOwningAvatarCharacter();
 	if (OwningAvatarCharacter)
 	{
 		OwningAvatarCharacter->LaunchCharacter(PushVel, true, true);
@@ -133,13 +135,16 @@ void UCGameplayAbility::PushTarget(AActor* Target, const FVector& PushVel)
 		return;
 	}
 	FGameplayEventData EventData;
+	EventData.Instigator = GetAvatarActorFromActorInfo();
 
 	FGameplayAbilityTargetData_SingleTargetHit* HitData = new FGameplayAbilityTargetData_SingleTargetHit();
 	FHitResult HitResult;
 	HitResult.ImpactNormal = PushVel;
 	HitData->HitResult = HitResult;
 	EventData.TargetData.Add(HitData);
-   
+
+	UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(Target,UGAP_Launched::GetLaunchedAbilityActiationTag(), EventData);
+	
 }
 
 void UCGameplayAbility::PushTargets(const TArray<AActor*>& Targets, const FVector& PushVel)
@@ -147,7 +152,7 @@ void UCGameplayAbility::PushTargets(const TArray<AActor*>& Targets, const FVecto
 	for (AActor* Target : Targets)
 	{
 		PushTarget(Target, PushVel); 
-	}
+	} 
 }
 
 void UCGameplayAbility::PushTargets(const FGameplayAbilityTargetDataHandle& TargetDataHandle, const FVector& PushVel)
@@ -176,6 +181,11 @@ void UCGameplayAbility::StopMontageAfterCurrentSection(UAnimMontage* MontageToSt
 	}
 }
 
+class UCWeaponComponent* UCGameplayAbility::GetWeaponComponent() const
+{
+	return GetAvatarActorFromActorInfo()->FindComponentByClass<UCWeaponComponent>();
+}
+
 FGenericTeamId UCGameplayAbility::GetOwnerTeamID() const
 {
 	IGenericTeamAgentInterface* OwnerTeamInterface = Cast<IGenericTeamAgentInterface>(GetAvatarActorFromActorInfo());
@@ -187,7 +197,7 @@ FGenericTeamId UCGameplayAbility::GetOwnerTeamID() const
 	return FGenericTeamId::NoTeam;
 }
 
-ACharacter* UCGameplayAbility::GetOwningAvaterCharacter()
+ACharacter* UCGameplayAbility::GetOwningAvatarCharacter()
 {
 	if (!AvaterCharacter)
 	{

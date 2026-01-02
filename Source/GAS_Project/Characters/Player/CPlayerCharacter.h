@@ -104,8 +104,8 @@ private:
 	UPROPERTY(VisibleAnywhere, Category="GAS|Camera")
 	TObjectPtr<class UCameraComponent> Camera;
 	
-	UPROPERTY(VisibleAnywhere, Category="GAS|Comp")
-	TObjectPtr<class UCWeaponComponent> WeaponComponent;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="GAS|Comp", meta=(AllowPrivateAccess = "true"))
+	TObjectPtr<UCWeaponComponent> WeaponComponent;
 
 	UPROPERTY(Transient)
 	class ACPlayerController* OwnerController = nullptr;

@@ -5,58 +5,25 @@
 #include "Net/UnrealNetwork.h"
 
 
-// UCWeaponComponent::UCWeaponComponent()
-// {
-// 	SetIsReplicated(true);
-// }
-//
-// void UCWeaponComponent::RegisterSpawnedWeapon(struct FGameplayTag InWeaponTag, class ACWeapon* InWeapon, bool bRegister)
-// {
-// 	WeaponMap.Emplace(InWeaponTag,InWeapon);
-// 	
-// 	if (bRegister)
-// 	{
-// 		CurrentEquippedWeaponTag = InWeaponTag;
-// 	}
-// }
-//
-// ACWeapon* UCWeaponComponent::GetCarriedWeaponByTag(FGameplayTag InWeaponTagToGet) const
-// {
-// 	if (WeaponMap.Contains(InWeaponTagToGet))
-// 	{
-// 		if (ACWeapon* const* FoundWeapon = WeaponMap.Find(InWeaponTagToGet))
-// 		{
-// 			return *FoundWeapon;
-// 		}
-// 	}
-//
-// 	return nullptr;
-// }
-//
-// ACWeapon* UCWeaponComponent::GetCharacterCurrentEquippedWeapon() const
-// {
-// 	if (!CurrentEquippedWeaponTag.IsValid())
-// 	{
-// 		return nullptr;
-// 	}
-//  
-// 	return GetCarriedWeaponByTag(CurrentEquippedWeaponTag);
-// }
-
-
-//--------------------------------------------------------------------------------------------------------------------
-//--------------------------------------------------------------------------------------------------------------------
-//--------------------------------------------------------------------------------------------------------------------
-
 UCWeaponComponent::UCWeaponComponent()
 {
 	SetIsReplicatedByDefault(true);
 }
 
-void UCWeaponComponent::RegisterSpawnedWeapon(FGameplayTag InWeaponTag,
-											  ACWeapon* InWeapon,
-											  bool bRegister)
+void UCWeaponComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME(UCWeaponComponent, CurrentEquippedWeaponTag);
+	DOREPLIFETIME(UCWeaponComponent, WeaponEntries);
+}
+
+void UCWeaponComponent::RegisterSpawnedWeapon(FGameplayTag InWeaponTag,  ACWeapon* InWeapon,bool bRegister)
+{
+	
+	checkf(!WeaponMap.Contains(InWeaponTag),TEXT("A named named %s has already been added as carried weapon"),*InWeaponTag.ToString());
+	check(InWeapon);
+	
 	if (!InWeapon)
 		return;
 
@@ -77,6 +44,7 @@ void UCWeaponComponent::RegisterSpawnedWeapon(FGameplayTag InWeaponTag,
 	{
 		CurrentEquippedWeaponTag = InWeaponTag;
 	}
+	
 }
 
 void UCWeaponComponent::OnRep_WeaponEntries()
@@ -95,10 +63,14 @@ void UCWeaponComponent::OnRep_WeaponEntries()
 
 ACWeapon* UCWeaponComponent::GetCarriedWeaponByTag(FGameplayTag InWeaponTagToGet) const
 {
-	if (ACWeapon* const* Found = WeaponMap.Find(InWeaponTagToGet))
+	if (WeaponMap.Contains(InWeaponTagToGet))
 	{
-		return *Found;
+		if (ACWeapon* const* Found = WeaponMap.Find(InWeaponTagToGet))
+		{
+			return *Found;
+		}	
 	}
+	
 	return nullptr;
 }
 
@@ -110,10 +82,9 @@ ACWeapon* UCWeaponComponent::GetCharacterCurrentEquippedWeapon() const
 	return GetCarriedWeaponByTag(CurrentEquippedWeaponTag);
 }
 
-void UCWeaponComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+ACWeapon* UCWeaponComponent::GetPlayerCurrentEquippedWeapon(FGameplayTag InWeaponTagToGet) const
 {
-	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
-
-	DOREPLIFETIME(UCWeaponComponent, CurrentEquippedWeaponTag);
-	DOREPLIFETIME(UCWeaponComponent, WeaponEntries);
+	return Cast<ACWeapon>(GetCarriedWeaponByTag(InWeaponTagToGet));
 }
+
+

@@ -42,6 +42,12 @@ namespace MyTags
 		UE_DEFINE_GAMEPLAY_TAG(BasicAttackReleased, "MyTags.Abilities.BasicAttack.Released")
 		UE_DEFINE_GAMEPLAY_TAG(HeavyAttack, "MyTags.Abilities.HeavyAttack")
 		UE_DEFINE_GAMEPLAY_TAG(Tertiary, "MyTags.Abilities.Tertiary")
+
+		
+		UE_DEFINE_GAMEPLAY_TAG(Launch, "MyTags.Abilities.Launch")
+		
+
+		
 		namespace Equip
 		{
 			UE_DEFINE_GAMEPLAY_TAG(EquipKnife, "MyTags.Abilities.Equip.Knife")
@@ -55,6 +61,7 @@ namespace MyTags
 		namespace Enemy
 		{
 			UE_DEFINE_GAMEPLAY_TAG(Attack, "MyTags.Abilities.Enemy.Attack")
+			UE_DEFINE_GAMEPLAY_TAG(Trace, "MyTags.Abilities.Enemy.Trace")
 		}
 	}
 

@@ -236,77 +236,37 @@ void UANS_ToggleTrace::HandleHit(USkeletalMeshComponent* MeshComp, AActor* Owner
 	
 			
 	FGameplayEffectContextHandle ContextHandle = OwnerCharacter->GetAbilitySystemComponent()->MakeEffectContext();
-	ContextHandle.AddHitResult(HitResult);	
+	ContextHandle.AddHitResult(HitResult);
 	
 	FGameplayEventData Payload;
 	Payload.Instigator = MeshComp->GetOwner();
 	Payload.Target = HitResult.GetActor();
 	Payload.ContextHandle = ContextHandle;
+	
+	FGameplayAbilityTargetData_SingleTargetHit* TargetData = new FGameplayAbilityTargetData_SingleTargetHit(HitResult);
+	Payload.TargetData.Add(TargetData);
+
+	UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(MeshComp->GetOwner(), MyTags::Abilities::Enemy::Trace,Payload);
+	//UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(HitResult.GetActor(), HitTagEvent,Payload);
 
 	if (OwnerActor->HasAuthority())
 	{
-		if (UCAbilitySystemStatics::IsValidBlock(OwnerActor,HitResult))
-		{
-			return;
-		}
-		
 		// 내(공격자) 가져오기
 		OwnerCharacter = Cast<ACCharacter>(OwnerActor);
+
+	
+		UCAbilitySystemStatics::DesideCombat(MeshComp->GetOwner(), HitResult, HitTagEvent,Payload,DefaultDamageEffect);
 		
-		OwnerCharacter->Multicast_SendGameplayEventToActor(HitResult.GetActor(), HitTagEvent,Payload);
+		//OwnerCharacter->Multicast_SendGameplayEventToActor(HitResult.GetActor(), HitTagEvent,Payload);
 		//UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(HitResult.GetActor(), HitTagEvent,Payload);
 		
-		DoDamageNew(Payload);
+		//DoDamageNew(Payload);
 		
-		GEngine->AddOnScreenDebugMessage(12345,2.f,FColor::Blue,FString::Printf(TEXT("Melee Hit Detected: %s hand=%s"),*GetNameSafe(HitResult.GetActor()),bLeftHand ? TEXT("Left") : TEXT("Right")));
+		//GEngine->AddOnScreenDebugMessage(12345,2.f,FColor::Blue,FString::Printf(TEXT("Melee Hit Detected: %s hand=%s"),*GetNameSafe(HitResult.GetActor()),bLeftHand ? TEXT("Left") : TEXT("Right")));
 	}
 	else
 	{
-		UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(HitResult.GetActor(), HitTagEvent,Payload);
+		//UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(HitResult.GetActor(), HitTagEvent,Payload);
 	}
 }
-	// else
-	// {
-	// 	UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(HitResult.GetActor(), MyTags::Events::Hit::LightHit,Payload);
-	// }
-	
-	// 여기서 “탐지/피격 처리”를 프로젝트에 맞게 연결하면 됨.
-	// 1) GAS를 쓰면 GameplayEvent(또는 Cue)로 Ability에 전달
-	// 2) 아니면 ApplyPointDamage / 인터페이스 호출 등
 
-	// 예시: 로그
-	// UE_LOG(LogTemp, Log, TEXT("Melee hit: %s hand=%s"),
-	// 	*GetNameSafe(HitResult.GetActor()),
-	// 	bLeftHand ? TEXT("Left") : TEXT("Right"));
-
-	// 가장 안전한 기본은 “서버에서만 확정”이므로,
-	// bServerOnly=true일 때는 여기 호출이 서버에서만 일어남.
-
-	// GAS 연결을 원하면:
-	// - OwnerActor(공격자)의 ASC에서 이벤트를 보내거나
-	// - HitResult.GetActor()(피격자)의 ASC에 GE 적용
-	//
-	// 지금은 프레임워크/프로젝트마다 코드가 달라서,
-	// 여기 함수를 너 프로젝트 방식으로 이어붙이는 형태가 맞음.
-
-
-void UANS_ToggleTrace::DoDamageNew(struct FGameplayEventData Data) const
-{
-	const IAbilitySystemInterface* InstASI = Cast<IAbilitySystemInterface>(Data.Instigator);
-	const IAbilitySystemInterface* TgtASI  = Cast<IAbilitySystemInterface>(Data.Target);
-	
-	if (InstASI && TgtASI)
-	{
-		// HitResult 생성 및 위치 정보 설정
-		FHitResult HitResult;
-		HitResult.Location = Cast<AActor>(Data.Target)->GetActorLocation();
-		
-		{
-			FGameplayEffectSpecHandle Spec = InstASI->GetAbilitySystemComponent()->MakeOutgoingSpec(DefaultDamageEffect, /*Lvl*/1.f, Data.ContextHandle);
-			if (Spec.IsValid())
-			{
-				TgtASI->GetAbilitySystemComponent()->ApplyGameplayEffectSpecToSelf(*Spec.Data.Get());
-			}
-		}
-	}
-}

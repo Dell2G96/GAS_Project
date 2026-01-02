@@ -41,6 +41,11 @@ FGameplayTag UCAbilitySystemStatics::GetGuardingTag()
 	return MyTags::Status::Guarding;
 }
 
+FGameplayTag UCAbilitySystemStatics::GetPerfectGuardTag()
+{
+	return MyTags::Status::PerfectGuard;
+}
+
 
 FGameplayTag UCAbilitySystemStatics::GetBattleModeTag()
 {
@@ -240,36 +245,55 @@ float UCAbilitySystemStatics::GetCooldownRemainingFor(const UGameplayAbility* Ab
 	return CooldownRemaining;
 }
 
-void UCAbilitySystemStatics::DesideCombat(const FHitResult& HitActorToCheck, AActor* Instigactor)
+void UCAbilitySystemStatics::DesideCombat(AActor* InAttacker, const FHitResult& HitActorToCheck, FGameplayTag EventTag,
+	FGameplayEventData EventData, TSubclassOf<UGameplayEffect> DamageEffects)
 {
 	
 	UAbilitySystemComponent* HitASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(HitActorToCheck.GetActor());
-	UAbilitySystemComponent* InstASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(Instigactor);
+	UAbilitySystemComponent* InstASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(InAttacker);
 	
-	bool bIsValidBlock = false;
-	const bool bIsPlayerBlocking = false;
+
+	bool bIsValidBlock = false; 
+	const bool bIsCharacterBlocking = UCAbilitySystemStatics::NativeDoseActorHaveTag(HitActorToCheck.GetActor(), MyTags::Status::Guarding);
 	const bool bIsMyAttackUnBlockalbe = false;
+
+	if (bIsCharacterBlocking && !bIsMyAttackUnBlockalbe)
+	{
+		bIsValidBlock = IsValidBlock(InAttacker, HitActorToCheck.GetActor());
+	}
 
 	FGameplayEffectContextHandle Context = InstASC->MakeEffectContext();
 	Context.AddHitResult(HitActorToCheck);
 	
-	FGameplayEventData Payload;
-	Payload.Instigator = Instigactor;
-	Payload.Target = HitActorToCheck.GetActor();
-	Payload.ContextHandle = Context;
 	
-	if (bIsPlayerBlocking && !bIsMyAttackUnBlockalbe)
-	{
-		//ToDo : Check if block success by Stamina and other stats
-	}
 	if (bIsValidBlock)
 	{
-		// To Do : HandleSuccessful Block 
+		// To Do : HandleSuccessful Block
+		GEngine->AddOnScreenDebugMessage(1, 3.f, FColor::Blue, TEXT("Successful Block!"));
+		return;
 	}
 
 	else
 	{
-		UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(HitActorToCheck.GetActor(), MyTags::Events::Hit::Hit, Payload);
+		if (InstASC && HitASC)
+		{
+			// HitResult 생성 및 위치 정보 설정
+			// FHitResult HitResult;
+			// HitResult.Location = Cast<AActor>(EventData.Target)->GetActorLocation();
+			
+			FGameplayEffectSpecHandle Spec = InstASC->MakeOutgoingSpec(DamageEffects, /*Lvl*/1.f, EventData.ContextHandle);
+			if (Spec.IsValid())
+			{
+				HitASC->ApplyGameplayEffectSpecToSelf(*Spec.Data.Get());
+			}
+			
+		}
+		ACCharacter* HitActor = Cast<ACCharacter>(HitActorToCheck.GetActor());
+		if (HitActor)
+		{
+			HitActor->Multicast_SendGameplayEventToActor(HitActorToCheck.GetActor(), EventTag, EventData);
+		}
+		
 	}
 }
 
@@ -492,27 +516,35 @@ bool UCAbilitySystemStatics::IsTargetPawnHostile(APawn* QueryPawn, APawn* Target
 	return false;
 }
 
-bool UCAbilitySystemStatics::IsValidBlock(AActor* InAttacker, const FHitResult& HitResult)
+bool UCAbilitySystemStatics::IsValidBlock(AActor* InAttacker, AActor* InDefender)
 {
-	AActor* HitActor = Cast<AActor>(HitResult.GetActor());
-	check(InAttacker && HitActor);
 
-	UCAbilitySystemComponent* TargetASC = Cast<UCAbilitySystemComponent>(UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(HitActor));
-	UCAbilitySystemComponent* OwnerASC = Cast<UCAbilitySystemComponent>(UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(InAttacker));
+	check(InAttacker && InDefender);
 
-	if (!TargetASC || !OwnerASC)
-	{
-		return false;
-	}
+	const float DotResult = FVector::DotProduct(InAttacker->GetActorForwardVector(),InDefender->GetActorForwardVector());
 
-	if (ActorHasTag(HitActor, GetGuardingTag()))
-	{
-		return true;
-	}
-	else
-	{
-		return false;
-	}
+	return DotResult < 0.f ? true : false;
+	// AActor* HitActor = Cast<AActor>(HitResult.GetActor());
+	// check(InAttacker && HitActor);
+	//
+	// if (!InAttacker->HasAuthority()) return false;
+	//
+	// UCAbilitySystemComponent* TargetASC = Cast<UCAbilitySystemComponent>(UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(HitActor));
+	// UCAbilitySystemComponent* OwnerASC = Cast<UCAbilitySystemComponent>(UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(InAttacker));
+	//
+	// if (!TargetASC || !OwnerASC)
+	// {
+	// 	return false;
+	// }
+	//
+	// if (ActorHasTag(HitActor, GetGuardingTag()) || ActorHasTag(HitActor, GetPerfectGuardTag()))
+	// {
+	// 	return true;
+	// }
+	// else
+	// {
+	// 	return false;
+	// }
 }
 
 bool UCAbilitySystemStatics::ApplyGameplayEffectSpecHandleToTargetActor(AActor* InInstigator, AActor* InTargetActor,
@@ -521,6 +553,8 @@ bool UCAbilitySystemStatics::ApplyGameplayEffectSpecHandleToTargetActor(AActor* 
 	UCAbilitySystemComponent* SourceASC = Cast<UCAbilitySystemComponent>(UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(InInstigator));
 	UCAbilitySystemComponent* TargetASC = Cast<UCAbilitySystemComponent>(UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(InTargetActor));
 
+	if (!SourceASC || !TargetASC) return false;
+
 	FActiveGameplayEffectHandle SpecHandle = SourceASC->ApplyGameplayEffectSpecToTarget(*InSpecHandle.Data,TargetASC);
 	return SpecHandle.WasSuccessfullyApplied();
 	
@@ -528,7 +562,11 @@ bool UCAbilitySystemStatics::ApplyGameplayEffectSpecHandleToTargetActor(AActor* 
 
 bool UCAbilitySystemStatics::NativeDoseActorHaveTag(AActor* InActor, FGameplayTag TagToCheck)
 {
+	
 	UCAbilitySystemComponent* ASC = Cast<UCAbilitySystemComponent>(UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(InActor));
+
+	if (!ASC) return false;
+	
 	return ASC->HasMatchingGameplayTag(TagToCheck);
 }
 

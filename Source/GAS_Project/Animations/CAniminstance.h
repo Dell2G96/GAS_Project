@@ -3,23 +3,21 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "C_BaseAniminstance.h"
 #include "Animation/AnimInstance.h"
 #include "GAS_Project/Utils/CStructTypes.h"
 #include "CAniminstance.generated.h"
 
 enum class EWeaponType : uint8;
-/**
- * 
- */
+
 UCLASS()
-class GAS_PROJECT_API UCAniminstance : public UAnimInstance
+class GAS_PROJECT_API UCAniminstance : public UC_BaseAniminstance
 {
 	GENERATED_BODY()
 
 	
 public:
 	virtual void NativeInitializeAnimation() override;
-	virtual void NativeUpdateAnimation(float DeltaTime) override;
 	virtual void NativeThreadSafeUpdateAnimation(float DeltaSeconds) override;
 
 	UFUNCTION(BlueprintCallable, meta=(BlueprintThreadSafe))
@@ -59,10 +57,8 @@ public:
 	FORCEINLINE float GetMovementDirection() const {return Direction;}
 
 	UFUNCTION(BlueprintCallable, meta=(BlueprintThreadSafe))
-	FORCEINLINE ACharacter* GetOwnerCharacter() const {return OwnerCharacter;}
-
-	UFUNCTION(BlueprintCallable, meta=(BlueprintThreadSafe))
-	FORCEINLINE ACPlayerCharacter* GetOwnerPlayerCharacter() const {return OwnerPlayerCharacter;}
+	FORCEINLINE ACharacter* GetOwnerCharacter() const {return OwningCharacter;}
+	
 
 	// UFUNCTION(BlueprintCallable, meta=(BlueprintThreadSafe))
 	// bool ShouldDoFullBody() const;
@@ -75,12 +71,9 @@ protected:
 	void OnWeaponTypeChanged(EWeaponType InPrevType, EWeaponType InNewType);
 
 
-private:
+protected:
 	UPROPERTY(VisibleDefaultsOnly ,Category="AnimData|References")
-	class ACharacter* OwnerCharacter;
-
-	UPROPERTY(VisibleDefaultsOnly ,Category="AnimData|References")
-	class ACPlayerCharacter* OwnerPlayerCharacter;
+	class ACharacter* OwningCharacter;
 
 	UPROPERTY(VisibleDefaultsOnly ,Category="AnimData|References")
 	class UCharacterMovementComponent* OwnerMovement;
@@ -104,9 +97,6 @@ private:
 
 	// Enemy //
 protected:
-	UFUNCTION(BlueprintPure, Category="GAS|AnimInstance", meta=(BlueprintThreadSafe))
-	bool DoseOwnerHaveTag(FGameplayTag TagToCheck) const;
-	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AnimData|LocomotionData")
 	float LocomotionDirection;
 
@@ -115,9 +105,5 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AnimData|LocomotionData")
 	bool bHasAcceleration;
-
-	UPROPERTY()
-	class UCharacterMovementComponent* OwningMovementComponent;
-
 	
 };
