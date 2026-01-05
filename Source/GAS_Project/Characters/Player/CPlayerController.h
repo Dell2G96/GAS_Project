@@ -38,10 +38,11 @@ private:
 	void Look(const struct FInputActionValue& Value);
 
 
+
 	// ✅ 추가: Started/Completed로 분리
-	void HandleAbilityInputPressed(ECabilityInputID InputId);
-	void HandleAbilityInput(const FInputActionValue& InputActionValue, ECabilityInputID InputID);
-	void HandleAbilityInputReleased(ECabilityInputID InputId);
+	void HandleAbilityInputPressed(ECAbilityInputID InputId);
+	void HandleAbilityInput(const FInputActionValue& InputActionValue, ECAbilityInputID InputID);
+	void HandleAbilityInputReleased(ECAbilityInputID InputId);
 	
 	// void LearnAbiltiyLeaderDown(const FInputActionValue& InputActionValue);
 	// void LearnAbiltiyLeaderUp(const FInputActionValue& InputActionValue);
@@ -72,8 +73,11 @@ private:
 	UPROPERTY(EditDefaultsOnly, Category = "GAS|Input|Movement")
 	TObjectPtr<class UInputAction> LookAction;
 	
+	UPROPERTY(EditDefaultsOnly, Category = "GAS|Input|Movement")
+	TObjectPtr<class UInputAction> TarketLockAction;
+	
 	UPROPERTY(EditDefaultsOnly, Category="GAS|Input")
-	TMap<ECabilityInputID, UInputAction*> GameplayAbilityInputActions;
+	TMap<ECAbilityInputID, UInputAction*> GameplayAbilityInputActions;
 
 	bool IsKnockdown();
 	bool IsAlive();

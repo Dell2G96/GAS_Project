@@ -19,7 +19,7 @@ public:
 	void ServerSideInit();
 	void ApplyFullStatEffect();
 	
-	const TMap<ECabilityInputID, TSubclassOf<UGameplayAbility>>& GetAbilities() const;
+	const TMap<ECAbilityInputID, TSubclassOf<UGameplayAbility>>& GetAbilities() const;
 
 	UFUNCTION(BlueprintCallable, Category="GAS|Abilities")
 	bool TryActivateAbilityByTag(FGameplayTag AbilityTagToActivate);
@@ -41,10 +41,10 @@ private:
 	TSubclassOf<class UGameplayEffect> DeadEffect;
 	
 	UPROPERTY(EditDefaultsOnly, Category = "GAS|Gameplay Abilitys")
-	TMap<ECabilityInputID, TSubclassOf<UGameplayAbility>> Abilities;
+	TMap<ECAbilityInputID, TSubclassOf<UGameplayAbility>> Abilities;
 
 	UPROPERTY(EditDefaultsOnly, Category = "GAS|Gameplay Abilitys")
-	TMap<ECabilityInputID, TSubclassOf<UGameplayAbility>> BasicAbilities;
+	TMap<ECAbilityInputID, TSubclassOf<UGameplayAbility>> BasicAbilities;
 
 	UPROPERTY(EditDefaultsOnly, Category = "GAS|Gameplay Ability")
 	class UDA_AbilitySystemGenerics* AbilitySystemGenerics;

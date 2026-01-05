@@ -51,7 +51,7 @@ private:
 
 public:
 	bool IsLocallyControlledByPlayer() const ;
-	const TMap<ECabilityInputID, TSubclassOf<class UGameplayAbility>>& GetAbilities() const;
+	const TMap<ECAbilityInputID, TSubclassOf<class UGameplayAbility>>& GetAbilities() const;
 
 protected: 
 	virtual void BeginPlay() override;

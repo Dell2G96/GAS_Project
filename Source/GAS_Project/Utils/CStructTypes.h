@@ -7,17 +7,18 @@
 
 
 UENUM(BlueprintType)
-enum class ECabilityInputID : uint8
+enum class ECAbilityInputID : uint8
 {
 	None							UMETA(DisplayName="None"),
-	Equip							UMETA(DisplayName="Equip"),
-	UnEquip							UMETA(DisplayName="UnEquip"),
+	First_Weapon_Equip				UMETA(DisplayName="First_Weapon_Equip"),
+	Second_Weapon_Equip				UMETA(DisplayName="Second_Weapon_Equip"),
 	BasicAttack						UMETA(DisplayName="Basic Attack"),
 	HeavyAttack						UMETA(DisplayName="Heavy Attack"),
 	Guard							UMETA(DisplayName="Guard"),
 	Avoid							UMETA(DisplayName="Avoid"),
-	AbilityOne						UMETA(DisplayName="Ability One"),
-	AbilityTwo						UMETA(DisplayName="Ability Two"),
+	TargetLock						UMETA(DisplayName="Target Lock"),
+	AbilityOne						UMETA(DisplayName="Q_Skill"),
+	AbilityTwo						UMETA(DisplayName="E_Skill"),
 	AbilityThree					UMETA(DisplayName="Ability Three"),
 	AbilityFour						UMETA(DisplayName="Ability Four"),
 	AbilityFive						UMETA(DisplayName="Ability Five"),

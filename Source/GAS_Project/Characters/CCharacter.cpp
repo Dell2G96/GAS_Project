@@ -123,7 +123,7 @@ bool ACCharacter::IsLocallyControlledByPlayer() const
     return GetController() && GetController()->IsLocalPlayerController();
 }
 
-const TMap<ECabilityInputID, TSubclassOf<class UGameplayAbility>>& ACCharacter::GetAbilities() const
+const TMap<ECAbilityInputID, TSubclassOf<class UGameplayAbility>>& ACCharacter::GetAbilities() const
 {
     return CAbilitySystemComponent->GetAbilities();
 }

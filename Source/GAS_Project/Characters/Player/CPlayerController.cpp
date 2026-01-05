@@ -119,7 +119,7 @@ void ACPlayerController::SetupInputComponent()
      
     }
     // ✅ 5. Ability 입력 바인딩
-    for (const TPair<ECabilityInputID, UInputAction*>& InputActionPair : GameplayAbilityInputActions)
+    for (const TPair<ECAbilityInputID, UInputAction*>& InputActionPair : GameplayAbilityInputActions)
     {
         if (InputActionPair.Value)
         {
@@ -186,8 +186,9 @@ void ACPlayerController::Look(const FInputActionValue& Value)
     AddPitchInput(LookAxisVector.Y);
 }
 
+
 // ✅ 함수 분리: Pressed
-void ACPlayerController::HandleAbilityInputPressed(ECabilityInputID InputId)
+void ACPlayerController::HandleAbilityInputPressed(ECAbilityInputID InputId)
 {
     
     OwnerCharacter = Cast<ACPlayerCharacter>(GetPawn());
@@ -208,7 +209,7 @@ void ACPlayerController::HandleAbilityInputPressed(ECabilityInputID InputId)
 
     ASC->AbilityLocalInputPressed((int32)InputId);
 
-    if (InputId == ECabilityInputID::BasicAttack)
+    if (InputId == ECAbilityInputID::BasicAttack)
     {
         FGameplayTag BasicAttackTag = UCAbilitySystemStatics::GetBasicAttackInputPressedTag();
         UE_LOG(LogTemp, Warning, TEXT(">>> Sending GameplayEvent: %s"), *BasicAttackTag.ToString());
@@ -220,7 +221,7 @@ void ACPlayerController::HandleAbilityInputPressed(ECabilityInputID InputId)
     }
 }
 
-void ACPlayerController::HandleAbilityInput(const FInputActionValue& InputActionValue, ECabilityInputID InputID)
+void ACPlayerController::HandleAbilityInput(const FInputActionValue& InputActionValue, ECAbilityInputID InputID)
 {
     OwnerCharacter = Cast<ACPlayerCharacter>(GetPawn());
     if (!OwnerCharacter) return;
@@ -240,13 +241,13 @@ void ACPlayerController::HandleAbilityInput(const FInputActionValue& InputAction
         ASC->AbilityLocalInputReleased((int32)InputID);
     }
 
-    if (InputID == ECabilityInputID::BasicAttack)
+    if (InputID == ECAbilityInputID::BasicAttack)
     {
         FGameplayTag BasicAttackTag = bPressed ? UCAbilitySystemStatics::GetBasicAttackInputPressedTag() : UCAbilitySystemStatics::GetBasicAttackInputReleasedTag();
         UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(OwnerCharacter , BasicAttackTag, FGameplayEventData());
         OwnerCharacter->Server_SendGameplayEventToSelf(BasicAttackTag, FGameplayEventData());
     }
-    if (InputID == ECabilityInputID::Guard)
+    if (InputID == ECAbilityInputID::Guard)
     {
         FGameplayTag GuardTag = bPressed ? UCAbilitySystemStatics::GetGuardInputPressedTag() : UCAbilitySystemStatics::GetGuardInputReleasedTag();
         UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(OwnerCharacter , GuardTag, FGameplayEventData());
@@ -255,7 +256,7 @@ void ACPlayerController::HandleAbilityInput(const FInputActionValue& InputAction
 }
 
 // ✅ 함수 분리: Released
-void ACPlayerController::HandleAbilityInputReleased(ECabilityInputID InputId)
+void ACPlayerController::HandleAbilityInputReleased(ECAbilityInputID InputId)
 {
     OwnerCharacter = Cast<ACPlayerCharacter>(GetPawn());
     if (!IsValid(OwnerCharacter)) return;
@@ -267,7 +268,7 @@ void ACPlayerController::HandleAbilityInputReleased(ECabilityInputID InputId)
 
     ASC->AbilityLocalInputReleased((int32)InputId);
 
-    if (InputId == ECabilityInputID::BasicAttack)
+    if (InputId == ECAbilityInputID::BasicAttack)
     {
         FGameplayTag BasicAttackTag = UCAbilitySystemStatics::GetBasicAttackInputReleasedTag();
         UE_LOG(LogTemp, Warning, TEXT(">>> Sending GameplayEvent: %s"), *BasicAttackTag.ToString());

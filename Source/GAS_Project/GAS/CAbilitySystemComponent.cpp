@@ -65,7 +65,7 @@ void UCAbilitySystemComponent::ApplyFullStatEffect()
 	AuthApplyGameplayEffect(AbilitySystemGenerics->GetFullStatEffect());
 }
 
-const TMap<ECabilityInputID, TSubclassOf<UGameplayAbility>>& UCAbilitySystemComponent::GetAbilities() const
+const TMap<ECAbilityInputID, TSubclassOf<UGameplayAbility>>& UCAbilitySystemComponent::GetAbilities() const
 {
 	return Abilities;
 }
@@ -103,7 +103,7 @@ void UCAbilitySystemComponent::GiveInitialAbilities()
 	
 
     // 일반 능력
-	for (const TPair<ECabilityInputID,TSubclassOf<UGameplayAbility>>& AbilityPair : Abilities)
+	for (const TPair<ECAbilityInputID,TSubclassOf<UGameplayAbility>>& AbilityPair : Abilities)
 	{
 		if (!*AbilityPair.Value)
 		{
@@ -115,7 +115,7 @@ void UCAbilitySystemComponent::GiveInitialAbilities()
 	}
 
     // 기본 능력
-	for (const TPair<ECabilityInputID,TSubclassOf<UGameplayAbility>>& AbilityPair : BasicAbilities)
+	for (const TPair<ECAbilityInputID,TSubclassOf<UGameplayAbility>>& AbilityPair : BasicAbilities)
 	{
 		if (!*AbilityPair.Value)
 		{
