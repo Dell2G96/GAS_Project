@@ -18,6 +18,9 @@ public:
 	void InitializeBaseAttributes();
 	void ServerSideInit();
 	void ApplyFullStatEffect();
+
+	void OnAbilityInputPressed(ECAbilityInputID InInputID);
+	// void OnAbilityInputPressed(ECAbilityInputID InputId);
 	
 	const TMap<ECAbilityInputID, TSubclassOf<UGameplayAbility>>& GetAbilities() const;
 
@@ -59,6 +62,8 @@ public:
 	void RemoveDeath();
 
 	bool IsPlayer();
+
+
 };
 
 

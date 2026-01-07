@@ -100,7 +100,17 @@ private:
 
 	UPROPERTY(Replicated)
 	FGenericTeamId TeamID;
+
+
+private:
+private:
+	UPROPERTY()
+	FVector2D SwitchDirection = FVector2D::ZeroVector;
+
 	
+	void Input_SwitchTargetTriggered(const FInputActionValue& InputActionValue);
+	void Input_SwitchTargetCompleted(const FInputActionValue& InputActionValue);
+
 };
 
 

@@ -7,6 +7,7 @@
 #include "CAbilitySystemStatics.h"
 #include "CAttributeSet.h"
 #include "GameplayEffectExtension.h"
+#include "InputActionValue.h"
 #include "GAS_Project/MyTags.h"
 #include "GAS_Project/DataAssets/DA_AbilitySystemGenerics.h"
 #include "GAS_Project/Utils/CStructTypes.h"
@@ -63,6 +64,23 @@ void UCAbilitySystemComponent::ApplyFullStatEffect()
 {
 	if (!AbilitySystemGenerics) return ;
 	AuthApplyGameplayEffect(AbilitySystemGenerics->GetFullStatEffect());
+}
+
+void UCAbilitySystemComponent::OnAbilityInputPressed(ECAbilityInputID InInputID)
+{
+	for (const FGameplayAbilitySpec& AbilitySpec : GetActivatableAbilities())
+	{
+		if(AbilitySpec.InputID != (int32)InInputID) continue;
+
+		if (AbilitySpec.IsActive())
+		{
+			CancelAbilityHandle(AbilitySpec.Handle);
+		}
+		else
+		{
+			TryActivateAbility(AbilitySpec.Handle);
+		}
+	}
 }
 
 const TMap<ECAbilityInputID, TSubclassOf<UGameplayAbility>>& UCAbilitySystemComponent::GetAbilities() const
@@ -361,3 +379,5 @@ bool UCAbilitySystemComponent::IsPlayer()
 	}
 	return false;
 }
+
+

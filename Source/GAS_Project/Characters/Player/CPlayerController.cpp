@@ -12,6 +12,7 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GAS_Project/MyTags.h"
 #include "GAS_Project/Characters/CCharacter.h"
+#include "GAS_Project/GAS/CAbilitySystemComponent.h"
 #include "GAS_Project/GAS/CAbilitySystemStatics.h"
 #include "GAS_Project/Utils/CStructTypes.h"
 #include "GAS_Project/Widgets/GameplayWidget.h"
@@ -190,7 +191,6 @@ void ACPlayerController::Look(const FInputActionValue& Value)
 // ✅ 함수 분리: Pressed
 void ACPlayerController::HandleAbilityInputPressed(ECAbilityInputID InputId)
 {
-    
     OwnerCharacter = Cast<ACPlayerCharacter>(GetPawn());
     if (!IsValid(OwnerCharacter))
     {
@@ -219,6 +219,7 @@ void ACPlayerController::HandleAbilityInputPressed(ECAbilityInputID InputId)
         // UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(GetPawn(), BasicAttackTag, FGameplayEventData());
         OwnerCharacter->Server_SendGameplayEventToSelf(BasicAttackTag, FGameplayEventData());
     }
+  
 }
 
 void ACPlayerController::HandleAbilityInput(const FInputActionValue& InputActionValue, ECAbilityInputID InputID)
@@ -229,6 +230,12 @@ void ACPlayerController::HandleAbilityInput(const FInputActionValue& InputAction
     UAbilitySystemComponent* ASC = OwnerCharacter->GetAbilitySystemComponent();
     if (!ASC) return;
 
+    if (InputID == ECAbilityInputID::TargetLock)
+    {
+        UCAbilitySystemComponent* OwnerASC = Cast<UCAbilitySystemComponent>(ASC);
+        OwnerASC->OnAbilityInputPressed(InputID);
+        return;
+    }
 
     bool bPressed = InputActionValue.Get<bool>();
     
@@ -253,6 +260,7 @@ void ACPlayerController::HandleAbilityInput(const FInputActionValue& InputAction
         UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(OwnerCharacter , GuardTag, FGameplayEventData());
         OwnerCharacter->Server_SendGameplayEventToSelf(GuardTag, FGameplayEventData());
     }
+   
 }
 
 // ✅ 함수 분리: Released
@@ -321,6 +329,22 @@ void ACPlayerController::SpawnGameplayWidget()
         GameplayWidget->AddToViewport();
        // GameplayWidget->ConfigureAbilities(OwnerCharacter->GetAbilities());
     }
+}
+
+void ACPlayerController::Input_SwitchTargetTriggered(const FInputActionValue& InputActionValue)
+{
+    SwitchDirection = InputActionValue.Get<FVector2D>();
+}
+
+void ACPlayerController::Input_SwitchTargetCompleted(const FInputActionValue& InputActionValue)
+{	
+    FGameplayEventData Data;
+
+    UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(
+        this,
+        SwitchDirection.X>0.f? MyTags::Events::SwitchTarget_Right : MyTags::Events::SwitchTarget_Left,
+        Data
+    );
 }
 
 

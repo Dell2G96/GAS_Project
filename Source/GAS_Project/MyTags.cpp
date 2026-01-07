@@ -75,8 +75,8 @@ namespace MyTags
 		UE_DEFINE_GAMEPLAY_TAG(Block_Hit, "MyTags.Events.Block.Hit")
 		UE_DEFINE_GAMEPLAY_TAG(Block_Perfect, "MyTags.Events.Block.Perfect")
 		
-		UE_DEFINE_GAMEPLAY_TAG(SwitchTarget_Left, "MyTags.Events.SwitchTarget_Left")
-		UE_DEFINE_GAMEPLAY_TAG(SwitchTarget_Right, "MyTags.Events.SwitchTarget_Right")
+		UE_DEFINE_GAMEPLAY_TAG(SwitchTarget_Left, "MyTags.Events.SwitchTarget.Left")
+		UE_DEFINE_GAMEPLAY_TAG(SwitchTarget_Right, "MyTags.Events.SwitchTarget.Right")
 		
 		
 		namespace Combo

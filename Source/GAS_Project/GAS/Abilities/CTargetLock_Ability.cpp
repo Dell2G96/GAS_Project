@@ -65,8 +65,8 @@ void UCTargetLock_Ability::OnTargetLockTick(float DeltaTime)
 		const FRotator CurrentControlRot = GetAvatarController()->GetControlRotation();
 		const FRotator TargetRot = FMath::RInterpTo(CurrentControlRot,LookAtRot,DeltaTime,TargetLockRotationInterpSpeed);
 
-		USpringArmComponent* CameraBoom = GetOwningAvatarCharacter()->FindComponentByClass<USpringArmComponent>();
-		CameraBoom->SetWorldLocation()
+		// USpringArmComponent* CameraBoom = GetOwningAvatarCharacter()->FindComponentByClass<USpringArmComponent>();
+		// CameraBoom->SetWorldLocation()
 		GetAvatarController()->SetControlRotation(FRotator(TargetRot.Pitch,TargetRot.Yaw,0.f));
 		GetAvatarActorFromActorInfo()->SetActorRotation(FRotator(0.f,TargetRot.Yaw,0.f));
 	}
