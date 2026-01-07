@@ -31,6 +31,7 @@ private:
 	void GetAvailableActorsAroundTarget(TArray<AActor*>& OutActorsOnLeft,TArray<AActor*>& OutActorsOnRight );
 	void DrawTargetLockWidget();
 	void SetTargetLockMovement();
+	void SetTargetLockWidgetPosition();
 	void InitTargetLockMovement();
 	void InitTargetMappingContext();
 
@@ -53,7 +54,7 @@ private:
 	bool bShowPersistentDebugSphere = false;
 
 	UPROPERTY(EditDefaultsOnly, Category="GAS|TargetLock")
-	TSubclassOf<class ACCharacter> TargetLockWidgetClass;
+	TSubclassOf<class UUserWidget> TargetLockWidgetClass;
 
 	UPROPERTY(EditDefaultsOnly, Category="GAS|TargetLock")
 	float TargetLockRotationInterpSpeed = 5.f;
@@ -77,7 +78,7 @@ private:
 
 	// 수정 해야 될듯
 	UPROPERTY()
-	class UUserWidget* TargetLockWidget;
+	class UUserWidget*  TargetLockWidget;
 
 	UPROPERTY()
 	FVector2D TargetLockWidgetSize = FVector2D::ZeroVector;

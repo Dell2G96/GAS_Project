@@ -45,6 +45,7 @@ public:
 
 protected:
 	void DesideCombat(AActor* InAttacker, const FHitResult& HitActorToCheck,TSubclassOf<UGameplayEffect> DamageEffects, FGameplayEventData Payload);
+	class ACPlayerController* GetAvatarController() const;
 
 	//------------------------------------------------------------------//
 	//								넉백									//
@@ -76,17 +77,19 @@ protected:
 	void ApplyGameplayEffectToHitResultActor(const FHitResult& HitResult, TSubclassOf<UGameplayEffect> GameplayEffect, int Level = 1);
 	void SendLocalGameplayEvent(const FGameplayTag& EventTag, const FGameplayEventData& EventData);
 
+	UPROPERTY(EditDefaultsOnly, Category="Debug")
+	bool bShouldDrawDebug = false;
 	
-protected:
+private:
 	UPROPERTY(EditDefaultsOnly, Category="GAS|Tag")
 	FGameplayTag HitActorTag;
 
-	
-	UPROPERTY(EditDefaultsOnly, Category="Debug")
-	bool bShouldDrawDebug = false;
-
 	UPROPERTY()
-	class ACharacter* AvaterCharacter;
+	class ACharacter* AvatarCharacter;
+	
+
+	
+	
 };
 
 

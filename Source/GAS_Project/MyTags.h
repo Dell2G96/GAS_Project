@@ -75,8 +75,14 @@ namespace MyTags
 	
 	namespace Events
 	{
-			UE_DECLARE_GAMEPLAY_TAG_EXTERN(Block_Hit);
-			UE_DECLARE_GAMEPLAY_TAG_EXTERN(Block_Perfect);
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Block_Hit);
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Block_Perfect);
+
+		
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(SwitchTarget_Left);
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(SwitchTarget_Right);
+
+		
 		
 		namespace Combo
 		{

@@ -73,8 +73,6 @@ private:
 	UPROPERTY(EditDefaultsOnly, Category = "GAS|Input|Movement")
 	TObjectPtr<class UInputAction> LookAction;
 	
-	UPROPERTY(EditDefaultsOnly, Category = "GAS|Input|Movement")
-	TObjectPtr<class UInputAction> TarketLockAction;
 	
 	UPROPERTY(EditDefaultsOnly, Category="GAS|Input")
 	TMap<ECAbilityInputID, UInputAction*> GameplayAbilityInputActions;

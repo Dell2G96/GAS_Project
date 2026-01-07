@@ -201,11 +201,11 @@ FGenericTeamId UCGameplayAbility::GetOwnerTeamID() const
 
 ACharacter* UCGameplayAbility::GetOwningAvatarCharacter()
 {
-	if (!AvaterCharacter)
+	if (!AvatarCharacter)
 	{
-		AvaterCharacter = Cast<ACharacter>(GetAvatarActorFromActorInfo());
+		AvatarCharacter = Cast<ACharacter>(GetAvatarActorFromActorInfo());
 	}
-	return AvaterCharacter;
+	return AvatarCharacter;
 }
 
 void UCGameplayAbility::ApplyGameplayEffectToHitResultActor(const FHitResult& HitResult,
@@ -276,4 +276,15 @@ void UCGameplayAbility::DesideCombat(AActor* InAttacker, const FHitResult& HitAc
 		}
 	}
 	
+}
+
+class ACPlayerController* UCGameplayAbility::GetAvatarController() const
+{
+	if (!GetAvatarActorFromActorInfo())
+	{
+		return nullptr;
+	}
+	ACPlayerCharacter* OwnerCharacter = Cast<ACPlayerCharacter>(GetAvatarActorFromActorInfo());
+	ACPlayerController* OwnerController = Cast<ACPlayerController>(CurrentActorInfo->PlayerController);
+	return OwnerController;
 }
