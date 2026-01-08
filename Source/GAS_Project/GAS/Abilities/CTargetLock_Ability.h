@@ -3,44 +3,76 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "GameplayTagContainer.h"
 #include "CGameplayAbility.h"
 #include "CTargetLock_Ability.generated.h"
 
-/**
- * 
- */
+class AActor;
+class UUserWidget;
+class UInputMappingContext;
+
+
 UCLASS()
 class GAS_PROJECT_API UCTargetLock_Ability : public UCGameplayAbility
 {
 	GENERATED_BODY()
 
+protected:
+	virtual void ActivateAbility(
+		const FGameplayAbilitySpecHandle Handle,
+		const FGameplayAbilityActorInfo* ActorInfo,
+		const FGameplayAbilityActivationInfo ActivationInfo,
+		const FGameplayEventData* TriggerEventData) override;
 
-	virtual void ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData) override;
-	virtual void EndAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, bool bReplicateEndAbility, bool bWasCancelled) override;
+	virtual void EndAbility(
+		const FGameplayAbilitySpecHandle Handle,
+		const FGameplayAbilityActorInfo* ActorInfo,
+		const FGameplayAbilityActivationInfo ActivationInfo,
+		bool bReplicateEndAbility,
+		bool bWasCancelled) override;
 
-	UFUNCTION(BlueprintCallable, Category = "Ability")
+public:
+	UFUNCTION(BlueprintCallable, Category="Ability|TargetLock")
 	void OnTargetLockTick(float DeltaTime);
 
-	UFUNCTION(BlueprintCallable, Category = "Ability")
+	UFUNCTION(BlueprintCallable, Category="Ability|TargetLock")
 	void SwitchTarget(const FGameplayTag& InSwitchDirectionTag);
 
 private:
-	void TryLockOnTarget();
-	void GetAvailableActorsToLock();
-	AActor* GetNearestTargetFromAvailableActors(const TArray<AActor*>& InAvailableActors);
-	void GetAvailableActorsAroundTarget(TArray<AActor*>& OutActorsOnLeft,TArray<AActor*>& OutActorsOnRight );
-	void DrawTargetLockWidget();
-	void SetTargetLockMovement();
-	void SetTargetLockWidgetPosition();
-	void InitTargetLockMovement();
-	void InitTargetMappingContext();
-
+	
+	bool TryLockOnTarget();
 
 	void CancelTargetLockAbility();
 	void CleanUp();
+
+	
+	bool IsOwningLocalController() const;                     
+	bool GetViewPoint(FVector& OutLoc, FRotator& OutRot) const; 
+
+	APlayerController* GetOwningPlayerController() const;     
+	ACharacter* GetOwningCharacter() const;                   
+
+	
+	void GetAvailableActorsToLock();
+
+	AActor* GetInitialTargetByLineTrace() const;             
+	AActor* GetTargetClosestToViewCenter(const TArray<AActor*>& InActors) const; 
+
+	AActor* GetTargetToSwitchBySideStable(const TArray<AActor*>& InActors, bool bWantRightSide) const;
+
+	bool IsActorValidForTargetLock(const AActor* InActor) const;
+	
+
+	void DrawTargetLockWidget();
+	void SetTargetLockWidgetPosition();
+
+	void InitTargetLockMovement();
 	void ResetTargetLockMovement();
+
+	void InitTargetMappingContext();
 	void ResetTargetLockMappingContext();
 
+private:
 	UPROPERTY(EditDefaultsOnly, Category="GAS|TargetLock")
 	float BoxTraceDistance = 5000.f;
 
@@ -48,13 +80,13 @@ private:
 	FVector TraceBoxSize = FVector(5000.f, 5000.f, 300.f);
 
 	UPROPERTY(EditDefaultsOnly, Category="GAS|TargetLock")
-	TArray<TEnumAsByte< EObjectTypeQuery>> BoxTraceChannel;
+	TArray<TEnumAsByte<EObjectTypeQuery>> TraceObjectTypes;
 
 	UPROPERTY(EditDefaultsOnly, Category="GAS|TargetLock")
-	bool bShowPersistentDebugSphere = false;
+	bool bShowPersistentDebug = false;
 
 	UPROPERTY(EditDefaultsOnly, Category="GAS|TargetLock")
-	TSubclassOf<class UUserWidget> TargetLockWidgetClass;
+	TSubclassOf<UUserWidget> TargetLockWidgetClass;
 
 	UPROPERTY(EditDefaultsOnly, Category="GAS|TargetLock")
 	float TargetLockRotationInterpSpeed = 5.f;
@@ -63,22 +95,22 @@ private:
 	float TargetLockMaxWalkSpeed = 150.f;
 
 	UPROPERTY(EditDefaultsOnly, Category="GAS|TargetLock")
-	class UInputMappingContext* TargetLockInputContext;
+	UInputMappingContext* TargetLockInputContext = nullptr;
 
+	// View-center filtering (fallback + switching)
 	UPROPERTY(EditDefaultsOnly, Category="GAS|TargetLock")
-	float TargetLockCameraOffsetDistance = 20.f;
+	float MinViewCenterDot = 0.15f;
 
+private:
 
 	UPROPERTY()
 	TArray<AActor*> AvailableActorsToLock;
 
 	UPROPERTY()
-	AActor* CurrentLockedActor;
+	AActor* CurrentLockedActor = nullptr;
 
-
-	// 수정 해야 될듯
 	UPROPERTY()
-	class UUserWidget*  TargetLockWidget;
+	UUserWidget* TargetLockWidget = nullptr;
 
 	UPROPERTY()
 	FVector2D TargetLockWidgetSize = FVector2D::ZeroVector;
@@ -86,15 +118,10 @@ private:
 	UPROPERTY()
 	float CachedDefaultMaxWalkSpeed = 0.f;
 
-	
+	UPROPERTY()
+	bool bMappingContextApplied = false;
 
-
-
-
-
-
-
-
-
-	
+	bool bSavedUseControllerRotationYaw  = false;
+	bool bSavedOrientRotationToMovement  = true;
+	bool bRotationFlagsCached = false;
 };

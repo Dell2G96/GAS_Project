@@ -17,6 +17,7 @@ enum class ECAbilityInputID : uint8
 	Guard							UMETA(DisplayName="Guard"),
 	Avoid							UMETA(DisplayName="Avoid"),
 	TargetLock						UMETA(DisplayName="Target Lock"),
+	TargetSwitch					UMETA(DisplayName="Target Switch"),
 	AbilityOne						UMETA(DisplayName="Q_Skill"),
 	AbilityTwo						UMETA(DisplayName="E_Skill"),
 	AbilityThree					UMETA(DisplayName="Ability Three"),

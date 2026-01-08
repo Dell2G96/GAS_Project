@@ -6,6 +6,7 @@
 #include "AbilitySystemBlueprintLibrary.h"
 #include "AbilitySystemComponent.h"
 #include "GAP_Launched.h"
+#include "GameFramework/PlayerState.h"
 #include "GAS_Project/MyTags.h"
 #include "GAS_Project/Characters/Player/CPlayerCharacter.h"
 #include "GAS_Project/Characters/Player/CPlayerController.h"
@@ -229,9 +230,32 @@ void UCGameplayAbility::SendLocalGameplayEvent(const FGameplayTag& EventTag, con
 	}
 }
 
+bool UCGameplayAbility::IsEnemyActor(AActor* MyActor, AActor* OtherActor) const
+{
+	if (!MyActor || !OtherActor) return false;
+    
+	IGenericTeamAgentInterface* MyTeamInterface = Cast<IGenericTeamAgentInterface>(MyActor);
+	IGenericTeamAgentInterface* OtherTeamInterface = Cast<IGenericTeamAgentInterface>(OtherActor);
+    
+	if (!MyTeamInterface || !OtherTeamInterface) return false;
+    
+	FGenericTeamId MyTeamID = MyTeamInterface->GetGenericTeamId();
+	FGenericTeamId OtherTeamID = OtherTeamInterface->GetGenericTeamId();
+	
+	return MyTeamID.GetId() != OtherTeamID.GetId();
+	
+	// IGenericTeamAgentInterface* MyTeamInterface = Cast<IGenericTeamAgentInterface>(MyActor);
+	// IGenericTeamAgentInterface* OtherTeamInterface = Cast<IGenericTeamAgentInterface>(OtherActor);
+	//
+	// FGenericTeamId MyTeamID =  MyTeamInterface->GetGenericTeamId();
+	// FGenericTeamId OtherTeamID = OtherTeamInterface->GetGenericTeamId();
+	//
+	// return MyTeamID != OtherTeamID;
+}
+
 
 void UCGameplayAbility::DesideCombat(AActor* InAttacker, const FHitResult& HitActorToCheck,
-	TSubclassOf<UGameplayEffect> DamageEffects, FGameplayEventData Payload)
+                                     TSubclassOf<UGameplayEffect> DamageEffects, FGameplayEventData Payload)
 {
 	
 	UAbilitySystemComponent* InstASC = GetAbilitySystemComponentFromActorInfo();
@@ -287,4 +311,85 @@ class ACPlayerController* UCGameplayAbility::GetAvatarController() const
 	ACPlayerCharacter* OwnerCharacter = Cast<ACPlayerCharacter>(GetAvatarActorFromActorInfo());
 	ACPlayerController* OwnerController = Cast<ACPlayerController>(CurrentActorInfo->PlayerController);
 	return OwnerController;
+}
+
+const IGenericTeamAgentInterface* UCGameplayAbility::GetTeamAgentFromActor(const AActor* InActor) const
+{
+	if (!InActor)
+	{
+		return nullptr;
+	}
+
+	// 1) Actor itself
+	if (const IGenericTeamAgentInterface* Team = Cast<IGenericTeamAgentInterface>(InActor))
+	{
+		return Team;
+	}
+
+	// 2) Pawn -> Controller
+	if (const APawn* Pawn = Cast<APawn>(InActor))
+	{
+		if (const AController* Ctrl = Pawn->GetController())
+		{
+			if (const IGenericTeamAgentInterface* Team = Cast<IGenericTeamAgentInterface>(Ctrl))
+			{
+				return Team;
+			}
+		}
+
+		// 3) Pawn -> PlayerState (player ASC on PlayerState case)
+		if (const APlayerState* PS = Pawn->GetPlayerState())
+		{
+			if (const IGenericTeamAgentInterface* Team = Cast<IGenericTeamAgentInterface>(PS))
+			{
+				return Team;
+			}
+		}
+	}
+
+	return nullptr;
+}
+
+bool UCGameplayAbility::IsEnemyByTeamId(const AActor* InTarget) const
+{
+	// [ADDED] TeamId-based enemy-only filtering.
+	// Strict rule:
+	// - If owner team is known, target MUST have team and must be different.
+	// - If owner team unknown, we do not block target lock (keeps system usable).
+	const AActor* Avatar = GetAvatarActorFromActorInfo();
+	if (!Avatar || !InTarget)
+	{
+		return false;
+	}
+
+	const IGenericTeamAgentInterface* OwnerTeam = GetTeamAgentFromActor(Avatar);
+	if (!OwnerTeam)
+	{
+		return true; // can't judge -> don't block
+	}
+
+	const IGenericTeamAgentInterface* TargetTeam = GetTeamAgentFromActor(InTarget);
+	if (!TargetTeam)
+	{
+		return false; // strict enemy-only
+	}
+
+	const FGenericTeamId OwnerId = OwnerTeam->GetGenericTeamId();
+	const FGenericTeamId TargetId = TargetTeam->GetGenericTeamId();
+
+	// If you use NoTeam, this will reject (strict). Adjust here if you want "NoTeam is hostile".
+	if (OwnerId == TargetId)
+	{
+		return false;
+	}
+
+	// If GetTeamAttitudeTowards is implemented, keep it consistent as well.
+	const ETeamAttitude::Type Attitude = OwnerTeam->GetTeamAttitudeTowards(*InTarget);
+	if (Attitude != ETeamAttitude::Hostile && Attitude != ETeamAttitude::Neutral)
+	{
+		// Friendly should be rejected.
+		return false;
+	}
+
+	return true;
 }

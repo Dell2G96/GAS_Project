@@ -4,6 +4,7 @@
 #include "AbilitySystemBlueprintLibrary.h"
 #include "AbilitySystemComponent.h"
 #include "CPlayerCharacter.h"
+#include "CPlayerState.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "InputMappingContext.h"
@@ -124,6 +125,16 @@ void ACPlayerController::SetupInputComponent()
     {
         if (InputActionPair.Value)
         {
+            if (InputActionPair.Key == ECAbilityInputID::TargetSwitch)
+            {
+                EnhancedInputComp->BindAction(InputActionPair.Value, ETriggerEvent::Triggered,
+                this, &ACPlayerController::Input_SwitchTargetTriggered);
+
+                EnhancedInputComp->BindAction(InputActionPair.Value, ETriggerEvent::Triggered,
+               this, &ACPlayerController::Input_SwitchTargetCompleted);
+                
+                continue;
+            }
             EnhancedInputComp->BindAction(InputActionPair.Value, ETriggerEvent::Triggered,
                 this, &ACPlayerController::HandleAbilityInput, InputActionPair.Key);
             
@@ -338,13 +349,42 @@ void ACPlayerController::Input_SwitchTargetTriggered(const FInputActionValue& In
 
 void ACPlayerController::Input_SwitchTargetCompleted(const FInputActionValue& InputActionValue)
 {	
-    FGameplayEventData Data;
 
-    UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(
-        this,
-        SwitchDirection.X>0.f? MyTags::Events::SwitchTarget_Right : MyTags::Events::SwitchTarget_Left,
-        Data
-    );
+    // 입력은 로컬 컨트롤러에서만 처리
+    if (!IsLocalController())
+        return;
+
+    const FGameplayTag Tag =
+        (SwitchDirection.X > 0.f) ? MyTags::Events::SwitchTarget_Right
+                                  : MyTags::Events::SwitchTarget_Left;
+
+    // 이벤트를 받을 대상(보통 ASC가 붙어있는 Pawn/Character)
+    ACPlayerState* PS = (GetPlayerState<ACPlayerState>());
+    if (!PS)
+        return;
+
+    // ACCharacter* OC = Cast<ACCharacter>(GetPawn());
+    // 리슨서버 호스트(Authority)는 바로 실행
+    if (HasAuthority())
+    {
+        FGameplayEventData Data;
+        UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(PS, Tag, Data);
+        return;
+    }
+
+    // 데디서버/클라 환경: 서버에게 요청해서 서버가 이벤트를 쏴주게 함
+    Server_Input_SwitchTargetCompleted(Tag);
+}
+
+void ACPlayerController::Server_Input_SwitchTargetCompleted_Implementation(const FGameplayTag& Tag)
+{
+
+    ACPlayerState* PS = (GetPlayerState<ACPlayerState>());
+    if (!PS)
+        return;
+
+    FGameplayEventData Data;
+    UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(PS, Tag, Data);
 }
 
 

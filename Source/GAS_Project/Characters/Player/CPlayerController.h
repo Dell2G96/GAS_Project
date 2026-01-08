@@ -111,6 +111,13 @@ private:
 	void Input_SwitchTargetTriggered(const FInputActionValue& InputActionValue);
 	void Input_SwitchTargetCompleted(const FInputActionValue& InputActionValue);
 
+
+	UFUNCTION(Server, Reliable)
+	void Server_Input_SwitchTargetCompleted(const FGameplayTag& Tag);
+	
+
 };
+
+
 
 

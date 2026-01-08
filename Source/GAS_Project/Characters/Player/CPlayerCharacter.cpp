@@ -175,6 +175,9 @@ void ACPlayerCharacter::GetLifetimeReplicatedProps(TArray<class FLifetimePropert
 {
     Super::GetLifetimeReplicatedProps(OutLifetimeProps);
     DOREPLIFETIME(ThisClass, bKnockdown);
+    DOREPLIFETIME(ThisClass, bIsTargetLocked);
+    DOREPLIFETIME(ThisClass, TargetLockActor);
+    
     // DOREPLIFETIME(ThisClass, RollWarpData);
     
 }

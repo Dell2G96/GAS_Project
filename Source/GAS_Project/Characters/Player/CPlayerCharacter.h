@@ -33,6 +33,12 @@ public:
 	virtual void PawnClientRestart() override;
 	virtual  void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
 
+	UPROPERTY(replicated, BlueprintReadOnly, Category="GAS|Movement")
+	bool bIsTargetLocked = false;
+
+	UPROPERTY(Replicated, BlueprintReadOnly, Category="TargetLock")
+	AActor* TargetLockActor = nullptr;
+
 	
 	// 무기 컴포넌트: 플레이어 전용 컴포넌트로 단일화
 	UFUNCTION(BlueprintCallable)
@@ -113,9 +119,9 @@ private:
 	UPROPERTY(Transient)
 	class ACPlayerState* CachedPlayerState = nullptr;
 
-	/*********************************************************************/
-	/*								Team ID			                     */
-	/*********************************************************************/
+	/********************************************************/
+	/*						Team ID							*/
+	/********************************************************/
 public:
 	virtual void SetGenericTeamId(const FGenericTeamId& NewTeamID) override;
 	virtual FGenericTeamId GetGenericTeamId() const override;
@@ -138,4 +144,7 @@ private:
 
 	void StartKnockdownTimer(float Time);
 	void OnKnockdownExpired();
+
+	//
+	
 };

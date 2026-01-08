@@ -15,6 +15,8 @@ enum class AbilityActivationPolicy : uint8
 	OnGiven
 };
 
+
+class APlayerState;
 UCLASS()
 class GAS_PROJECT_API UCGameplayAbility : public UGameplayAbility
 {
@@ -44,6 +46,13 @@ public:
 	FORCEINLINE bool ShouldDrawDebug() const {return bShouldDrawDebug;}
 
 protected:
+	bool IsEnemyActor(AActor* MyActor, AActor* OtherActor) const;
+	
+	const class IGenericTeamAgentInterface* GetTeamAgentFromActor(const AActor* InActor) const; 
+	bool IsEnemyByTeamId(const AActor* InTarget) const;     
+
+
+	
 	void DesideCombat(AActor* InAttacker, const FHitResult& HitActorToCheck,TSubclassOf<UGameplayEffect> DamageEffects, FGameplayEventData Payload);
 	class ACPlayerController* GetAvatarController() const;
 
