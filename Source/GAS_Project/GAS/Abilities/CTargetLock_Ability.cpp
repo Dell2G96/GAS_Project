@@ -24,10 +24,10 @@
 
 APlayerController* UCTargetLock_Ability::GetOwningPlayerController() const
 {
-	if (CurrentActorInfo && CurrentActorInfo->PlayerController.IsValid())
-	{
-		return CurrentActorInfo->PlayerController.Get();
-	}
+	// if (CurrentActorInfo && CurrentActorInfo->PlayerController.IsValid())
+	// {
+	// 	return CurrentActorInfo->PlayerController.Get();
+	// }
 
 	if (APawn* Pawn = Cast<APawn>(GetAvatarActorFromActorInfo()))
 	{
@@ -498,7 +498,7 @@ void UCTargetLock_Ability::SwitchTarget(const FGameplayTag& InSwitchDirectionTag
 	if (NewTarget)
 	{
 		CurrentLockedActor = NewTarget;
-
+		//SetTargetLockWidgetPosition();
 		if (IsOwningLocalController())
 		{
 			SetTargetLockWidgetPosition();

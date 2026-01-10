@@ -130,7 +130,7 @@ void ACPlayerController::SetupInputComponent()
                 EnhancedInputComp->BindAction(InputActionPair.Value, ETriggerEvent::Triggered,
                 this, &ACPlayerController::Input_SwitchTargetTriggered);
 
-                EnhancedInputComp->BindAction(InputActionPair.Value, ETriggerEvent::Triggered,
+                EnhancedInputComp->BindAction(InputActionPair.Value, ETriggerEvent::Completed,
                this, &ACPlayerController::Input_SwitchTargetCompleted);
                 
                 continue;
@@ -363,16 +363,17 @@ void ACPlayerController::Input_SwitchTargetCompleted(const FInputActionValue& In
     if (!PS)
         return;
 
-    // ACCharacter* OC = Cast<ACCharacter>(GetPawn());
-    // 리슨서버 호스트(Authority)는 바로 실행
-    if (HasAuthority())
+    // [ADDED] 클라(로컬)에서도 먼저 이벤트를 쏴서, 로컬 GA 인스턴스가 즉시 SwitchTarget 실행하게 함
     {
         FGameplayEventData Data;
         UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(PS, Tag, Data);
-        return;
     }
 
-    // 데디서버/클라 환경: 서버에게 요청해서 서버가 이벤트를 쏴주게 함
+    // 리슨서버 호스트(Authority)는 위에서 이미 처리 끝
+    if (HasAuthority())
+        return;
+
+    // [CHANGED] 클라는 서버에도 알려서(권한/판정용), 서버 GA도 동일하게 처리하게 함
     Server_Input_SwitchTargetCompleted(Tag);
 }
 
