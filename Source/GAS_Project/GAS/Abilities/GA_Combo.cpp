@@ -233,6 +233,7 @@ TArray<class AActor*> UGA_Combo::HitBoxTrace()
 {
 	TArray<AActor*> OutActors;
 
+	
 
 	
 	UWorld* World = GetWorld();
@@ -264,9 +265,34 @@ TArray<class AActor*> UGA_Combo::HitBoxTrace()
 
 	TArray<FHitResult> HitResults;
 
+	if (bShouldDrawDebug)
+	{
+		DrawDebugSphere(GetWorld(), Start, HitBoxRadius, 10, FColor::Red, false, 5.0f);
+		DrawDebugSphere(GetWorld(), End,   HitBoxRadius, 10, FColor::Red, false, 5.0f);
+		DrawDebugLine(GetWorld(), Start, End, FColor::Green, false, 5.0f, 0, 10.f);
+
+		for (const FHitResult& Result : HitResults)
+		{
+			if (IsValid(Result.GetActor()))
+			{
+				// 표면 충돌 지점
+				FVector HitPoint = Result.ImpactPoint;
+
+				// 혹시 ImpactPoint 가 비어있는 경우를 대비해 Location fallback
+				if (HitPoint.IsNearlyZero())
+				{
+					HitPoint = Result.Location;
+				}
+				DrawDebugSphere(GetWorld(),HitPoint,HitBoxRadius,50,FColor::Red,false,5.f);
+			}
+		}
+	}
+
 	const bool bHit = World->SweepMultiByChannel(HitResults,Start,End,FQuat::Identity,ECC_Visibility,Sphere,QueryParams,ResponseParams);
 	
 	if (!bHit) return OutActors;
+
+	
 	
 
 	OutActors.Reserve(HitResults.Num());
@@ -283,28 +309,7 @@ TArray<class AActor*> UGA_Combo::HitBoxTrace()
 		//UE_LOG(LogTemp,Warning,TEXT("HitActor : %s"),*HitActor->GetName());
 	}
 
-	if (bShouldDrawDebug)
-	{
-		DrawDebugSphere(GetWorld(), Start, HitBoxRadius, 12, FColor::Green, false, 1.0f);
-		DrawDebugSphere(GetWorld(), End,   HitBoxRadius, 12, FColor::Green, false, 1.0f);
-		DrawDebugLine(GetWorld(), Start, End, FColor::Green, false, 1.0f, 0, 10.f);
-
-		for (const FHitResult& Result : HitResults)
-		{
-			if (IsValid(Result.GetActor()))
-			{
-				// 표면 충돌 지점
-				FVector HitPoint = Result.ImpactPoint;
-
-				// 혹시 ImpactPoint 가 비어있는 경우를 대비해 Location fallback
-				if (HitPoint.IsNearlyZero())
-				{
-					HitPoint = Result.Location;
-				}
-				DrawDebugSphere(GetWorld(),HitPoint,HitBoxRadius,10,FColor::Red,false,1.f);
-			}
-		}
-	}
+	
 	return OutActors;
 }
 

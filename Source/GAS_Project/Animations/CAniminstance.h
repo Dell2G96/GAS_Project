@@ -76,6 +76,9 @@ protected:
 	class ACharacter* OwningCharacter;
 
 	UPROPERTY(VisibleDefaultsOnly ,Category="AnimData|References")
+	class ACharacter* OwningEnemy;
+
+	UPROPERTY(VisibleDefaultsOnly ,Category="AnimData|References")
 	class UCharacterMovementComponent* OwnerMovement;
 	
 	UPROPERTY(EditAnywhere, Category="Animation")

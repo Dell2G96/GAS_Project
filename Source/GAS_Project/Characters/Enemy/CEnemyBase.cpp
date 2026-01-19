@@ -31,6 +31,8 @@ ACEnemyBase::ACEnemyBase()
 	
 	CAttributeSet = CreateDefaultSubobject<UCAttributeSet>(TEXT("AttributeSet"));
 
+	TeamID = 2;
+
 	// GetCharacterMovement()->bOrientRotationToMovement = false;
 	// GetCharacterMovement()->bUseControllerDesiredRotation = true;
 	

@@ -24,6 +24,7 @@ void UCAniminstance::NativeInitializeAnimation()
 	if (OwningCharacter)
 	{
 		OwnerMovement = OwningCharacter->GetCharacterMovement();
+		OwningEnemy = Cast<ACEnemyBase>(OwningCharacter);
 	}
 	
 	// OwnerPlayerCharacter = Cast<ACPlayerCharacter>(OwnerCharacter);
@@ -60,19 +61,50 @@ void UCAniminstance::NativeThreadSafeUpdateAnimation(float DeltaSeconds)
 
 	bIsJumping = OwnerMovement->IsFalling();
 
-	Direction = UKismetAnimationLibrary::CalculateDirection(OwningCharacter->GetVelocity(), CurRotation);
-
-	PreBodyRotation = CurRotation;
-	LookRotOffset = OwningCharacter->GetBaseAimRotation() - CurRotation;
-
-	// Enemy
-	if (OwningCharacter == nullptr)
+	// ✅ Player와 Enemy를 구분해서 Direction 계산
+	if (OwningEnemy)
 	{
+		// Enemy: Control Rotation 기준으로 계산 (스트래핑용)
 		const FRotator ControlRot = OwningCharacter->GetControlRotation();
 		LocomotionDirection = UKismetAnimationLibrary::CalculateDirection(OwningCharacter->GetVelocity(), ControlRot);
 		GroundSpeed = OwningCharacter->GetVelocity().Size2D();
 		bHasAcceleration = OwnerMovement && OwnerMovement->GetCurrentAcceleration().SizeSquared2D() > 0.f;
+        
+		// Direction도 Control Rotation 기준으로 업데이트
+		Direction = LocomotionDirection;
 	}
+	else
+	{
+		// Player: Actor Rotation 기준 (기존 방식)
+		Direction = UKismetAnimationLibrary::CalculateDirection(OwningCharacter->GetVelocity(), CurRotation);
+	}
+    
+	PreBodyRotation = CurRotation;
+	LookRotOffset = OwningCharacter->GetBaseAimRotation() - CurRotation;
+
+
+
+
+
+
+
+
+
+
+	
+	// Direction = UKismetAnimationLibrary::CalculateDirection(OwningCharacter->GetVelocity(), CurRotation);
+	//
+	// PreBodyRotation = CurRotation;
+	// LookRotOffset = OwningCharacter->GetBaseAimRotation() - CurRotation;
+	//
+	// // Enemy
+	// if (OwningEnemy)
+	// {
+	// 	const FRotator ControlRot = OwningCharacter->GetControlRotation();
+	// 	LocomotionDirection = UKismetAnimationLibrary::CalculateDirection(OwningCharacter->GetVelocity(), ControlRot);
+	// 	GroundSpeed = OwningCharacter->GetVelocity().Size2D();
+	// 	bHasAcceleration = OwnerMovement && OwnerMovement->GetCurrentAcceleration().SizeSquared2D() > 0.f;
+	// }
 }
 
 void UCAniminstance::OnWeaponTypeChanged(EWeaponType InPrevType, EWeaponType InNewType)
