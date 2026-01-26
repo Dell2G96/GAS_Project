@@ -56,8 +56,11 @@ protected:
 	void DesideCombat(AActor* InAttacker, const FHitResult& HitActorToCheck,TSubclassOf<UGameplayEffect> DamageEffects, FGameplayEventData Payload);
 	class ACPlayerController* GetAvatarController() const;
 
+
+	UFUNCTION(BlueprintPure, Category="GAS|Ability")
+	FGameplayEffectSpecHandle MakeEnemyDamageEffectSpecHandle(TSubclassOf<UGameplayEffect> EffectClass, const FScalableFloat& InDamageScalableFloat);
 	//------------------------------------------------------------------//
-	//								넉백									//
+	//								넉백								//
 	//------------------------------------------------------------------//
 	UFUNCTION(BlueprintCallable)
 	void PushSelf(const FVector& PushVel);

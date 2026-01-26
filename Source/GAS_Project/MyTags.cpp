@@ -65,7 +65,10 @@ namespace MyTags
 
 		namespace Enemy
 		{
-			UE_DEFINE_GAMEPLAY_TAG(Attack, "MyTags.Abilities.Enemy.Attack")
+			UE_DEFINE_GAMEPLAY_TAG(Range, "MyTags.Abilities.Enemy.Range")
+			UE_DEFINE_GAMEPLAY_TAG(Melee, "MyTags.Abilities.Enemy.Melee")
+			UE_DEFINE_GAMEPLAY_TAG(Melee_Attack, "MyTags.Abilities.Enemy.Melee.Attack")
+			UE_DEFINE_GAMEPLAY_TAG(Range_Attack, "MyTags.Abilities.Enemy.Range.Attack")
 			UE_DEFINE_GAMEPLAY_TAG(Trace, "MyTags.Abilities.Enemy.Trace")
 		}
 	}
@@ -77,6 +80,9 @@ namespace MyTags
 		
 		UE_DEFINE_GAMEPLAY_TAG(SwitchTarget_Left, "MyTags.Events.SwitchTarget.Left")
 		UE_DEFINE_GAMEPLAY_TAG(SwitchTarget_Right, "MyTags.Events.SwitchTarget.Right")
+
+		
+		UE_DEFINE_GAMEPLAY_TAG(SpawnProjectile, "MyTags.Events.SpawnProjectile")
 		
 		
 		namespace Combo

@@ -67,7 +67,11 @@ namespace MyTags
 		
 		namespace Enemy
 		{
-			UE_DECLARE_GAMEPLAY_TAG_EXTERN(Attack);
+			UE_DECLARE_GAMEPLAY_TAG_EXTERN(Range);
+			UE_DECLARE_GAMEPLAY_TAG_EXTERN(Melee);
+			
+			UE_DECLARE_GAMEPLAY_TAG_EXTERN(Melee_Attack);
+			UE_DECLARE_GAMEPLAY_TAG_EXTERN(Range_Attack);
 			UE_DECLARE_GAMEPLAY_TAG_EXTERN(Trace);
 		}
 	}	// Abilities
@@ -81,6 +85,8 @@ namespace MyTags
 		
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(SwitchTarget_Left);
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(SwitchTarget_Right);
+
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(SpawnProjectile);
 
 		
 		

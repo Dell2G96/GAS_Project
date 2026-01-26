@@ -63,11 +63,11 @@ private:
 	virtual void OnRespawn() override;
 
 public:
-	UFUNCTION(BlueprintCallable)
-	FORCEINLINE UCAbilitySystemComponent* GetMyAbilitySystemComponent() const { return MyAbilitySystemComponent; }
-	
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="GAS|Ability")
-	class UCAbilitySystemComponent* MyAbilitySystemComponent;
+	// UFUNCTION(BlueprintCallable)
+	// FORCEINLINE UCAbilitySystemComponent* GetMyAbilitySystemComponent() const { return MyAbilitySystemComponent; }
+	//
+	// UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="GAS|Ability")
+	// class UCAbilitySystemComponent* MyAbilitySystemComponent;
 
 	/*********************************************************************/
 	/*								AI									 */

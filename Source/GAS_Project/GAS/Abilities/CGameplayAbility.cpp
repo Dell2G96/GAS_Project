@@ -122,6 +122,22 @@ TArray<FHitResult> UCGameplayAbility::GetHitResultFromSweepLocationTargetData(
 	return OutResults;
 }
 
+FGameplayEffectSpecHandle UCGameplayAbility::MakeEnemyDamageEffectSpecHandle(TSubclassOf<UGameplayEffect> EffectClass,
+	const FScalableFloat& InDamageScalableFloat)
+{
+	FGameplayEffectContextHandle ContextHandle = GetAbilitySystemComponentFromActorInfo()->MakeEffectContext();
+	ContextHandle.SetAbility(this);
+	ContextHandle.AddSourceObject(GetAvatarActorFromActorInfo());
+	ContextHandle.AddInstigator(GetAvatarActorFromActorInfo(), GetAvatarActorFromActorInfo());
+
+	FGameplayEffectSpecHandle EffectSpecHandle = GetAbilitySystemComponentFromActorInfo()->MakeOutgoingSpec(EffectClass, GetAbilityLevel(), ContextHandle);
+
+	EffectSpecHandle.Data->SetSetByCallerMagnitude(MyTags::SetByCaller::Projectile, InDamageScalableFloat.GetValueAtLevel(GetAbilityLevel()));
+
+	return EffectSpecHandle;
+	
+}
+
 void UCGameplayAbility::PushSelf(const FVector& PushVel)
 {
 	ACharacter* OwningAvatarCharacter = GetOwningAvatarCharacter();

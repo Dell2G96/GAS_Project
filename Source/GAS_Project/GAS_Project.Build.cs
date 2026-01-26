@@ -24,7 +24,9 @@ public class GAS_Project : ModuleRules
 			"UMG",
 			"AIModule",
 			"SlateCore",
-			"Slate"
+			"Slate",
+			"Niagara",
+			"NavigationSystem",
 			
 		});
 		
