@@ -162,7 +162,7 @@ void UCGameplayAbility::PushTarget(AActor* Target, const FVector& PushVel)
 	HitData->HitResult = HitResult;
 	EventData.TargetData.Add(HitData);
 
-	UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(Target,UGAP_Launched::GetLaunchedAbilityActiationTag(), EventData);
+	UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(Target,UGAP_Launched::GetLaunchedAbilityActivationTag(), EventData);
 	
 }
 

@@ -23,6 +23,9 @@ class GAS_PROJECT_API AProjectileBase : public AActor
 public:
 	AProjectileBase();
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="GAS|Projectile", meta = (ExposeOnSpawn, ClampMin="0.0"))
+	float Damage{-25.f};
+
 protected:
 	virtual void BeginPlay() override;
 
@@ -50,9 +53,11 @@ protected:
 	UFUNCTION(BlueprintImplementableEvent, meta=(DisplayName="On Spawn Projectile Hit FX"))
 	void BP_OnSpawnProjectileHitFX(const FVector& HitLocation);
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="GAS|Projectile")
+	TSubclassOf<class UGameplayEffect> DamageEffect;
 private:
 	void HandleApplyProjectileDamage(APawn* InHitPawn,const struct FGameplayEventData& InPayload);
 
 	TArray<AActor*> OverlappedActors;
-
+	
 };

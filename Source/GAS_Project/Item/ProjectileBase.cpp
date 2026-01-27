@@ -71,6 +71,7 @@ void AProjectileBase::OnProjectileHit(UPrimitiveComponent* HitComponent, AActor*
 	}
 
 	FGameplayEventData EventData;
+	//EventData.EventTag = MyTags::Events::Hit::LightHit;
 	EventData.Instigator = this;
 	EventData.Target = HitPawn;
 
@@ -80,7 +81,8 @@ void AProjectileBase::OnProjectileHit(UPrimitiveComponent* HitComponent, AActor*
 	}
 	else
 	{
-		HandleApplyProjectileDamage(HitPawn, EventData);
+		// HandleApplyProjectileDamage(HitPawn, EventData);
+		UCAbilitySystemStatics::SendDamageEventToPlayer(HitPawn, DamageEffect, EventData, MyTags::SetByCaller::Projectile, Damage,MyTags::None);
 	}
 	Destroy();
 	

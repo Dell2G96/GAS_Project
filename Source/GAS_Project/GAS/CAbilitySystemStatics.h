@@ -133,6 +133,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category="GAS|Functions", meta=(DisplayName="Does Actor Have Tag"))
 	static bool NativeDoseActorHaveTag(AActor* InActor, FGameplayTag TagToCheck);
 
+	// UFUNCTION(BlueprintCallable)
+	// static void SendDamageEventToPlayer(AActor* Target, const TSubclassOf<class UGameplayEffect>& DamageEffect, const struct FGameplayEventData& Payload, const struct FGameplayTag& DataTag, float Damage);
+	//
+
 	// UFUNCTION(BlueprintCallable, Category="GAS|Functions", meta=(DisplayName="Does Actor Have Tag"))
 	// static void BP_DoesActorHaveTag(AActor* InActor,FGameplayTag TagToCheck);
 };

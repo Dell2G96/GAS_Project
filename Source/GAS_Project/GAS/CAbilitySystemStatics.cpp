@@ -278,7 +278,7 @@ FName UCAbilitySystemStatics::GetHitDirectionName(const EHitDirection& HitDirect
 	}
 }
 
-void UCAbilitySystemStatics::SendDamageEventToPlayer(AActor* Target, const TSubclassOf<UGameplayEffect>& DamageEffect,
+void UCAbilitySystemStatics::	SendDamageEventToPlayer(AActor* Target, const TSubclassOf<UGameplayEffect>& DamageEffect,
 	FGameplayEventData& Payload, const FGameplayTag& DataTag, float Damage, const FGameplayTag& EventTagOverride,
 	UObject* OptionalParticleSystem)
 {
@@ -307,11 +307,12 @@ void UCAbilitySystemStatics::SendDamageEventToPlayer(AActor* Target, const TSubc
 		if (!IsValid(AttributeSet)) return;
 
 		const bool bLethal = AttributeSet->GetHealth() - Damage <= 0.f;
-		EventTag = bLethal ? MyTags::Events::Player::Knockdown : MyTags::Events::Player::HitReact;
+		EventTag = bLethal ? MyTags::Events::Player::Knockdown : MyTags::Events::Hit::LightHit;
 	}
 	
 	Payload.OptionalObject = OptionalParticleSystem;
 	UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(PlayerCharacter, EventTag, Payload);
+	//PlayerCharacter->Multicast_SendGameplayEventToActor(PlayerCharacter, EventTag, Payload);
 
 	if (!IsValid(TargetASC)) return;
 

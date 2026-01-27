@@ -17,5 +17,5 @@ class GAS_PROJECT_API UGAP_Launched : public UCGameplayAbility
 public:
 	UGAP_Launched();
 	virtual void ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, const FGameplayEventData* TriggerEventData) override;
-	static FGameplayTag GetLaunchedAbilityActiationTag();
+	static FGameplayTag GetLaunchedAbilityActivationTag();
 };

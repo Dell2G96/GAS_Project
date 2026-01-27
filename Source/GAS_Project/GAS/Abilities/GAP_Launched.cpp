@@ -11,7 +11,7 @@ UGAP_Launched::UGAP_Launched()
 	NetExecutionPolicy = EGameplayAbilityNetExecutionPolicy::ServerOnly;
 	FAbilityTriggerData TriggerData;
 	TriggerData.TriggerSource = EGameplayAbilityTriggerSource::GameplayEvent;
-	TriggerData.TriggerTag = GetLaunchedAbilityActiationTag();
+	TriggerData.TriggerTag = GetLaunchedAbilityActivationTag();
 
 	ActivationBlockedTags.RemoveTag(UCAbilitySystemStatics::GetStunStatTag());
 	AbilityTriggers.Add(TriggerData);
@@ -33,7 +33,7 @@ void UGAP_Launched::ActivateAbility(const FGameplayAbilitySpecHandle Handle, con
 
 }
 
-FGameplayTag UGAP_Launched::GetLaunchedAbilityActiationTag()
+FGameplayTag UGAP_Launched::GetLaunchedAbilityActivationTag()
 {
 	return MyTags::Abilities::Launch;
 }
