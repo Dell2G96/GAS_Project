@@ -51,6 +51,9 @@ namespace MyTags
 		
 		UE_DEFINE_GAMEPLAY_TAG(Launch, "MyTags.Abilities.Launch")
 		
+		UE_DEFINE_GAMEPLAY_TAG(Execution, "MyTags.Abilities.Execution")
+		UE_DEFINE_GAMEPLAY_TAG(Victim, "MyTags.Abilities.Victim")
+		
 
 		
 		namespace Equip
@@ -108,10 +111,16 @@ namespace MyTags
 			UE_DEFINE_GAMEPLAY_TAG(Knife,"MyTags.Events.Equip.Knife")
 			
 		}
-
+	
 		namespace UnEquip
 		{
 			UE_DEFINE_GAMEPLAY_TAG(Knife,"MyTags.Events.UnEquip.Knife")
+		}
+
+		namespace Execution
+		{
+			UE_DEFINE_GAMEPLAY_TAG(Start,"MyTags.Events.Execution.Start")
+			UE_DEFINE_GAMEPLAY_TAG(End,"MyTags.Events.Execution.End")
 		}
 		
 		namespace Player
@@ -140,6 +149,12 @@ namespace MyTags
 		
 		UE_DEFINE_GAMEPLAY_TAG(Equip, "MyTags.Status.Equip")
 		UE_DEFINE_GAMEPLAY_TAG(UnEquip, "MyTags.Status.UnEquip")
+
+		
+		UE_DEFINE_GAMEPLAY_TAG(Groggy, "MyTags.Status.Groggy")
+		UE_DEFINE_GAMEPLAY_TAG(Executing, "MyTags.Status.Executing")
+		UE_DEFINE_GAMEPLAY_TAG(Executed, "MyTags.Status.Executed")
+		
 		
 		UE_DEFINE_GAMEPLAY_TAG(BattleMode, "MyTags.Status.Battle")
 		UE_DEFINE_GAMEPLAY_TAG(IdleMode, "MyTags.Status.IdleMode")

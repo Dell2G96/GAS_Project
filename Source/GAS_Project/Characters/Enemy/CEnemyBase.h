@@ -45,6 +45,15 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="GAS|Collision")
 	class UBoxComponent* RightHandCollision;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="GAS|Execution")
+	class USphereComponent* ExecutionTrigger;
+
+	void OnGroggyStateChanged(bool bIsGroggy);;
+
+	void HandleGroggyTagChanged(const struct FGameplayTag Tag, int32 NewCount);
+
+	UFUNCTION()
+	void OnExecutionOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
 	
 	/*********************************************************************/
 	/*								Team ID                              */
@@ -92,3 +101,5 @@ public:
 	
 
 };
+
+

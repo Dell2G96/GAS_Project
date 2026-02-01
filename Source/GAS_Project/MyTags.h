@@ -43,15 +43,22 @@ namespace MyTags
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(BasicAttack);
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(BasicAttackPressed);
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(BasicAttackReleased);
-		
-		
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(HeavyAttack);
+		
+		
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Tertiary);
 
+		//Guard
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(GuardPressed);
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(GuardReleased);
 		
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Launch);
+
+		
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Execution);
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Victim);
+
+		
 
 
 		namespace Equip
@@ -86,10 +93,7 @@ namespace MyTags
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(SwitchTarget_Left);
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(SwitchTarget_Right);
 
-		UE_DECLARE_GAMEPLAY_TAG_EXTERN(SpawnProjectile);
-
-		
-		
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(SpawnProjectile)
 		namespace Combo
 		{
 			UE_DECLARE_GAMEPLAY_TAG_EXTERN(Combo_Start);
@@ -112,10 +116,16 @@ namespace MyTags
 			UE_DECLARE_GAMEPLAY_TAG_EXTERN(Knife);
 			
 		}
-
+		
 		namespace UnEquip
 		{
 			UE_DECLARE_GAMEPLAY_TAG_EXTERN(Knife);
+		}
+
+		namespace Execution
+		{
+			UE_DECLARE_GAMEPLAY_TAG_EXTERN(Start);
+			UE_DECLARE_GAMEPLAY_TAG_EXTERN(End);
 		}
 		
 		namespace Player
@@ -131,21 +141,32 @@ namespace MyTags
 			UE_DECLARE_GAMEPLAY_TAG_EXTERN(EndAttack);
 			UE_DECLARE_GAMEPLAY_TAG_EXTERN(MeleeTraceHit);
 		}
-	}
+	}// Events
 
 	namespace Status
 	{
+		//Guard
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Guarding);
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(PerfectGuard);
-		
+
+		//TargetLock-On
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(TargetLock);
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Strafing);
-		UE_DECLARE_GAMEPLAY_TAG_EXTERN(UnderAttack);
 		
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(UnderAttack);
+
+		//Equip
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Equip);
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(UnEquip);
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(BattleMode);
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(IdleMode);
+
+		//Execution
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Groggy);
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Executing);
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Executied);
+
+		//Rolling
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Rolling);
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Knockdown);
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Dead);
@@ -154,7 +175,13 @@ namespace MyTags
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(HealthEmpty);
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(StaminaFull);
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(StaminaEmpty);
+	}// Status
+
+	namespace Cooldown
+	{
+				
 	}
+
 }
 
 

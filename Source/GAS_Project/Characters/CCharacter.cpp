@@ -31,6 +31,7 @@ ACCharacter::ACCharacter()
     MotionWarpingComponent = CreateDefaultSubobject<UMotionWarpingComponent>("MotionWarpingComponent");
     OverHeadWidgetComponent = CreateDefaultSubobject<UWidgetComponent>("OverHead Widget Component");
     OverHeadWidgetComponent->SetupAttachment(GetRootComponent());
+    
     BindGASChangeDelegate();
     
 }
@@ -157,7 +158,7 @@ void ACCharacter::BindGASChangeDelegate()
     if (CAbilitySystemComponent)
     {
         CAbilitySystemComponent->RegisterGameplayTagEvent(UCAbilitySystemStatics::GetDeadStatTag()).AddUObject(this,&ACCharacter::DeathTagUpdated);
-
+        
         
         CAbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(UCAttributeSet::GetMaxHealthAttribute()).AddUObject(this, &ACCharacter::MaxHealthUpdated);
         CAbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(UCAttributeSet::GetMaxStaminaAttribute()).AddUObject(this, &ACCharacter::MaxStaminaUpdated);

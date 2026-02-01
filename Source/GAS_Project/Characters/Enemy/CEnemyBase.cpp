@@ -5,9 +5,11 @@
 
 #include "AIController.h"
 #include "Components/BoxComponent.h"
+#include "Components/SphereComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GAS_Project/MyTags.h"
 #include "GAS_Project/AI/CAIController.h"
+#include "GAS_Project/Characters/Player/CPlayerCharacter.h"
 #include "GAS_Project/GAS/CAbilitySystemComponent.h"
 #include "Net/UnrealNetwork.h"
 
@@ -24,6 +26,15 @@ ACEnemyBase::ACEnemyBase()
 	
 	LeftHandCollision->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	RightHandCollision->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+
+	ExecutionTrigger = CreateDefaultSubobject<USphereComponent>(TEXT("ExecutionTrigger"));
+	ExecutionTrigger->SetupAttachment(RootComponent);
+	ExecutionTrigger->SetSphereRadius(100.f);
+    
+	// 처음에는 비활성화 (조건이 충족될 때만 켬)
+	ExecutionTrigger->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	ExecutionTrigger->SetCollisionResponseToAllChannels(ECR_Ignore);
+	ExecutionTrigger->SetCollisionResponseToChannel(ECC_Pawn, ECR_Overlap);
 	
 	CAbilitySystemComponent = CreateDefaultSubobject<UCAbilitySystemComponent>(TEXT("AbilitySystemComponent"));
 	CAbilitySystemComponent->SetIsReplicated(true);
@@ -47,6 +58,8 @@ void ACEnemyBase::BeginPlay()
 	OnASCInitialized.Broadcast(GetAbilitySystemComponent(), GetAttributeSet());
 
 	BindGASChangeDelegate();
+	
+	CAbilitySystemComponent->RegisterGameplayTagEvent(MyTags::Status::Groggy).AddUObject(this, &ACEnemyBase::HandleGroggyTagChanged);
 
 	if (!HasAuthority()) return;
 	CAbilitySystemComponent->ServerSideInit();
@@ -111,6 +124,46 @@ void ACEnemyBase::PostEditChangeProperty(struct FPropertyChangedEvent& PropertyC
 #endif
 
 
+void ACEnemyBase::OnGroggyStateChanged(bool bIsGroggy)
+{
+	if (bIsGroggy)
+	{
+		// 그로기 상태가 되면 오버랩 활성화
+		ExecutionTrigger->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+		GetMovementComponent()->StopMovementImmediately();
+		OnExecutionOverlapBegin()
+		
+		// Todo :: 처형 UI 띄우기
+	}
+	else
+	{
+		ExecutionTrigger->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	}
+}
+
+void ACEnemyBase::HandleGroggyTagChanged(const struct FGameplayTag Tag, int32 NewCount)
+{
+	if (NewCount != 0)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("=== Groggy State Entered ==="));
+		bool bGroggy = true;
+		OnGroggyStateChanged(bGroggy);	
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("=== Groggy Never Enrered ==="));
+	}
+}
+
+void ACEnemyBase::OnExecutionOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,
+	UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
+{
+	if (ACPlayerCharacter* Player = Cast<ACPlayerCharacter>(OtherActor))
+	{
+		//Player->SetTargetableEnemy(this); // 플레이어에게 처형 타겟 등록ㅔ
+	}
+}
+
 FGenericTeamId ACEnemyBase::GetGenericTeamId() const
 {
 	return Super::GetGenericTeamId();
@@ -123,7 +176,7 @@ void ACEnemyBase::SetGenericTeamId(const FGenericTeamId& NewTeamID)
 
 void ACEnemyBase::OnDead()
 {
-	//ToDo	
+	//ToDo
 }
 
 void ACEnemyBase::OnRespawn()

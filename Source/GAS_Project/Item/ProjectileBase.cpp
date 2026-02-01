@@ -81,7 +81,6 @@ void AProjectileBase::OnProjectileHit(UPrimitiveComponent* HitComponent, AActor*
 	}
 	else
 	{
-		// HandleApplyProjectileDamage(HitPawn, EventData);
 		UCAbilitySystemStatics::SendDamageEventToPlayer(HitPawn, DamageEffect, EventData, MyTags::SetByCaller::Projectile, Damage,MyTags::None);
 	}
 	Destroy();
@@ -106,23 +105,12 @@ void AProjectileBase::OnProjectileBeginOverlap(UPrimitiveComponent* OverlappedCo
 
 		if (UCAbilitySystemStatics::IsTargetPawnHostile(GetInstigator(), HitPawn))
 		{
-			HandleApplyProjectileDamage(HitPawn, Data);
+			UCAbilitySystemStatics::SendDamageEventToPlayer(HitPawn, DamageEffect, Data, MyTags::SetByCaller::Projectile, Damage,MyTags::None);
 		}
 	}
 }
 
-void AProjectileBase::HandleApplyProjectileDamage(APawn* InHitPawn, const FGameplayEventData& InPayload)
-{
-	// checkf(ProjectileDamageEffectSpecHandle.IsValid(), TEXT("Assign A Valid Spec Handle "))
 
-	const bool bWasApplied = UCAbilitySystemStatics::ApplyGameplayEffectSpecHandleToTargetActor(GetInstigator(), InHitPawn, ProjectileDamageEffectSpecHandle);
-
-	if (bWasApplied)
-	{
-		UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(InHitPawn, MyTags::Events::Hit::LightHit, InPayload);
-	}
-	
-}
 
 
 
