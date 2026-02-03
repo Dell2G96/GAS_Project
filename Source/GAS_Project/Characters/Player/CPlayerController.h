@@ -79,6 +79,48 @@ private:
 
 	bool IsKnockdown();
 	bool IsAlive();
+
+	/*********************************************************************/
+	/*							Execution							     */
+	/*********************************************************************/
+public:
+	virtual void Tick(float DeltaSeconds) override;
+protected:
+	// [ADDED] “처형 가능” 프롬프트 위젯 클래스(BP에서 지정)
+	UPROPERTY(EditDefaultsOnly, Category="UI|Execution")
+	TSubclassOf<UUserWidget> ExecutionWidgetClass;
+
+	// [ADDED] 로컬에서 생성되는 실제 위젯 인스턴스
+	UPROPERTY(Transient)
+	TObjectPtr<UUserWidget> ExecutionWidget;
+
+	// [ADDED] 서버가 “이 Enemy는 처형 UI 켜도 됨”이라고 통지한 후보들
+	UPROPERTY(Transient)
+	TSet<TObjectPtr<ACEnemyBase>> ExecutionCandidates;
+
+	// [ADDED] 현재 화면에 찍고 있는 타겟
+	UPROPERTY(Transient)
+	TObjectPtr<ACEnemyBase> CurrentExecutionTarget;
+
+	// [ADDED] 위젯 생성/갱신 함수
+	void SpawnExecutionWidget();
+	void RefreshExecutionTarget();
+	void UpdateExecutionWidgetPosition();
+
+public:
+	// [ADDED] 서버 -> 클라 통지용(Client RPC)
+	UFUNCTION(Client, Reliable)
+	void Client_SetExecutionCandidate(class ACEnemyBase* Enemy, bool bShow);
+	
+
+public:
+	// UFUNCTION(Client, Reliable)
+	// void ClientSetExecutionPrompt(ACEnemyBase* TargetEnemy, bool bShow);
+	//
+	// UFUNCTION(Server, Reliable)
+	// void ServerRequestExecution(ACEnemyBase* TargetEnemy);
+	
+	
 	/*********************************************************************/
 	/*								UI							        */
 	/*********************************************************************/

@@ -13,6 +13,7 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GAS_Project/MyTags.h"
 #include "GAS_Project/Characters/CCharacter.h"
+#include "GAS_Project/Characters/Enemy/CEnemyBase.h"
 #include "GAS_Project/GAS/CAbilitySystemComponent.h"
 #include "GAS_Project/GAS/CAbilitySystemStatics.h"
 #include "GAS_Project/Utils/CStructTypes.h"
@@ -41,7 +42,9 @@ void ACPlayerController::AcknowledgePossession(class APawn* NewPawn)
     {
         OwnerCharacter->ClientSideInit();
         SpawnGameplayWidget();
-    }
+        
+        // [ADDED] Execution UI는 “로컬 플레이어”가 만들고 관리
+        SpawnExecutionWidget();    }
 }
 
 void ACPlayerController::SetGenericTeamId(const FGenericTeamId& NewTeamID)
@@ -118,7 +121,14 @@ void ACPlayerController::SetupInputComponent()
         EnhancedInputComp->BindAction(LookAction, ETriggerEvent::Triggered, this, &ACPlayerController::Look);
         EnhancedInputComp->BindAction(RunAction, ETriggerEvent::Started, this, &ACPlayerController::Run);
         EnhancedInputComp->BindAction(RunAction, ETriggerEvent::Completed, this, &ACPlayerController::StopRuning);
-     
+
+
+   //      // Temp
+   //      if (ExecutionAction)
+   //      {
+   //          
+			// EnhancedInputComp->BindAction(ExecutionAction, ETriggerEvent::Started, this, &ThisClass::Input_ExecutionPressed);
+   //      }
     }
     // ✅ 5. Ability 입력 바인딩
     for (const TPair<ECAbilityInputID, UInputAction*>& InputActionPair : GameplayAbilityInputActions)
@@ -328,6 +338,197 @@ bool ACPlayerController::IsAlive()
     if (!IsValid(Playercharacter)) return false;
     return Playercharacter->IsAlive();
 }
+
+void ACPlayerController::Tick(float DeltaSeconds)
+{
+    Super::Tick(DeltaSeconds);
+
+    // [ADDED] 현재 타겟이 있으면 매 프레임 위치 갱신
+    UpdateExecutionWidgetPosition();
+}
+
+void ACPlayerController::SpawnExecutionWidget()
+{
+    // [ADDED] 로컬 컨트롤러에서만 UI 생성
+    if (!IsLocalController()) return;
+
+    if (!ExecutionWidgetClass || ExecutionWidget)  return;
+
+    ExecutionWidget = CreateWidget<UUserWidget>(this, ExecutionWidgetClass);
+    if (!ExecutionWidget)  return;
+
+    ExecutionWidget->AddToViewport();
+    ExecutionWidget->SetVisibility(ESlateVisibility::Hidden);
+
+    // [ADDED] (0,0) 왼쪽상단 박힘 방지: 중앙 Pivot으로 두고 매 프레임 스크린 좌표로 이동
+    ExecutionWidget->SetAlignmentInViewport(FVector2D(0.5f, 0.5f));
+}
+
+void ACPlayerController::RefreshExecutionTarget()
+{
+    if (!ExecutionWidget)  return;
+
+    APawn* MyPawn = GetPawn();
+    if (!MyPawn)
+    {
+        ExecutionWidget->SetVisibility(ESlateVisibility::Hidden);
+        return;
+    }
+
+    // [ADDED] 후보가 여러 개면 “가장 가까운 Enemy”를 선택
+    ACEnemyBase* Best = nullptr;
+    float BestDistSq = TNumericLimits<float>::Max();
+
+    for (ACEnemyBase* Candidate : ExecutionCandidates)
+    {
+        if (!IsValid(Candidate))
+        {
+            continue;
+        }
+
+        const float DistSq = FVector::DistSquared(MyPawn->GetActorLocation(), Candidate->GetActorLocation());
+        if (DistSq < BestDistSq)
+        {
+            BestDistSq = DistSq;
+            Best = Candidate;
+        }
+    }
+
+    CurrentExecutionTarget = Best;
+
+    if (CurrentExecutionTarget)
+    {
+        ExecutionWidget->SetVisibility(ESlateVisibility::Visible);
+    }
+    else
+    {
+        ExecutionWidget->SetVisibility(ESlateVisibility::Hidden);
+    }
+}
+
+void ACPlayerController::UpdateExecutionWidgetPosition()
+{
+    if (!ExecutionWidget)
+    {
+        return;
+    }
+
+    if (!CurrentExecutionTarget || !IsValid(CurrentExecutionTarget))
+    {
+        ExecutionWidget->SetVisibility(ESlateVisibility::Hidden);
+        return;
+    }
+
+    // [ADDED] Enemy 몸 중앙(소켓/오프셋) 월드좌표를 스크린좌표로 투영
+    const FVector WorldLoc = CurrentExecutionTarget->GetExecutionUIWorldLocation();
+
+    FVector2D ScreenPos;
+    const bool bProjected = ProjectWorldLocationToScreen(WorldLoc, ScreenPos, true);
+
+    if (!bProjected)
+    {
+        ExecutionWidget->SetVisibility(ESlateVisibility::Hidden);
+        return;
+    }
+
+    ExecutionWidget->SetVisibility(ESlateVisibility::Visible);
+
+    // [CHANGED] 위치 안 잡으면 (0,0)으로 남아서 왼쪽상단에 뜸
+    ExecutionWidget->SetPositionInViewport(ScreenPos, true);
+    ExecutionWidget->SetAlignmentInViewport(FVector2D(0.5f, 0.5f));
+}
+
+void ACPlayerController::Client_SetExecutionCandidate_Implementation(class ACEnemyBase* Enemy, bool bShow)
+{
+    // [ADDED] 서버가 판정한 결과를 로컬 UI 후보 집합에 반영
+    if (!IsLocalController())  return;
+
+    if (!Enemy) return;
+
+    if (bShow)
+        ExecutionCandidates.Add(Enemy);
+    else
+    {
+        ExecutionCandidates.Remove(Enemy);
+
+        // [ADDED] 현재 타겟이 이 Enemy였으면 초기화
+        if (CurrentExecutionTarget == Enemy)
+        {
+            CurrentExecutionTarget = nullptr;
+        }
+    }
+
+    RefreshExecutionTarget();
+}
+//
+// void ACPlayerController::EnsureExecutionUI()
+// {
+//     if (!IsLocalPlayerController()) return;
+//     if (ExecutionUI) return;
+//     if (!ExecutionUIClass) return;
+//
+//     ExecutionUI = CreateWidget<UUserWidget>(this, ExecutionUIClass);
+//     if (!ExecutionUI)
+//     {
+//         UE_LOG(LogTemp, Warning, TEXT(">>> EnsureExecutionUI"));
+//         return ;
+//     }
+//
+//     ExecutionUI->AddToViewport();
+//     ExecutionUI->SetVisibility(ESlateVisibility::Hidden);
+// }
+//
+// void ACPlayerController::Input_ExecutionPressed(const struct FInputActionValue& InputActionValue)
+// {
+//     if (!IsLocalController()) return;
+//     if (!CurrentExecutionTarget.IsValid()) return;
+//
+//     ServerRequestExecution(CurrentExecutionTarget.Get());
+//         
+//         
+// }
+//
+// void ACPlayerController::ClientSetExecutionPrompt_Implementation(ACEnemyBase* TargetEnemy, bool bShow)
+// {
+//     if (!IsLocalPlayerController()) return;
+//
+//     EnsureExecutionUI();
+//     if (!ExecutionUI) return;
+//
+//     if (bShow)
+//     {
+//         CurrentExecutionTarget = TargetEnemy;
+//         ExecutionUI->SetVisibility(ESlateVisibility::Visible);
+//
+//         if (!GetWorldTimerManager().IsTimerActive(ExecutionWidgetUpdateTimer))
+//         {
+//             GetWorldTimerManager().SetTimer(ExecutionWidgetUpdateTimer, this, 
+//                 &ACPlayerController::UpdateExecutionWidgetPosition, 0.016f, true);
+//         }
+//     }
+//     else
+//     {
+//         if (!CurrentExecutionTarget.IsValid() || CurrentExecutionTarget.Get() == TargetEnemy)
+//         {
+//             CurrentExecutionTarget = nullptr;
+//             ExecutionUI->SetVisibility(ESlateVisibility::Hidden);
+//         }
+//     }
+// }
+
+// void ACPlayerController::ServerRequestExecution_Implementation(ACEnemyBase* TargetEnemy)
+// {
+//     if (!TargetEnemy) return;
+//     APawn* MyPawn = GetPawn();
+//     if (!MyPawn) return;
+//
+//     const float DistSq = FVector::DistSquared(MyPawn->GetActorLocation(), TargetEnemy->GetActorLocation());
+//     if (DistSq > FMath::Square(250.f))
+//     {
+//         return;
+//     }
+//     UE_LOG(LogTemp, Warning, TEXT("[Execution] ServerRequestExecution accepted for %s"), *TargetEnemy->GetName());
+// }
 
 void ACPlayerController::SpawnGameplayWidget()
 {
