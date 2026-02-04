@@ -3,18 +3,19 @@
 
 #include "C_BaseAniminstance.h"
 
+#include "AbilitySystemBlueprintLibrary.h"
 #include "GAS_Project/MyTags.h"
 #include "GAS_Project/Characters/Enemy/CEnemyBase.h"
 #include "GAS_Project/GAS/CAbilitySystemStatics.h"
 
 bool UC_BaseAniminstance::DoesOwnerHaveTag(FGameplayTag TagToCheck) const
 {
-	AActor* OwingPawn = TryGetPawnOwner();
-	const ACEnemyBase* Enemy = Cast<ACEnemyBase>(OwingPawn);
+	AActor* OwningPawn = TryGetPawnOwner();
+	const ACEnemyBase* Enemy = Cast<ACEnemyBase>(OwningPawn);
 	if (!Enemy)
 	{
 		// 1) 정상 루트: ASC 태그가 클라에도 존재하면 그대로 True
-		return UCAbilitySystemStatics::NativeDoseActorHaveTag(OwingPawn, TagToCheck);
+		return UCAbilitySystemStatics::NativeDoseActorHaveTag(OwningPawn, TagToCheck);
 	}
 	
 	// // 2) 보정 루트: AI는 Minimal Replication에서 GE로 부여된 태그가 클라에 안 보일 수 있음

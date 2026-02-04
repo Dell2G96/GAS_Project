@@ -20,6 +20,11 @@ struct FWeaponEntry
 
 	UPROPERTY()
 	class ACWeapon* Weapon = nullptr;
+
+	FGameplayTag GetCurretWeaponTag()
+	{
+		return WeaponTag;
+	}
 };
 
 UCLASS(Blueprintable)
@@ -30,7 +35,7 @@ class GAS_PROJECT_API UCWeaponComponent : public UActorComponent
 public:
 	UCWeaponComponent();
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
-
+	inline FGameplayTag GetCurrentEquippedWeaponTag() const { return CurrentEquippedWeaponTag; }
 
 	UFUNCTION(BlueprintCallable, Category="GAS|Comp")
 	void RegisterSpawnedWeapon(FGameplayTag InWeaponTag, ACWeapon* InWeapon, bool bRegister = false);

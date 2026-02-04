@@ -368,7 +368,7 @@ const IGenericTeamAgentInterface* UCGameplayAbility::GetTeamAgentFromActor(const
 
 bool UCGameplayAbility::IsEnemyByTeamId(const AActor* InTarget) const
 {
-	// [ADDED] TeamId-based enemy-only filtering.
+	//  TeamId-based enemy-only filtering.
 	// Strict rule:
 	// - If owner team is known, target MUST have team and must be different.
 	// - If owner team unknown, we do not block target lock (keeps system usable).

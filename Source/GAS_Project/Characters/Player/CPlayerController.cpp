@@ -43,7 +43,7 @@ void ACPlayerController::AcknowledgePossession(class APawn* NewPawn)
         OwnerCharacter->ClientSideInit();
         SpawnGameplayWidget();
         
-        // [ADDED] Execution UI는 “로컬 플레이어”가 만들고 관리
+        //  Execution UI는 “로컬 플레이어”가 만들고 관리
         SpawnExecutionWidget();    }
 }
 
@@ -120,15 +120,8 @@ void ACPlayerController::SetupInputComponent()
         EnhancedInputComp->BindAction(MoveAction, ETriggerEvent::Triggered, this, &ACPlayerController::Move);
         EnhancedInputComp->BindAction(LookAction, ETriggerEvent::Triggered, this, &ACPlayerController::Look);
         EnhancedInputComp->BindAction(RunAction, ETriggerEvent::Started, this, &ACPlayerController::Run);
-        EnhancedInputComp->BindAction(RunAction, ETriggerEvent::Completed, this, &ACPlayerController::StopRuning);
-
-
-   //      // Temp
-   //      if (ExecutionAction)
-   //      {
-   //          
-			// EnhancedInputComp->BindAction(ExecutionAction, ETriggerEvent::Started, this, &ThisClass::Input_ExecutionPressed);
-   //      }
+        EnhancedInputComp->BindAction(RunAction, ETriggerEvent::Completed, this, &ACPlayerController::StopRunning);
+        EnhancedInputComp->BindAction(ExecutionAction, ETriggerEvent::Triggered, this, &ACPlayerController::StartExecution);
     }
     // ✅ 5. Ability 입력 바인딩
     for (const TPair<ECAbilityInputID, UInputAction*>& InputActionPair : GameplayAbilityInputActions)
@@ -171,11 +164,24 @@ void ACPlayerController::Run()
     GetCharacter()->GetCharacterMovement()->MaxWalkSpeed = 600.f;
 }
 
-void ACPlayerController::StopRuning()
+void ACPlayerController::StopRunning()
 {
     if (!IsValid(GetCharacter())) return;
     if (!IsAlive() || IsKnockdown()) return;
     GetCharacter()->GetCharacterMovement()->MaxWalkSpeed = 400.f;
+}
+
+void ACPlayerController::StartExecution()
+{
+    if (!IsValid(GetCharacter())) return;
+    if (!IsAlive() || IsKnockdown()) return;
+    if (OwnerCharacter)
+    {
+        if (OwnerCharacter->GetExecutionComponent())
+        {
+            OwnerCharacter->GetExecutionComponent()->TryExecuteNearestTarget();
+        }
+    }
 }
 
 void ACPlayerController::StopJumping()
@@ -343,13 +349,13 @@ void ACPlayerController::Tick(float DeltaSeconds)
 {
     Super::Tick(DeltaSeconds);
 
-    // [ADDED] 현재 타겟이 있으면 매 프레임 위치 갱신
+    //  현재 타겟이 있으면 매 프레임 위치 갱신
     UpdateExecutionWidgetPosition();
 }
 
 void ACPlayerController::SpawnExecutionWidget()
 {
-    // [ADDED] 로컬 컨트롤러에서만 UI 생성
+    //  로컬 컨트롤러에서만 UI 생성
     if (!IsLocalController()) return;
 
     if (!ExecutionWidgetClass || ExecutionWidget)  return;
@@ -360,7 +366,7 @@ void ACPlayerController::SpawnExecutionWidget()
     ExecutionWidget->AddToViewport();
     ExecutionWidget->SetVisibility(ESlateVisibility::Hidden);
 
-    // [ADDED] (0,0) 왼쪽상단 박힘 방지: 중앙 Pivot으로 두고 매 프레임 스크린 좌표로 이동
+    //  (0,0) 왼쪽상단 박힘 방지: 중앙 Pivot으로 두고 매 프레임 스크린 좌표로 이동
     ExecutionWidget->SetAlignmentInViewport(FVector2D(0.5f, 0.5f));
 }
 
@@ -375,7 +381,7 @@ void ACPlayerController::RefreshExecutionTarget()
         return;
     }
 
-    // [ADDED] 후보가 여러 개면 “가장 가까운 Enemy”를 선택
+    //  후보가 여러 개면 “가장 가까운 Enemy”를 선택
     ACEnemyBase* Best = nullptr;
     float BestDistSq = TNumericLimits<float>::Max();
 
@@ -419,7 +425,7 @@ void ACPlayerController::UpdateExecutionWidgetPosition()
         return;
     }
 
-    // [ADDED] Enemy 몸 중앙(소켓/오프셋) 월드좌표를 스크린좌표로 투영
+    //  Enemy 몸 중앙(소켓/오프셋) 월드좌표를 스크린좌표로 투영
     const FVector WorldLoc = CurrentExecutionTarget->GetExecutionUIWorldLocation();
 
     FVector2D ScreenPos;
@@ -440,7 +446,7 @@ void ACPlayerController::UpdateExecutionWidgetPosition()
 
 void ACPlayerController::Client_SetExecutionCandidate_Implementation(class ACEnemyBase* Enemy, bool bShow)
 {
-    // [ADDED] 서버가 판정한 결과를 로컬 UI 후보 집합에 반영
+    //  서버가 판정한 결과를 로컬 UI 후보 집합에 반영
     if (!IsLocalController())  return;
 
     if (!Enemy) return;
@@ -451,7 +457,7 @@ void ACPlayerController::Client_SetExecutionCandidate_Implementation(class ACEne
     {
         ExecutionCandidates.Remove(Enemy);
 
-        // [ADDED] 현재 타겟이 이 Enemy였으면 초기화
+        //  현재 타겟이 이 Enemy였으면 초기화
         if (CurrentExecutionTarget == Enemy)
         {
             CurrentExecutionTarget = nullptr;
@@ -564,7 +570,7 @@ void ACPlayerController::Input_SwitchTargetCompleted(const FInputActionValue& In
     if (!PS)
         return;
 
-    // [ADDED] 클라(로컬)에서도 먼저 이벤트를 쏴서, 로컬 GA 인스턴스가 즉시 SwitchTarget 실행하게 함
+    //  클라(로컬)에서도 먼저 이벤트를 쏴서, 로컬 GA 인스턴스가 즉시 SwitchTarget 실행하게 함
     {
         FGameplayEventData Data;
         UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(PS, Tag, Data);

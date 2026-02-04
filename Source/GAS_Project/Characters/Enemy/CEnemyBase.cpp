@@ -42,6 +42,8 @@ ACEnemyBase::ACEnemyBase()
 	ExecutionTrigger->SetCollisionResponseToChannel(ECC_Pawn, ECR_Overlap);
 	ExecutionTrigger->SetGenerateOverlapEvents(true);
 
+	ExecutionComponent = CreateDefaultSubobject<UExecutionComponent>(TEXT("ExecutionComponent"));
+
 	
 	CAbilitySystemComponent = CreateDefaultSubobject<UCAbilitySystemComponent>(TEXT("AbilitySystemComponent"));
 	CAbilitySystemComponent->SetIsReplicated(true);
@@ -160,6 +162,46 @@ void ACEnemyBase::PostEditChangeProperty(struct FPropertyChangedEvent& PropertyC
 }
 #endif
 
+void ACEnemyBase::SetVictim(AActor* Victim)
+{
+	if (ExecutionComponent)
+	{
+		ExecutionComponent->SetVictim(Victim);
+	}
+}
+
+void ACEnemyBase::PlayVictimMontage(int AttackIndex, AActor* Attacker)
+{
+	if (ExecutionComponent)
+	{
+		ExecutionComponent->PlayVictimMontage(AttackIndex, Attacker);
+	}
+}
+
+void ACEnemyBase::ActivateBloodTrail()
+{
+	if (ExecutionComponent)
+	{
+		ExecutionComponent->ActivateBloodTrail();
+	}
+}
+
+bool ACEnemyBase::CanBeExecuted() const
+{
+	if (ExecutionComponent)
+	{
+		return ExecutionComponent->CanBeExecuted();
+	}
+	return false;
+}
+
+void ACEnemyBase::StartExecution(AActor* Target)
+{
+	if (ExecutionComponent)
+	{
+		ExecutionComponent->StartExecution(Target);
+	}
+}
 
 void ACEnemyBase::OnGroggyStateChanged(bool bIsGroggy)
 {
@@ -169,7 +211,7 @@ void ACEnemyBase::OnGroggyStateChanged(bool bIsGroggy)
 		GetMovementComponent()->StopMovementImmediately();
 	
 	}
-	// [ADDED] 그로기 상태 변하면 UI 노출 조건도 변하니 즉시 재평가
+	//  그로기 상태 변하면 UI 노출 조건도 변하니 즉시 재평가
 	EvaluateExecutionForPlayers();
 	
 }
@@ -205,7 +247,7 @@ void ACEnemyBase::OnExecutionOverlapBegin(UPrimitiveComponent* OverlappedComp, A
 	
 	PlayersInExecutionRange.Add(Player);
 
-	// [ADDED] 즉시 1회 판정 + 타이머 시작(오버랩 중 회전/타겟 변경 반영)
+	//  즉시 1회 판정 + 타이머 시작(오버랩 중 회전/타겟 변경 반영)
 	SetExecutionUIForPlayer(Player, CanShowExecutionUIFor(Player));
 	StartExecutionEvaluationTimer();
 		
@@ -240,7 +282,7 @@ void ACEnemyBase::OnExecutionOverlapEnd(UPrimitiveComponent* OverlappedComp, AAc
 
 FVector ACEnemyBase::GetExecutionUIWorldLocation() const
 {
-	// [ADDED] 소켓이 있으면 소켓, 없으면 ActorLocation+오프셋
+	//  소켓이 있으면 소켓, 없으면 ActorLocation+오프셋
 	if (GetMesh() && ExecutionUISocketName != NAME_None && GetMesh()->DoesSocketExist(ExecutionUISocketName))
 	{
 		return GetMesh()->GetSocketLocation(ExecutionUISocketName) + ExecutionUIOffset;
@@ -317,7 +359,7 @@ void ACEnemyBase::StartExecutionEvaluationTimer()
 		return;
 	}
 
-	// [ADDED] Tick 대신 서버 타이머로 충분 (0.1초면 체감 자연스러움 + 비용 낮음)
+	//  Tick 대신 서버 타이머로 충분 (0.1초면 체감 자연스러움 + 비용 낮음)
 	GetWorldTimerManager().SetTimer(
 		ExecutionEvalTimerHandle,
 		this,
@@ -451,7 +493,7 @@ void ACEnemyBase::SetExecutionUIForPlayer(ACPlayerCharacter* Player, bool bShow)
 	TWeakObjectPtr<ACPlayerCharacter> Key(Player);
 	bool* Prev = LastExecutionUIState.Find(Key);
 
-	// [ADDED] 상태가 변할 때만 RPC 보내서 스팸 방지
+	//  상태가 변할 때만 RPC 보내서 스팸 방지
 	if (Prev && (*Prev == bShow))
 	{
 		return;

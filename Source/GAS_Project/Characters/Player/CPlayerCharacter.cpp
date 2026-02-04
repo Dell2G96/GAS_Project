@@ -12,6 +12,7 @@
 #include "GameFramework/SpringArmComponent.h"
 #include "GAS_Project/MyTags.h"
 #include "GAS_Project/Components/CWeaponComponent.h"
+#include "GAS_Project/Components/ExecutionComponent.h"
 #include "GAS_Project/GAS/CAbilitySystemComponent.h"
 #include "GAS_Project/GAS/CAbilitySystemStatics.h"
 #include "GAS_Project/GAS/CAttributeSet.h"
@@ -49,6 +50,8 @@ ACPlayerCharacter::ACPlayerCharacter()
     WeaponComponent = CreateDefaultSubobject<UCWeaponComponent>(TEXT("WeaponComponent"));
     WeaponComponent->SetIsReplicated(true);
 
+    ExecutionComponent = CreateDefaultSubobject<UExecutionComponent>(TEXT("ExecutionComponent"));
+
     // 런타임에 빈 이름(None)으로 들어가서 워핑이 안 걸리는 걸 방지합니다.
     RollWarpTargetName = FName(TEXT("RollingDirection"));
 }
@@ -62,6 +65,19 @@ void ACPlayerCharacter::BeginPlay()
     CachedPlayerState = GetPlayerState<ACPlayerState>();
     ConfigureOverHeadStatusWidget();
     SetGenericTeamId(1);
+
+    if (!IsValid(WeaponComponent))
+    {
+        WeaponComponent = NewObject<UCWeaponComponent>(this, TEXT("DynamicWeapon"));
+    
+        if (WeaponComponent)
+        {
+            WeaponComponent->SetIsReplicated(true);
+            WeaponComponent->RegisterComponent(); // 필수!
+        
+            UE_LOG(LogTemp, Warning, TEXT("Dynamic component created"));
+        }
+    }
 }
 
 
@@ -177,6 +193,8 @@ void ACPlayerCharacter::GetLifetimeReplicatedProps(TArray<class FLifetimePropert
     DOREPLIFETIME(ThisClass, bKnockdown);
     DOREPLIFETIME(ThisClass, bIsTargetLocked);
     DOREPLIFETIME(ThisClass, TargetLockActor);
+    DOREPLIFETIME(ACPlayerCharacter, CurrentWeaponAnimBP);
+
     
     // DOREPLIFETIME(ThisClass, RollWarpData);
     
@@ -414,6 +432,108 @@ void ACPlayerCharacter::OnRespawn()
     }
 }
 
+
+void ACPlayerCharacter::EquipWeapon(TSubclassOf<UAnimInstance> WeaponAnimBP)
+{
+    // ✅ 서버에서만 호출
+    if (!HasAuthority()) return;
+    
+    CurrentWeaponAnimBP = WeaponAnimBP;
+    
+    UE_LOG(LogTemp, Warning, TEXT("[Server] Weapon AnimBP set: %s"), 
+           WeaponAnimBP ? *WeaponAnimBP->GetName() : TEXT("None"));
+    
+    // ✅ 서버에서 즉시 링크
+    LinkWeaponAnimBP();
+    
+    if (WeaponComponent)
+    {
+        // ✅ GameplayTag도 추가 (선택)
+        if (UAbilitySystemComponent* ASC = GetAbilitySystemComponent())
+        {
+            ASC->AddLooseGameplayTag(WeaponComponent->GetCurrentEquippedWeaponTag());
+        }
+    }
+}
+
+void ACPlayerCharacter::OnRep_WeaponAnimBP()
+{
+    // ✅ 클라이언트에서 복제되면 자동 호출
+    UE_LOG(LogTemp, Warning, TEXT("[Client] Weapon AnimBP replicated: %s (Role: %d)"), 
+           CurrentWeaponAnimBP ? *CurrentWeaponAnimBP->GetName() : TEXT("None"),
+           (int32)GetLocalRole());
+    
+    LinkWeaponAnimBP();
+}
+
+void ACPlayerCharacter::LinkWeaponAnimBP()
+{
+    USkeletalMeshComponent* MyMesh = GetMesh();
+    if (!MyMesh) return;
+    
+    if (CurrentWeaponAnimBP)
+    {
+        // ✅ Linked AnimBP 연결
+        MyMesh->LinkAnimClassLayers(CurrentWeaponAnimBP);
+        
+        UE_LOG(LogTemp, Warning, TEXT("[%s] ✅ Linked AnimBP: %s (Role: %d)"),
+               *GetName(),
+               *CurrentWeaponAnimBP->GetName(),
+               (int32)GetLocalRole());
+    }
+    else
+    {
+        // ✅ 무기 해제 시 링크 해제
+        if (MyMesh->GetLinkedAnimLayerInstanceByClass(CurrentWeaponAnimBP))
+        {
+            MyMesh->UnlinkAnimClassLayers(CurrentWeaponAnimBP);
+            
+            UE_LOG(LogTemp, Warning, TEXT("[%s] Unlinked AnimBP (Role: %d)"),
+                   *GetName(), (int32)GetLocalRole());
+        }
+    }
+}
+
+void ACPlayerCharacter::SetVictim(AActor* Victim)
+{
+    if (ExecutionComponent)
+    {
+        ExecutionComponent->SetVictim(Victim);
+    }
+}
+
+void ACPlayerCharacter::PlayVictimMontage(int AttackIndex, AActor* Attacker)
+{
+    if (ExecutionComponent)
+    {
+        ExecutionComponent->PlayVictimMontage(AttackIndex, Attacker);
+    }
+}
+
+void ACPlayerCharacter::ActivateBloodTrail()
+{
+    if (ExecutionComponent)
+    {
+        ExecutionComponent->ActivateBloodTrail();
+    }
+}
+
+bool ACPlayerCharacter::CanBeExecuted() const
+{
+    if (ExecutionComponent)
+    {
+        return ExecutionComponent->CanBeExecuted();
+    }
+    return false;
+}
+
+void ACPlayerCharacter::StartExecution(AActor* Target)
+{
+    if (ExecutionComponent)
+    {
+        ExecutionComponent->StartExecution(Target);
+    }
+}
 
 void ACPlayerCharacter::SetGenericTeamId(const FGenericTeamId& NewTeamID)
 {

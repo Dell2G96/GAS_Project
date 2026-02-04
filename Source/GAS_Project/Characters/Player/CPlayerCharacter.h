@@ -2,12 +2,13 @@
 
 #include "CoreMinimal.h"
 #include "GAS_Project/Characters/CCharacter.h"
+#include "GAS_Project/Interface/ExecuteInterface.h"
 #include "CPlayerCharacter.generated.h"
 
 
 
 UCLASS()
-class GAS_PROJECT_API ACPlayerCharacter : public ACCharacter
+class GAS_PROJECT_API ACPlayerCharacter : public ACCharacter , public IExecuteInterface
 {
 	GENERATED_BODY()
 
@@ -118,6 +119,40 @@ private:
 
 	UPROPERTY(Transient)
 	class ACPlayerState* CachedPlayerState = nullptr;
+	/********************************************************/
+	/*						Animation						*/
+	/********************************************************/
+public:
+	UFUNCTION(BlueprintCallable)
+	void EquipWeapon(TSubclassOf<UAnimInstance> WeaponAnimBP);
+
+protected:
+	UPROPERTY(EditDefaultsOnly,ReplicatedUsing = OnRep_WeaponAnimBP, Category="GAS|Animation")
+	TSubclassOf<UAnimInstance> CurrentWeaponAnimBP;
+
+	UFUNCTION()
+	void OnRep_WeaponAnimBP();
+
+	void LinkWeaponAnimBP();
+
+	/********************************************************/
+	/*						Execution						*/
+	/********************************************************/
+public:
+	// ExecuteInterface 구현 - Component에 위임
+	virtual void SetVictim(AActor* Victim) override;
+	virtual void PlayVictimMontage(int AttackIndex, AActor* Attacker) override;
+	virtual void ActivateBloodTrail() override;
+	virtual bool CanBeExecuted() const override;
+	virtual void StartExecution(AActor* Target) override;
+    
+	UFUNCTION(BlueprintCallable, Category = "Execution")
+	UExecutionComponent* GetExecutionComponent() const { return ExecutionComponent; }
+
+private:
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<UExecutionComponent> ExecutionComponent;
+	
 
 	/********************************************************/
 	/*						Team ID							*/

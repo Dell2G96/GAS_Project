@@ -7,6 +7,7 @@
 #include "AttributeSet.h"
 #include "GameplayTagContainer.h"
 #include "GenericTeamAgentInterface.h"
+#include "GAS_Project/MyTags.h"
 #include "GAS_Project/GAS/CAttributeSet.h"
 #include "GAS_Project/Utils/CStructTypes.h"
 #include "CCharacter.generated.h"
@@ -166,7 +167,7 @@ protected:
 	/*********************************************************************/
 
 public:
-	UFUNCTION(NetMulticast, reliable)
+	UFUNCTION(NetMulticast, reliable,BlueprintCallable)
    void Multicast_SendGameplayEventToActor(AActor* Target, FGameplayTag EventTag, FGameplayEventData Payload);
 
 
