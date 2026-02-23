@@ -50,7 +50,7 @@ UObject* ULeeAssetManager::SynchronousLoadAsset(const FSoftObjectPath& AssetPath
 		}
 
 		if (UAssetManager::IsValid())
-		{
+		{	
 			return UAssetManager::GetStreamableManager().LoadSynchronous(AssetPath);
 		}
 		return AssetPath.TryLoad();

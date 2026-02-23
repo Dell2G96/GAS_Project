@@ -13,9 +13,11 @@ public class GAS_Project : ModuleRules
 			"Core", 
 			"CoreUObject",
 			"Engine",
+			// Input
 			"InputCore",
 			"EnhancedInput",
 			"AnimGraphRuntime",
+			// GAS
 			"GameplayAbilities",
 			"GameplayTasks",
 			"GameplayTags",
@@ -27,6 +29,10 @@ public class GAS_Project : ModuleRules
 			"Slate",
 			"Niagara",
 			"NavigationSystem",
+			"ModularGameplay",
+			"GameFeatures",
+			//"ModularGameplayActors",
+
 			
 		});
 		
