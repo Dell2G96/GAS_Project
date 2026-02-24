@@ -22,10 +22,20 @@ class GAS_PROJECT_API ULeeExperienceManagerComponent : public UGameStateComponen
 	GENERATED_BODY()
 
 public:
-	bool IsExperienceLoaded() { return (LoadState == ELeeExperienceLoadState::Loaded) && (CurrentExperience != nullptr); }
+	bool IsExperienceLoaded()
+	{
+		return (LoadState == ELeeExperienceLoadState::Loaded)
+		&& (CurrentExperience != nullptr);
+	}
 
-	void CallorRegister_OnExperienceLoaded(FOnLeeExperienceLoaded::FDelegate&& Delegate);
-	
+	void CallOrRegister_OnExperienceLoaded(FOnLeeExperienceLoaded::FDelegate&& Delegate);
+	void ServerSetCurrentExperience(FPrimaryAssetId ExperiencedId);
+
+	void StartExperiencedLoad();
+	void OnExperienceLoadComplete();
+	void OnExperienceFullLoadComplete();
+
+	const ULeeExperienceDefinition* GetCurrentExperienceChecked() const;
 public:
 	UPROPERTY()
 	TObjectPtr<const ULeeExperienceDefinition> CurrentExperience;

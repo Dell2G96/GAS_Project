@@ -18,5 +18,5 @@ public:
 	ULeePawnData(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Lee|Pawn")
-	TSubclassOf<APawn> PlayerPawn;
+	TSubclassOf<APawn> PawnClass;
 };

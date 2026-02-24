@@ -13,4 +13,11 @@ UCLASS()
 class GAS_PROJECT_API ALeeGameState : public AGameStateBase
 {
 	GENERATED_BODY()
+
+public:
+	ALeeGameState();
+
+public:
+	UPROPERTY()
+	TObjectPtr<class ULeeExperienceManagerComponent> ExperienceManagerComponent;
 };

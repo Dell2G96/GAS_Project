@@ -2,3 +2,10 @@
 
 
 #include "LeeGameState.h"
+
+#include "LeeExperienceManagerComponent.h"
+
+ALeeGameState::ALeeGameState()
+{
+	ExperienceManagerComponent = CreateDefaultSubobject<ULeeExperienceManagerComponent>(TEXT("ExperienceManager"));
+}
