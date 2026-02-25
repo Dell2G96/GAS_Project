@@ -3,28 +3,35 @@
 
 #include "LeeCharacter.h"
 
+#include "LeePawnExtensionComponent.h"
 
-// Sets default values
+
 ALeeCharacter::ALeeCharacter()
 {
-	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
-	PrimaryActorTick.bCanEverTick = true;
+	PrimaryActorTick.bCanEverTick = false;
+	PrimaryActorTick.bStartWithTickEnabled = false;
+
+	PawnExtComponent = CreateDefaultSubobject<ULeePawnExtensionComponent>(TEXT("PawnExtComponent"));
+
+	// // CameraComponent 생성
+	// {
+	// 	CameraComponent = CreateDefaultSubobject<UHakCameraComponent>(TEXT("CameraComponent"));
+	// 	CameraComponent->SetRelativeLocation(FVector(-300.0f, 0.0f, 75.0f));
+	// }
+
 }
 
-// Called when the game starts or when spawned
 void ALeeCharacter::BeginPlay()
 {
 	Super::BeginPlay();
 	
 }
 
-// Called every frame
 void ALeeCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 }
 
-// Called to bind functionality to input
 void ALeeCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);

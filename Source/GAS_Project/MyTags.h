@@ -6,6 +6,14 @@
 
 namespace MyTags
 {
+	namespace InitState
+	{
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Spawned)
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(DataAvailable)
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(DataInitialized)
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(GameplayReady)
+	}
+	
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(None);
 	
 	/** Input Tags **/

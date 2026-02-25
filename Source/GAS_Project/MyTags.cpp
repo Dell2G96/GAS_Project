@@ -3,8 +3,17 @@
 
 #include "MyTags.h"
 
+
 namespace MyTags
 {
+	namespace InitState
+	{
+		UE_DEFINE_GAMEPLAY_TAG(Spawned,"InitState.Spawned")
+		UE_DEFINE_GAMEPLAY_TAG(DataAvailable , "InitState.DataAvailable")
+		UE_DEFINE_GAMEPLAY_TAG(DataInitialized, "InitState.DataInitialized")
+		UE_DEFINE_GAMEPLAY_TAG(GameplayReady, "InitState.GameplayReady")
+	}
+	
 	UE_DEFINE_GAMEPLAY_TAG(None,"MyTags.None")
 	
 	/** Input Tags **/

@@ -10,7 +10,7 @@
 #include "GAS_Project/ACharacter/LeeCharacter.h"
 #include "GAS_Project/APlayer/LeePlayerController.h"
 #include "GAS_Project/APlayer/LeePlayerState.h"
-#include "GAS_Project/Characters/LeePawnData.h"
+#include "GAS_Project/ACharacter/LeePawnData.h"
 
 ALeeGameModeBase::ALeeGameModeBase()
 {
