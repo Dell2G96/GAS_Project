@@ -11,6 +11,7 @@
 #include "GAS_Project/APlayer/LeePlayerController.h"
 #include "GAS_Project/APlayer/LeePlayerState.h"
 #include "GAS_Project/ACharacter/LeePawnData.h"
+#include "GAS_Project/ACharacter/LeePawnExtensionComponent.h"
 
 ALeeGameModeBase::ALeeGameModeBase()
 {
@@ -66,8 +67,27 @@ void ALeeGameModeBase::HandleStartingNewPlayer_Implementation(APlayerController*
 APawn* ALeeGameModeBase::SpawnDefaultPawnAtTransform_Implementation(AController* NewPlayer,
 	const FTransform& SpawnTransform)
 {
-	UE_LOG(LogLee, Log, TEXT("SpawnDefaultPawnAtTransform_Implementation called. Player: %s"), *GetNameSafe(NewPlayer));
-	return Super::SpawnDefaultPawnAtTransform_Implementation(NewPlayer, SpawnTransform);
+	FActorSpawnParameters SpawnInfo;
+	SpawnInfo.Instigator = GetInstigator();
+	SpawnInfo.ObjectFlags |= RF_Transient;
+	SpawnInfo.bDeferConstruction = true;
+
+	if (UClass* PawnClass = GetDefaultPawnClassForController(NewPlayer))
+	{
+		if (APawn* SpawnedPawn = GetWorld()->SpawnActor<APawn>(PawnClass, SpawnTransform, SpawnInfo))
+		{
+			if (ULeePawnExtensionComponent* PawnExtComp = ULeePawnExtensionComponent::FindPawnExtensionComponent(SpawnedPawn))
+			{
+				if (const ULeePawnData* PawnData = GetPawnDataForController(NewPlayer))
+				{
+					PawnExtComp->SetPawnData(PawnData);
+				}
+			}
+			SpawnedPawn->FinishSpawning(SpawnTransform);
+			return SpawnedPawn;
+		}
+	}
+	return nullptr;
 }
 
 void ALeeGameModeBase::HandleMatcheAssignmentIfNotExpectingOne()

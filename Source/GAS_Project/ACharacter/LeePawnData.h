@@ -19,4 +19,7 @@ public:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Lee|Pawn")
 	TSubclassOf<APawn> PawnClass;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly,Category="Lee|Camera")
+	TSubclassOf<class ULeeCameraMode> DefaultCameraMode;
 };

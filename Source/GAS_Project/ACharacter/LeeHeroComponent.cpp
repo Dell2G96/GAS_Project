@@ -9,8 +9,8 @@
 #include "Components/GameFrameworkComponentManager.h"
 #include "LeeGameplayTags.h"
 #include "GAS_Project/MyTags.h"
+#include "GAS_Project/ACamera/LeeCameraComponent.h"
 #include "GAS_Project/APlayer/LeePlayerState.h"
-//#include "Camera/LeeCameraComponent.h"
 
 
 
@@ -34,17 +34,20 @@ void ULeeHeroComponent::OnRegister()
 		}
 	}
 
-	// RegisterInitStateFeature();
+	 RegisterInitStateFeature();
 }
 
 void ULeeHeroComponent::BeginPlay()
 {
 	Super::BeginPlay();
 
+	// PawnExtensionComponent에 대해서 (PawnExtension Feature) OnActorInitStateChanged() 관찰하도록 (Observing)
 	BindOnActorInitStateChanged(ULeePawnExtensionComponent::NAME_ActorFeatureName, FGameplayTag(), false);
 
+	// InitState_Spawned로 초기화
 	ensure(TryToChangeInitState(MyTags::InitState::Spawned));
-
+	
+	// ForceUpdate 진행
 	CheckDefaultInitialization();
 }
 
@@ -61,6 +64,7 @@ void ULeeHeroComponent::OnActorInitStateChanged(const FActorInitStateChangedPara
 
 	if (Params.FeatureName == ULeePawnExtensionComponent::NAME_ActorFeatureName)
 	{
+		// - CanChangeInitState 확인
 		if (Params.FeatureState == MyTags::InitState::DataInitialized)
 		{
 			CheckDefaultInitialization();
@@ -126,6 +130,8 @@ void ULeeHeroComponent::HandleChangeInitState(class UGameFrameworkComponentManag
 			return;
 		}
 
+		// ToDo :  Input과 Camera에 대한 핸들링... 
+
 		const bool bIsLocallyControlled = Pawn->IsLocallyControlled();
 		const ULeePawnData* PawnData = nullptr;
 		if (ULeePawnExtensionComponent* PawnExtComp = ULeePawnExtensionComponent::FindPawnExtensionComponent(Pawn))
@@ -133,13 +139,13 @@ void ULeeHeroComponent::HandleChangeInitState(class UGameFrameworkComponentManag
 			PawnData = PawnExtComp->GetPawnData<ULeePawnData>();
 		}
 
-		// if (bIsLocallyControlled && PawnData)
-		// {
-		// 	if (ULeeCameraComponent* CameraComp = ULeeCamerComponent::FindCameraComponent(Pawn))
-		// 	{
-		// 		CameraComp->DetermindeCameraModeDelegate.BindUObject(this, &ThisClass::DetermineCameraMode);
-		// 	}
-		// }
+		if (bIsLocallyControlled && PawnData)
+		{
+			if (ULeeCameraComponent* CameraComp = ULeeCameraComponent::FindCameraComponent(Pawn))
+			{
+				CameraComp->DetermineCameraModeDelegate.BindUObject(this, &ThisClass::DetermineCameraMode);
+			}
+		}
 		
 	}
 
@@ -159,4 +165,23 @@ void ULeeHeroComponent::CheckDefaultInitialization()
 
 	ContinueInitStateChain(StateChain);
 }
+
+TSubclassOf<class ULeeCameraMode> ULeeHeroComponent::DetermineCameraMode() const
+{
+	const APawn* Pawn = GetPawn<APawn>();
+	if (!Pawn)
+	{
+		return nullptr;
+	}
+
+	if (ULeePawnExtensionComponent* PawnExtComp = ULeePawnExtensionComponent::FindPawnExtensionComponent(Pawn))
+	{
+		if (const ULeePawnData* PawnData = PawnExtComp->GetPawnData<ULeePawnData>())
+		{
+			return PawnData->DefaultCameraMode;
+		}
+	}
+	return nullptr;
+}
+
 

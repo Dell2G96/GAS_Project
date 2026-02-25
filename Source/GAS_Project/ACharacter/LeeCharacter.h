@@ -30,6 +30,6 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Lee|Character")
 	TObjectPtr<class ULeePawnExtensionComponent> PawnExtComponent;
 
-	// UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Lee|Character")
-	// TObjectPtr<UHakCameraComponent> CameraComponent;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Lee|Character")
+	TObjectPtr<class ULeeCameraComponent> CameraComponent;
 };

@@ -31,7 +31,7 @@ public:
 	virtual void HandleChangeInitState(class UGameFrameworkComponentManager* Manager, FGameplayTag CurrentState, FGameplayTag DesiredState) final;
 	virtual void CheckDefaultInitialization() final;
 
-	// TSubclassOf<class ULeeCameraMode> DetermineCameraMode(); const
+	TSubclassOf<class ULeeCameraMode> DetermineCameraMode() const; 
 	
 };
 
