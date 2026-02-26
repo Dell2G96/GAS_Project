@@ -9,6 +9,7 @@
 
 #include "Components/GameFrameworkComponentManager.h"
 #include "LeeGameplayTags.h"
+#include "PlayerMappableInputConfig.h"
 
 #include "GAS_Project/MyTags.h"
 #include "GAS_Project/ACamera/LeeCameraComponent.h"
@@ -133,26 +134,28 @@ void ULeeHeroComponent::HandleChangeInitState(class UGameFrameworkComponentManag
 		{
 			return;
 		}
-
-		if (ALeePlayerController* LyraPC = GetController<ALeePlayerController>())
-		{
-			if (Pawn->InputComponent != nullptr)
-			{
-				InitializePlayerInput(Pawn->InputComponent);
-			}
-		}
+		
 		const bool bIsLocallyControlled = Pawn->IsLocallyControlled();
 		const ULeePawnData* PawnData = nullptr;
 		if (ULeePawnExtensionComponent* PawnExtComp = ULeePawnExtensionComponent::FindPawnExtensionComponent(Pawn))
 		{
 			PawnData = PawnExtComp->GetPawnData<ULeePawnData>();
+			
 		}
-
+		
 		if (bIsLocallyControlled && PawnData)
 		{
 			if (ULeeCameraComponent* CameraComp = ULeeCameraComponent::FindCameraComponent(Pawn))
 			{
 				CameraComp->DetermineCameraModeDelegate.BindUObject(this, &ThisClass::DetermineCameraMode);
+			}
+		}
+
+		if (ALeePlayerController* LeePC = GetController<ALeePlayerController>())
+		{
+			if (Pawn->InputComponent != nullptr)
+			{
+				InitializePlayerInput(Pawn->InputComponent);
 			}
 		}
 		
@@ -228,13 +231,20 @@ void ULeeHeroComponent::InitializePlayerInput(UInputComponent* PlayerInputCompon
 						FModifyContextOptions Options = {};
 						Options.bIgnoreAllPressedKeysUntilRelease = false;
 
-						// 5.6: UPlayerMappableInputConfig 대신 MappingContexts 직접 사용
-						for (const FInputMappingContextAndPriority& MappingPair : Pair.GetMappingContexts())
+						// // 5.6: UPlayerMappableInputConfig 대신 MappingContexts 직접 사용
+						// for (const FInputMappingContextAndPriority& MappingPair : Pair.GetMappingContexts())
+						// {
+						// 	if (MappingPair.InputMapping)
+						// 	{
+						// 		Subsystem->AddMappingContext(MappingPair.InputMapping, MappingPair.Priority, Options);
+						// 	}
+						// }
+
+						for (const auto ConfigObject = Pair.Config.LoadSynchronous(); const auto& MappingContextPair : ConfigObject->GetMappingContexts())
 						{
-							if (MappingPair.InputMapping)
-							{
-								Subsystem->AddMappingContext(MappingPair.InputMapping, MappingPair.Priority, Options);
-							}
+							const UInputMappingContext* MappingContext = MappingContextPair.Key;
+							const int32 Priority = MappingContextPair.Value;
+							Subsystem->AddMappingContext(MappingContext, Priority, Options);
 						}
 					}
 				} // DefaultInputConfigs

@@ -27,8 +27,8 @@ public:
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
 public:
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Lee|Character")
-	TSubclassOf<class ULeeInputComponent> InputComponentClass;
+	// UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Lee|Character")
+	// TSubclassOf<class ULeeInputComponent> InputComponentClass;
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Lee|Character")
 	TObjectPtr<class ULeePawnExtensionComponent> PawnExtComponent;

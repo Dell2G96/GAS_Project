@@ -12,13 +12,11 @@ ALeeCharacter::ALeeCharacter()
 {
 	PrimaryActorTick.bCanEverTick = false;
 	PrimaryActorTick.bStartWithTickEnabled = false;
-
-	// // InputComponent를 ULeeInputComponent로 지정 (CastChecked 실패 방지)
 	
 
 	PawnExtComponent = CreateDefaultSubobject<ULeePawnExtensionComponent>(TEXT("PawnExtComponent"));
 	
-	InputComponentClass = ULeeInputComponent::StaticClass();
+	// InputComponentClass = ULeeInputComponent::StaticClass();
 
 	// CameraComponent 생성
 	{
