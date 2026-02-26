@@ -15,6 +15,9 @@ class GAS_PROJECT_API ULeeUserFacingExperience : public UPrimaryDataAsset
 	GENERATED_BODY()
 
 public:
+	UFUNCTION(BlueprintCallable, blueprintPure = false)
+	class UCommonSession_HostSessionRequest* CreateHostingRequest() const;
+	
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category="Experience", meta=(AllowedTypes="Map"))
 	FPrimaryAssetId MapID;
 
