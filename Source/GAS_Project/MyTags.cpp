@@ -15,10 +15,14 @@ namespace MyTags
 	}
 	
 	UE_DEFINE_GAMEPLAY_TAG(None,"MyTags.None")
-	
+
+	namespace Lyra
+	{
+		UE_DEFINE_GAMEPLAY_TAG(InputTag_Move,"InputTag.Move")
+		UE_DEFINE_GAMEPLAY_TAG(InputTag_Look_Mouse,"InputTag.Look.Mouse")			
+	}
+
 	/** Input Tags **/
-	// UE_DEFINE_GAMEPLAY_TAG(InputTag_Move,"InputTag.Move")
-	// UE_DEFINE_GAMEPLAY_TAG(InputTag_Look,"InputTag.Look")
 	// UE_DEFINE_GAMEPLAY_TAG(InputTag_EquipKnife,"InputTag.EquipKnife")
 	// UE_DEFINE_GAMEPLAY_TAG(InputTag_UnEquipKnife,"InputTag.UnEquipKnife")
 	UE_DEFINE_GAMEPLAY_TAG(InputTag_Toggleable,"InputTag.Toggleable")

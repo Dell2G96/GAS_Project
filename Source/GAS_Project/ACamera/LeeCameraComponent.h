@@ -32,7 +32,7 @@ public:
 
 	// 카메라 Blending 기능을 지원 하는 스택
 	UPROPERTY()
-	TObjectPtr<class ULeeCameraModeStack> CameraModeStatck;
+	TObjectPtr<class ULeeCameraModeStack> CameraModeStack;
 
 
 	// 현재 카메라모드를 가져오는 델리게이트

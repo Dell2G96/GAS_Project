@@ -5,6 +5,7 @@
 
 #include "LeePawnExtensionComponent.h"
 #include "GAS_Project/ACamera/LeeCameraComponent.h"
+#include "GAS_Project/AInput/LeeInputComponent.h"
 
 
 ALeeCharacter::ALeeCharacter()
@@ -12,7 +13,12 @@ ALeeCharacter::ALeeCharacter()
 	PrimaryActorTick.bCanEverTick = false;
 	PrimaryActorTick.bStartWithTickEnabled = false;
 
+	// // InputComponent를 ULeeInputComponent로 지정 (CastChecked 실패 방지)
+	
+
 	PawnExtComponent = CreateDefaultSubobject<ULeePawnExtensionComponent>(TEXT("PawnExtComponent"));
+	
+	InputComponentClass = ULeeInputComponent::StaticClass();
 
 	// CameraComponent 생성
 	{

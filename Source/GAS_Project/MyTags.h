@@ -13,6 +13,11 @@ namespace MyTags
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(DataInitialized)
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(GameplayReady)
 	}
+	namespace Lyra
+	{
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(InputTag_Move)
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(InputTag_Look_Mouse)
+	}
 	
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(None);
 	

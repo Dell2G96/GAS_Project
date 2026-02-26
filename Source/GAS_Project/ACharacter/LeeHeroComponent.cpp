@@ -3,15 +3,19 @@
 
 #include "LeeHeroComponent.h"
 
+#include "EnhancedInputSubsystems.h"
 #include "LeePawnExtensionComponent.h"
 #include "GAS_Project/LeeLogChannels.h"
 
 #include "Components/GameFrameworkComponentManager.h"
 #include "LeeGameplayTags.h"
+
 #include "GAS_Project/MyTags.h"
 #include "GAS_Project/ACamera/LeeCameraComponent.h"
+#include "GAS_Project/AInput/LeeInputComponent.h"
+#include "GAS_Project/APlayer/LeePlayerController.h"
 #include "GAS_Project/APlayer/LeePlayerState.h"
-
+#include "GAS_Project/GameModes/LeeExperienceManagerComponent.h"
 
 
 const FName ULeeHeroComponent::NAME_ActorFeatureName("Hero");
@@ -130,8 +134,13 @@ void ULeeHeroComponent::HandleChangeInitState(class UGameFrameworkComponentManag
 			return;
 		}
 
-		// ToDo :  Input과 Camera에 대한 핸들링... 
-
+		if (ALeePlayerController* LyraPC = GetController<ALeePlayerController>())
+		{
+			if (Pawn->InputComponent != nullptr)
+			{
+				InitializePlayerInput(Pawn->InputComponent);
+			}
+		}
 		const bool bIsLocallyControlled = Pawn->IsLocallyControlled();
 		const ULeePawnData* PawnData = nullptr;
 		if (ULeePawnExtensionComponent* PawnExtComp = ULeePawnExtensionComponent::FindPawnExtensionComponent(Pawn))
@@ -183,5 +192,130 @@ TSubclassOf<class ULeeCameraMode> ULeeHeroComponent::DetermineCameraMode() const
 	}
 	return nullptr;
 }
+
+void ULeeHeroComponent::InitializePlayerInput(UInputComponent* PlayerInputComponent)
+{
+	check(PlayerInputComponent);
+
+	const APawn* Pawn = GetPawn<APawn>();
+	if (!Pawn)
+	{
+		return;
+	}
+
+	const APlayerController* PC = GetController<APlayerController>();
+	check(PC);
+
+	const ULocalPlayer* LP = PC->GetLocalPlayer();
+	check(LP);
+
+	UEnhancedInputLocalPlayerSubsystem* Subsystem = LP->GetSubsystem<UEnhancedInputLocalPlayerSubsystem>();
+	check(Subsystem);
+
+	Subsystem->ClearAllMappings();
+	if (const ULeePawnExtensionComponent* PawnExtComp = ULeePawnExtensionComponent::FindPawnExtensionComponent(Pawn))
+	{
+		if (const ULeePawnData* PawnData = PawnExtComp->GetPawnData<ULeePawnData>())
+		{
+			if (const ULeeInputConfig* InputConfig = PawnData->InputConfig)
+			{
+				const FGameplayTag& GameplayTags = FGameplayTag();
+
+				for (const FLeeMappableConfigPair& Pair : DefaultInputConfigs)
+				{
+					if (Pair.bShouldActivateAutomatically)
+					{
+						FModifyContextOptions Options = {};
+						Options.bIgnoreAllPressedKeysUntilRelease = false;
+
+						// 5.6: UPlayerMappableInputConfig 대신 MappingContexts 직접 사용
+						for (const FInputMappingContextAndPriority& MappingPair : Pair.GetMappingContexts())
+						{
+							if (MappingPair.InputMapping)
+							{
+								Subsystem->AddMappingContext(MappingPair.InputMapping, MappingPair.Priority, Options);
+							}
+						}
+					}
+				} // DefaultInputConfigs
+				// Cast로 변경: B_SimpleHeroPawn 등 ULeeInputComponent가 아닌 Pawn에서도 크래시하지 않도록
+				if (ULeeInputComponent* LeeIC = Cast<ULeeInputComponent>(PlayerInputComponent))
+				{
+					LeeIC->BindNativeAction(InputConfig, MyTags::Lyra::InputTag_Move, ETriggerEvent::Triggered, this, &ThisClass::Input_Move,false);
+					LeeIC->BindNativeAction(InputConfig, MyTags::Lyra::InputTag_Look_Mouse, ETriggerEvent::Triggered, this, &ThisClass::Input_LookMouse,false);
+				}
+			}
+		}
+	}
+}
+
+void ULeeHeroComponent::Input_Move(const FInputActionValue& InputActionValue)
+{
+	APawn* Pawn = GetPawn<APawn>();
+	AController* Controller = Pawn ? Pawn->GetController() : nullptr;
+
+	if (Controller)
+	{
+		const FVector2D Value = InputActionValue.Get<FVector2D>();
+		const FRotator MovementRotation(0.f, Controller->GetControlRotation().Yaw,0.f );
+
+		if (Value.X != 0.f)
+		{
+			const FVector MovementDirection = MovementRotation.RotateVector(FVector::RightVector);
+
+			Pawn->AddMovementInput(MovementDirection, Value.X);
+		}
+
+		if (Value.Y != 0.f)
+		{
+			const FVector MovementDirection = MovementRotation.RotateVector(FVector::ForwardVector);
+			Pawn->AddMovementInput(MovementDirection, Value.Y);
+		}
+	}
+}
+
+void ULeeHeroComponent::Input_LookMouse(const FInputActionValue& InputActionValue)
+{
+	APawn* Pawn = GetPawn<APawn>();
+	if (!Pawn)
+	{
+		return;
+	}
+	const FVector2D Value = InputActionValue.Get<FVector2D>();
+	if (Value.X != 0.f)
+	{
+		Pawn->AddControllerYawInput(Value.X);
+	}
+	if (Value.Y != 0.f)
+	{
+		double AimInversionValue = -Value.Y;
+		Pawn->AddControllerPitchInput(AimInversionValue);
+	}
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 

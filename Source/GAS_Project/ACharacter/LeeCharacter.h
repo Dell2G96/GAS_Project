@@ -28,6 +28,9 @@ public:
 
 public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Lee|Character")
+	TSubclassOf<class ULeeInputComponent> InputComponentClass;
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Lee|Character")
 	TObjectPtr<class ULeePawnExtensionComponent> PawnExtComponent;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Lee|Character")

@@ -22,4 +22,7 @@ public:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly,Category="Lee|Camera")
 	TSubclassOf<class ULeeCameraMode> DefaultCameraMode;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Lee|InputConfig")
+	TObjectPtr<class ULeeInputConfig> InputConfig;
 };

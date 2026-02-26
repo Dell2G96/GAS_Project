@@ -6,7 +6,7 @@
 #include "LeeCameraMode.h"
 
 ULeeCameraComponent::ULeeCameraComponent(const FObjectInitializer& ObjectInitializer)
-	:Super(ObjectInitializer), CameraModeStatck(nullptr)
+	:Super(ObjectInitializer), CameraModeStack(nullptr)
 {
 }
 
@@ -14,27 +14,59 @@ void ULeeCameraComponent::OnRegister()
 {
 	Super::OnRegister();
 
-	if (!CameraModeStatck)
+	if (!CameraModeStack)
 	{
 		// 초기화
-		CameraModeStatck = NewObject<ULeeCameraModeStack>(this);
+		CameraModeStack = NewObject<ULeeCameraModeStack>(this);
 	}
 }
 
 void ULeeCameraComponent::GetCameraView(float DeltaTime, FMinimalViewInfo& DesiredView)
 {
-	check(CameraModeStatck);
+	check(CameraModeStack);
 	UpdateCameraModes();
+
+	FLeeCameraModeView CameraModeView;
+	CameraModeStack->EvaluateStack(DeltaTime, CameraModeView);
+
+	if (APawn* TargetPawn = Cast<APawn>(GetTargetActor()))
+	{
+		if (APlayerController* PC = TargetPawn->GetController<APlayerController>())
+		{
+			PC->SetControlRotation(CameraModeView.ControlRotation);
+		}
+	}
+
+	SetWorldLocationAndRotation(CameraModeView.Location, CameraModeView.Rotation);
+
+	FieldOfView = CameraModeView.FieldOfView;
+
+	DesiredView.Location = CameraModeView.Location;
+	DesiredView.Rotation = CameraModeView.Rotation;
+	DesiredView.FOV = CameraModeView.FieldOfView;
+	DesiredView.OrthoWidth = OrthoWidth;
+	DesiredView.OrthoNearClipPlane = OrthoNearClipPlane;
+	DesiredView.OrthoFarClipPlane = OrthoFarClipPlane;
+	DesiredView.AspectRatio = AspectRatio;
+	DesiredView.bConstrainAspectRatio = bConstrainAspectRatio;
+	DesiredView.bUseFieldOfViewForLOD = bUseFieldOfViewForLOD;
+	DesiredView.ProjectionMode = ProjectionMode;
+	DesiredView.PostProcessBlendWeight = PostProcessBlendWeight;
+	
+	if (PostProcessBlendWeight > 0.0f)
+	{
+		DesiredView.PostProcessSettings = PostProcessSettings;
+	}
 }
 
 void ULeeCameraComponent::UpdateCameraModes()
 {
-	check(CameraModeStatck)
+	check(CameraModeStack)
 	if (DetermineCameraModeDelegate.IsBound())
 	{
-		if (const TSubclassOf<ULeeCameraMode> CameraMode = DetermineCameraModeDelegate.Execute())
+		if (TSubclassOf<ULeeCameraMode> CameraMode = DetermineCameraModeDelegate.Execute())
 		{
-			// CameraModeStack->PushCameraMode(CameraMode);
+			CameraModeStack->PushCameraMode(CameraMode);
 		}
 	}
 }
