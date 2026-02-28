@@ -259,6 +259,7 @@ void ULeeHeroComponent::InitializePlayerInput(UInputComponent* PlayerInputCompon
 			}
 		}
 	}
+	UGameFrameworkComponentManager::SendGameFrameworkComponentExtensionEvent(const_cast<APawn*>(Pawn), NAME_BindInputsNow);
 }
 
 void ULeeHeroComponent::Input_Move(const FInputActionValue& InputActionValue)

@@ -19,7 +19,7 @@ public:
 	virtual void OnGameFeatureActivating(FGameFeatureActivatingContext& Context) override;
 	virtual void OnGameFeatureDeactivating(FGameFeatureDeactivatingContext& Context) override;
 
-	virtual void AddToWorld(const struct FWorldContext& WorldContext, struct FGameFeatureStateChangeContext& ChangeContext);
+	virtual void AddToWorld(const FWorldContext& WorldContext, const struct FGameFeatureStateChangeContext& ChangeContext) override;
 
 private:
 	struct FPerContextData 
@@ -40,3 +40,4 @@ private:
 	UPROPERTY(EditAnywhere)
 	TArray<struct FLeeMappableConfigPair> InputConfigs;
 };
+

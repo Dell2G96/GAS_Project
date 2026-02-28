@@ -101,7 +101,7 @@ void ULeeExperienceManagerComponent::OnExperienceLoadComplete()
 	
 	// OnExperienceFullLoadComplete();
 	static int32 OnExperienceLoadComplete_FrameNumber = GFrameNumber;
-	check(LoadState == ELeeExperienceLoadState::Loaded);
+	check(LoadState == ELeeExperienceLoadState::Loading);
 	check(CurrentExperience);
 
 	GameFeaturePluginURLs.Reset();
@@ -155,7 +155,7 @@ void ULeeExperienceManagerComponent::OnExperienceFullLoadComplete()
 	// OnExperienceLoaded.Clear();
 
 
-	check(LoadState != ELeeExperienceLoadState::Loaded)
+	check(LoadState != ELeeExperienceLoadState::Loaded);
 	// 게임 피처 플러그인 로딩과 활성화 이후, 게임피처 액션들을 활성화
 	{
 		LoadState = ELeeExperienceLoadState::ExecutingActions;

@@ -36,8 +36,8 @@ void UGameFeatureAction_AddInputConfig::OnGameFeatureDeactivating(FGameFeatureDe
 	}
 }
 
-void UGameFeatureAction_AddInputConfig::AddToWorld(const struct FWorldContext& WorldContext,
-	struct FGameFeatureStateChangeContext& ChangeContext)
+void UGameFeatureAction_AddInputConfig::AddToWorld(const FWorldContext& WorldContext,
+	const struct FGameFeatureStateChangeContext& ChangeContext)
 {
 	UWorld* World = WorldContext.World();
 	UGameInstance* GameInstance = WorldContext.OwningGameInstance;
