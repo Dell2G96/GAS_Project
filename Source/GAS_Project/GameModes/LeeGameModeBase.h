@@ -25,7 +25,7 @@ public:
 
 	virtual APawn* SpawnDefaultPawnAtTransform_Implementation(AController* NewPlayer, const FTransform& SpawnTransform) final;
 
-	void HandleMatcheAssignmentIfNotExpectingOne();
+	void HandleMatchAssignmentIfNotExpectingOne();
 	void OnMatchAssignmentGiven(const FPrimaryAssetId& ExperienceId);
 	bool IsExperienceLoaded() const;
 	void OnExperienceLoaded(const class ULeeExperienceDefinition* CurrentExperience);
