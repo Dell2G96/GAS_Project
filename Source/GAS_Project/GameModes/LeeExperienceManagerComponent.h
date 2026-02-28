@@ -4,12 +4,15 @@
 
 #include "CoreMinimal.h"
 #include "Components/GameStateComponent.h"
+#include "GameFeaturesEditor/Private/GameFeatureDataDetailsCustomization.h"
 #include "LeeExperienceManagerComponent.generated.h"
 
 enum  class ELeeExperienceLoadState
 {
 	Unloaded,
 	Loading,
+	LoadingGameFeatures,
+	ExecutingActions,
 	Loaded,
 	Deactivating,
 };
@@ -33,6 +36,7 @@ public:
 
 	void StartExperiencedLoad();
 	void OnExperienceLoadComplete();
+	void OnGameFeaturePluginLoadComplete(const UE::GameFeatures::FResult& Result);
 	void OnExperienceFullLoadComplete();
 
 	const ULeeExperienceDefinition* GetCurrentExperienceChecked() const;
@@ -43,5 +47,8 @@ public:
 	ELeeExperienceLoadState LoadState = ELeeExperienceLoadState::Unloaded;
 
 	FOnLeeExperienceLoaded OnExperienceLoaded;
+
+	int32 NumGameFeaturePluginsloading = 0;
+	TArray<FString> GameFeaturePluginURLs;
 	
 };

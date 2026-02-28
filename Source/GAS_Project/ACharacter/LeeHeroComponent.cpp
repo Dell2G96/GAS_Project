@@ -21,6 +21,8 @@
 
 const FName ULeeHeroComponent::NAME_ActorFeatureName("Hero");
 
+const FName ULeeHeroComponent::NAME_BindInputsNow("BindInputsNow");
+
 ULeeHeroComponent::ULeeHeroComponent(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {

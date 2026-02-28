@@ -23,6 +23,8 @@ public:
 
 	static const FName NAME_ActorFeatureName;
 
+	static const FName NAME_BindInputsNow;
+
 	virtual void OnRegister() final;
 	virtual void BeginPlay() final;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) final;

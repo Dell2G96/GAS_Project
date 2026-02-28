@@ -22,4 +22,13 @@ public:
 
 	UPROPERTY(EditDefaultsOnly, Category="Gameplay")
 	TArray<FString> GameFeaturesToEnable;
+
+
+	// Gameplay 용도에 맞게 분류의 목적으로 사용
+	UPROPERTY(EditDefaultsOnly, Category=Gameplay)
+	TArray<TObjectPtr<class ULeeExperienceActionSet>> ActionSets;
+
+	// 일반적인 GameFeatureAction의 역할
+	UPROPERTY(EditDefaultsOnly,Instanced, Category="Actions")
+	TArray<TObjectPtr<class UGameFeatureAction>> Actions;
 };

@@ -3,7 +3,10 @@
 
 #include "LeeExperienceManagerComponent.h"
 
+#include "GameFeatureAction.h"
+#include "GameFeaturesSubsystem.h"
 #include "GameFeaturesSubsystemSettings.h"
+#include "LeeExperienceActionSet.h"
 #include "LeeExperienceDefinition.h"
 #include "GAS_Project/System/LeeAssetManager.h"
 
@@ -16,7 +19,7 @@ void ULeeExperienceManagerComponent::CallOrRegister_OnExperienceLoaded(FOnLeeExp
 	else
 	{
 		 
-		// º¹»çºñ¿ëÀ» ³·Ãß±â À§ÇØ Move¸¦ ÅëÇØ ¿À¸¥°ª ÂüÁ¶ »ç¿ë
+		// ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ß±ï¿½ ï¿½ï¿½ï¿½ï¿½ Moveï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½
 		OnExperienceLoaded.Add(MoveTemp(Delegate));
 	}
 }
@@ -30,7 +33,7 @@ void ULeeExperienceManagerComponent::ServerSetCurrentExperience(FPrimaryAssetId 
 		FSoftObjectPath AssetPath = AssetManager.GetPrimaryAssetPath(ExperiencedId);
 		AssetClass = Cast<UClass>(AssetPath.TryLoad());
 	}
-	// CDO ÇüÅÂ·Î °¡Á®¿À±â
+	// CDO ï¿½ï¿½ï¿½Â·ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 	const ULeeExperienceDefinition* Experience = GetDefault<ULeeExperienceDefinition>(AssetClass);
 	check(Experience != nullptr);
 	check(CurrentExperience == nullptr);
@@ -78,7 +81,7 @@ void ULeeExperienceManagerComponent::StartExperiencedLoad()
 
 	if (!Handle.IsValid() || Handle->HasLoadCompleted())
 	{
-		// ·ÎµùÀÌ ¿Ï·áµÇ¾úÀ¸¸é OnAssetLoadedDelegateÈ£Ãâ
+		// ï¿½Îµï¿½ï¿½ï¿½ ï¿½Ï·ï¿½Ç¾ï¿½ï¿½ï¿½ï¿½ï¿½ OnAssetLoadedDelegateÈ£ï¿½ï¿½
 		FStreamableHandle::ExecuteDelegate(OnAssetLoadedDelegate);
 	}
 	else
@@ -95,13 +98,97 @@ void ULeeExperienceManagerComponent::StartExperiencedLoad()
 
 void ULeeExperienceManagerComponent::OnExperienceLoadComplete()
 {
+	
+	// OnExperienceFullLoadComplete();
 	static int32 OnExperienceLoadComplete_FrameNumber = GFrameNumber;
-	OnExperienceFullLoadComplete();
+	check(LoadState == ELeeExperienceLoadState::Loaded);
+	check(CurrentExperience);
+
+	GameFeaturePluginURLs.Reset();
+
+	auto CollectGameFeaturePluginURLs = [This = this](const UPrimaryDataAsset* Context, const TArray<FString>& FeaturePluginList)
+	{
+		for (const FString& PluginName : FeaturePluginList)
+		{
+			FString PluginURL;
+			if (UGameFeaturesSubsystem::Get().GetPluginURLByName(PluginName, PluginURL))
+			{
+				This->GameFeaturePluginURLs.AddUnique(PluginURL);
+			}
+		}
+	};
+
+	CollectGameFeaturePluginURLs(CurrentExperience, CurrentExperience->GameFeaturesToEnable);
+
+	NumGameFeaturePluginsloading = GameFeaturePluginURLs.Num();
+	if (NumGameFeaturePluginsloading)
+	{
+		LoadState = ELeeExperienceLoadState::LoadingGameFeatures;
+		for (const FString& PluginURL : GameFeaturePluginURLs)
+		{
+			UGameFeaturesSubsystem::Get().LoadAndActivateGameFeaturePlugin(PluginURL, FGameFeaturePluginLoadComplete::CreateUObject(this, &ThisClass::OnGameFeaturePluginLoadComplete));
+		}
+	}
+	else
+	{
+		OnExperienceFullLoadComplete();
+	}
+}
+
+void ULeeExperienceManagerComponent::OnGameFeaturePluginLoadComplete(const UE::GameFeatures::FResult& Result)
+{ // ë§¤ ê²Œìž„í”¼ì²˜ í”ŒëŸ¬ê·¸ì¸ì´ ë¡œë”© ë ë•Œ í•´ë‹¹ í•¨ìˆ˜ê°€ ì½œ ë¨
+	NumGameFeaturePluginsloading--;
+	if (NumGameFeaturePluginsloading == 0)
+	{
+		// ê²Œìž„í”¼ì²˜ í”ŒëŸ¬ê·¸ì¸ ë¡œë”©ì´ ë‹¤ ëë‚˜ë©´
+		// Loaded ë¡œ ì•„ëž˜ í•¨ìˆ˜ í˜¸ì¶œ
+		OnExperienceFullLoadComplete();
+	}
 }
 
 void ULeeExperienceManagerComponent::OnExperienceFullLoadComplete()
 {
-	check(LoadState != ELeeExperienceLoadState::Loaded);
+	// check(LoadState != ELeeExperienceLoadState::Loaded);
+	//
+	// LoadState = ELeeExperienceLoadState::Loaded;
+	// OnExperienceLoaded.Broadcast(CurrentExperience);
+	// OnExperienceLoaded.Clear();
+
+
+	check(LoadState != ELeeExperienceLoadState::Loaded)
+	// ê²Œìž„ í”¼ì²˜ í”ŒëŸ¬ê·¸ì¸ ë¡œë”©ê³¼ í™œì„±í™” ì´í›„, ê²Œìž„í”¼ì²˜ ì•¡ì…˜ë“¤ì„ í™œì„±í™”
+	{
+		LoadState = ELeeExperienceLoadState::ExecutingActions;
+
+		FGameFeatureActivatingContext Context;
+		{
+			// ì›”ë“œì˜ í•¸ë“¤ ì„¸íŒ…
+			const FWorldContext* ExistingWorldContext = GEngine->GetWorldContextFromWorld(GetWorld());
+			if (ExistingWorldContext)
+			{
+				Context.SetRequiredWorldContextHandle(ExistingWorldContext->ContextHandle);
+			}
+		}
+
+		auto ActivateListOfActions = [&Context](const TArray<UGameFeatureAction*>& ActionList ){
+				for (UGameFeatureAction* Action : ActionList)
+				{
+					// Register -> Loading -> Activating ìˆœìœ¼ë¡œ í˜¸ì¶œ
+					if (Action)
+					{
+						Action->OnGameFeatureRegistering();
+						Action->OnGameFeatureLoading();
+						Action->OnGameFeatureActivating(Context);
+					}	
+				}
+			};
+		ActivateListOfActions(CurrentExperience->Actions);
+
+		for (const TObjectPtr<ULeeExperienceActionSet>& ActionSet : CurrentExperience->ActionSets)
+		{
+			ActivateListOfActions(ActionSet->Actions);
+		}
+	}
 
 	LoadState = ELeeExperienceLoadState::Loaded;
 	OnExperienceLoaded.Broadcast(CurrentExperience);
