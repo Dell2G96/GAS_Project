@@ -46,6 +46,10 @@
 		{
 			"Name": "GameFeatures",
 			"Enabled": true
+		},
+		{
+			"Name": "ShooterCore",
+			"Enabled": true
 		}
 	]
 }

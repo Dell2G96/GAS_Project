@@ -12,6 +12,7 @@
 #include "GAS_Project/APlayer/LeePlayerState.h"
 #include "GAS_Project/ACharacter/LeePawnData.h"
 #include "GAS_Project/ACharacter/LeePawnExtensionComponent.h"
+#include "Kismet/GameplayStatics.h"
 
 ALeeGameModeBase::ALeeGameModeBase()
 {
@@ -96,7 +97,12 @@ void ALeeGameModeBase::HandleMatcheAssignmentIfNotExpectingOne()
 
 	UWorld* World = GetWorld();
 
-	if (!ExperienceId.IsValid())
+	if (!ExperienceId.IsValid() && UGameplayStatics::HasOption(OptionsString, TEXT("Experience")))
+	{
+		const FString ExperienceFromOptions = UGameplayStatics::ParseOption(OptionsString, TEXT("Experience"));
+		ExperienceId = FPrimaryAssetId(FName(FPrimaryAssetType((*ULeeExperienceDefinition::StaticClass()->GetName()))),FName(*ExperienceFromOptions));
+	}
+	if (!ExperienceId.IsValid()) 
 	{
 		ExperienceId = FPrimaryAssetId(FPrimaryAssetType("LeeExperienceDefinition"), FName("B_DefaultExperience"));
 	}
