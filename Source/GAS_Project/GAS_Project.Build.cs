@@ -32,6 +32,7 @@ public class GAS_Project : ModuleRules
 			"ModularGameplay",
 			"GameFeatures",
 			//"ModularGameplayActors",
+			"ModularGameplayActors",
 			//commonUser
 			"CommonUser",
 

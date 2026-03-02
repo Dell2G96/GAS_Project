@@ -3,11 +3,12 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "ModularCharacter.h"
 #include "GameFramework/Character.h"
 #include "LeeCharacter.generated.h"
 
 UCLASS()
-class GAS_PROJECT_API ALeeCharacter : public ACharacter
+class GAS_PROJECT_API ALeeCharacter : public AModularCharacter
 {
 	GENERATED_BODY()
 

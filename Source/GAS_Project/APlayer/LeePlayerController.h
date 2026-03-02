@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "ModularPlayerController.h"
 #include "GameFramework/PlayerController.h"
 #include "LeePlayerController.generated.h"
 
@@ -10,7 +11,7 @@
  * 
  */
 UCLASS()
-class GAS_PROJECT_API ALeePlayerController : public APlayerController
+class GAS_PROJECT_API ALeePlayerController : public AModularPlayerController
 {
 	GENERATED_BODY()
 };
