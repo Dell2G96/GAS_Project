@@ -15,6 +15,9 @@ class GAS_PROJECT_API ALeePlayerState : public APlayerState
 	GENERATED_BODY()
 
 public:
+	ALeePlayerState(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+
+	
 	virtual void PostInitializeComponents() final;
 
 	template<class T>
@@ -22,8 +25,14 @@ public:
 
 	void OnExperienceLoaded(const class ULeeExperienceDefinition* CurrentExperience);
 	void SetPawnData(const class ULeePawnData* InPawnData);
+	class ULeeAbilitySystemComponent* GetLeeAbilitySystemComponent() const
+	{return AbilitySystemComponent ;}
 
 	UPROPERTY()
 	TObjectPtr<const class ULeePawnData> PawnData;
+
+	UPROPERTY(VisibleAnywhere, Category="Lee|PlayerState")
+	TObjectPtr<ULeeAbilitySystemComponent> AbilitySystemComponent;
+	
 };
 

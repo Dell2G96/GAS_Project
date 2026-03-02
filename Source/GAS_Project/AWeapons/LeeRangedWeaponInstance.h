@@ -14,4 +14,10 @@ UCLASS()
 class GAS_PROJECT_API ULeeRangedWeaponInstance : public ULeeWeaponInstance
 {
 	GENERATED_BODY()
+public:
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category= "WeaponConfig", meta=(ForceUnits = cm))
+	float MaxDamageRange = 25000.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category= "WeaponConfig", meta=( ForceUnits = cm))
+	float BulletTraceWeaponRadius = 0.f;
 };

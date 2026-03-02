@@ -6,6 +6,7 @@
 #include "Components/GameFrameworkComponentManager.h"
 #include "GAS_Project/LeeLogChannels.h"
 #include "GAS_Project/MyTags.h"
+#include "GAS_Project/AAbilitySystem/LeeAbilitySystemComponent.h"
 
 const FName ULeePawnExtensionComponent::NAME_ActorFeatureName("PawnExtension");
 
@@ -83,6 +84,37 @@ void ULeePawnExtensionComponent::EndPlay(const EEndPlayReason::Type EndPlayReaso
 	UnregisterInitStateFeature();
 	
 	Super::EndPlay(EndPlayReason);
+}
+
+void ULeePawnExtensionComponent::InitializeAbilitySystem(class ULeeAbilitySystemComponent* InASC, AActor* InOwnerActor)
+{
+	check(InASC && InOwnerActor);
+
+	if (AbilitySystemComponent == InASC)
+	{
+		return;
+	}
+
+	if (AbilitySystemComponent)
+	{
+		UnInitializeAbilitySystem();
+	}
+
+	APawn* Pawn =GetPawnChecked<APawn>();
+	AActor* ExistingAvater = InASC->GetAvatarActor();
+	check(!ExistingAvater);
+
+	AbilitySystemComponent = InASC;
+	AbilitySystemComponent->InitAbilityActorInfo(InOwnerActor, Pawn);
+}
+
+void ULeePawnExtensionComponent::UnInitializeAbilitySystem()
+{
+	if (!AbilitySystemComponent)
+	{
+		return;
+	}
+	AbilitySystemComponent = nullptr;
 }
 
 void ULeePawnExtensionComponent::OnActorInitStateChanged(const FActorInitStateChangedParams& Params)

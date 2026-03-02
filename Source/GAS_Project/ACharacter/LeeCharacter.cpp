@@ -4,6 +4,7 @@
 #include "LeeCharacter.h"
 
 #include "LeePawnExtensionComponent.h"
+#include "GAS_Project/AAbilitySystem/LeeAbilitySystemComponent.h"
 #include "GAS_Project/ACamera/LeeCameraComponent.h"
 #include "GAS_Project/AInput/LeeInputComponent.h"
 
@@ -24,6 +25,11 @@ ALeeCharacter::ALeeCharacter()
 		CameraComponent->SetRelativeLocation(FVector(-300.0f, 0.0f, 75.0f));
 	}
 
+}
+
+UAbilitySystemComponent* ALeeCharacter::GetAbilitySystemComponent() const
+{
+	return PawnExtComponent->GetLeeAbilitySystemComponent();
 }
 
 void ALeeCharacter::BeginPlay()

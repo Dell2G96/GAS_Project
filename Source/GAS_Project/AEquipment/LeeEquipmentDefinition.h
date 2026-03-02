@@ -38,5 +38,9 @@ public:
 
 	UPROPERTY(EditDefaultsOnly, Category=Equipment)
 	TArray<FLeeEquipmentActorToSpawn> ActorToSpawns;
+
+	/** 장착을 통해 부여 가능한 Ability Set */
+	UPROPERTY(EditDefaultsOnly, Category = Equipment)
+	TArray<TObjectPtr<class ULeeAbilitySet>> AbilitySetsToGrant;
 	
 };

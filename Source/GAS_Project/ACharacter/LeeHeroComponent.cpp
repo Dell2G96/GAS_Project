@@ -12,6 +12,7 @@
 #include "PlayerMappableInputConfig.h"
 
 #include "GAS_Project/MyTags.h"
+#include "GAS_Project/AAbilitySystem/LeeAbilitySystemComponent.h"
 #include "GAS_Project/ACamera/LeeCameraComponent.h"
 #include "GAS_Project/AInput/LeeInputComponent.h"
 #include "GAS_Project/APlayer/LeePlayerController.h"
@@ -142,6 +143,7 @@ void ULeeHeroComponent::HandleChangeInitState(class UGameFrameworkComponentManag
 		if (ULeePawnExtensionComponent* PawnExtComp = ULeePawnExtensionComponent::FindPawnExtensionComponent(Pawn))
 		{
 			PawnData = PawnExtComp->GetPawnData<ULeePawnData>();
+			PawnExtComp->InitializeAbilitySystem(LeePS->GetLeeAbilitySystemComponent(), LeePS);
 			
 		}
 		
@@ -253,6 +255,11 @@ void ULeeHeroComponent::InitializePlayerInput(UInputComponent* PlayerInputCompon
 				// Cast로 변경: B_SimpleHeroPawn 등 ULeeInputComponent가 아닌 Pawn에서도 크래시하지 않도록
 				if (ULeeInputComponent* LeeIC = Cast<ULeeInputComponent>(PlayerInputComponent))
 				{
+					{
+						TArray<uint32> BindHandles;
+						//LeeIC->BindAbilityAction();
+						LeeIC->BindAbilityActions(InputConfig, this, &ThisClass::Input_AbilityInputTagPressed, &ThisClass::Input_AbilityInputTagReleased, BindHandles);
+					}
 					LeeIC->BindNativeAction(InputConfig, MyTags::Lyra::InputTag_Move, ETriggerEvent::Triggered, this, &ThisClass::Input_Move,false);
 					LeeIC->BindNativeAction(InputConfig, MyTags::Lyra::InputTag_Look_Mouse, ETriggerEvent::Triggered, this, &ThisClass::Input_LookMouse,false);
 				}
@@ -306,29 +313,32 @@ void ULeeHeroComponent::Input_LookMouse(const FInputActionValue& InputActionValu
 	}
 }
 
+void ULeeHeroComponent::Input_AbilityInputTagPressed(FGameplayTag InputTag)
+{
+	if (const APawn* Pawn = GetPawn<APawn>())
+	{
+		if (const ULeePawnExtensionComponent* PawnExtComp = ULeePawnExtensionComponent::FindPawnExtensionComponent(Pawn))
+		{
+			if (ULeeAbilitySystemComponent* LeeASC = PawnExtComp->GetLeeAbilitySystemComponent())
+			{
+				LeeASC->AbilityInputTagPressed(InputTag);
+			}
+			
+		}
+	}
+}
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+void ULeeHeroComponent::Input_AbilityInputTagReleased(FGameplayTag InputTag)
+{
+	if (const APawn* Pawn = GetPawn<APawn>())
+	{
+		if (const ULeePawnExtensionComponent* PawnExtComp = ULeePawnExtensionComponent::FindPawnExtensionComponent(Pawn))
+		{
+			if (ULeeAbilitySystemComponent* LeeASC = PawnExtComp->GetLeeAbilitySystemComponent())
+			{
+				LeeASC->AbilityInputTagReleased(InputTag);
+			}
+			
+		}
+	}
+}

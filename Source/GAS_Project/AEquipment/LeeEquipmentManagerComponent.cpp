@@ -3,8 +3,10 @@
 
 #include "LeeEquipmentManagerComponent.h"
 
+#include "AbilitySystemGlobals.h"
 #include "LeeEquipmentDefinition.h"
 #include "LeeEquipmentInstance.h"
+#include "GAS_Project/AAbilitySystem/LeeAbilitySystemComponent.h"
 
 ULeeEquipmentInstance* FLeeEquipmentList::AddEntry(TSubclassOf<ULeeEquipmentDefinition> EquipmentDefinition)
 {
@@ -26,6 +28,15 @@ ULeeEquipmentInstance* FLeeEquipmentList::AddEntry(TSubclassOf<ULeeEquipmentDefi
 	NewEntry.Instance = NewObject<ULeeEquipmentInstance>(OwnerComponent->GetOwner(), InstanceType);
 	Result = NewEntry.Instance;
 
+	ULeeAbilitySystemComponent* ASC = GetAbilitySystemComponent();
+	check(ASC);
+	{
+		for (const TObjectPtr<ULeeAbilitySet> AbilitySet : EquipmentCDO->AbilitySetsToGrant)
+		{
+			AbilitySet->GiveToAbilitySystem(ASC, &NewEntry.GrantedHandles, Result);
+		}
+	}
+
 	Result->SpawnEquipmentActors(EquipmentCDO->ActorToSpawns);
 
 	return Result;
@@ -38,10 +49,25 @@ void FLeeEquipmentList::RemoveEntry(ULeeEquipmentInstance* Instance)
 		FLeeAppliedEquipmentEntry& Entry = *EntryIt;
 		if (Entry.Instance == Instance)
 		{
+			ULeeAbilitySystemComponent* ASC = GetAbilitySystemComponent();
+			check(ASC);
+			{
+				Entry.GrantedHandles.TakeFromAbilitySystem(ASC);
+			}
+			
 			Instance->DestroyEquipmentActors();
 			EntryIt.RemoveCurrent();
 		}
 	}
+}
+
+ULeeAbilitySystemComponent* FLeeEquipmentList::GetAbilitySystemComponent() const
+{
+	check(OwnerComponent);
+	AActor* OwningActor = OwnerComponent->GetOwner();
+
+	return Cast<ULeeAbilitySystemComponent>(UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(OwningActor));
+	
 }
 
 ULeeEquipmentManagerComponent::ULeeEquipmentManagerComponent(const FObjectInitializer& ObjectInitializer)

@@ -37,6 +37,15 @@ public:
 	virtual void BeginPlay() final;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) final;
 
+
+	
+	class ULeeAbilitySystemComponent* GetLeeAbilitySystemComponent() const
+	{
+		return AbilitySystemComponent;
+	}
+	void InitializeAbilitySystem(class ULeeAbilitySystemComponent* InASC, AActor* InOwnerActor);
+	void UnInitializeAbilitySystem();
+
 	// IGameFrameworkInitStateInterface
 	virtual FName GetFeatureName() const final { return NAME_ActorFeatureName; }
 	virtual void OnActorInitStateChanged(const FActorInitStateChangedParams& Params) final;
@@ -45,6 +54,9 @@ public:
 	
 	UPROPERTY(EditInstanceOnly, Category="LEE|Pawn")
 	TObjectPtr<const class ULeePawnData> PawnData;
+
+	UPROPERTY(EditInstanceOnly, Category="LEE|AbilitySystem")
+	TObjectPtr<class ULeeAbilitySystemComponent> AbilitySystemComponent;
 };
 
 

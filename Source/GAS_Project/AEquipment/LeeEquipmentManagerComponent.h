@@ -4,8 +4,12 @@
 
 #include "CoreMinimal.h"
 #include "Components/PawnComponent.h"
+#include "GAS_Project/AAbilitySystem/LeeAbilitySet.h"
 #include "UObject/Object.h"
 #include "LeeEquipmentManagerComponent.generated.h"
+
+
+//		FLeeAppliedEquipmentEntry	//
 
 USTRUCT(BlueprintType)
 struct FLeeAppliedEquipmentEntry
@@ -17,6 +21,9 @@ struct FLeeAppliedEquipmentEntry
 
 	UPROPERTY()
 	TObjectPtr<class ULeeEquipmentInstance> Instance = nullptr;
+
+	UPROPERTY()
+	FLeeAbilitySet_GrantedHandles GrantedHandles;
 	
 };
 
@@ -27,12 +34,12 @@ struct FLeeEquipmentList
 
 	FLeeEquipmentList(class UActorComponent* InOwnerComponent = nullptr)
 		:OwnerComponent(InOwnerComponent)
-	{
-		
-	}
+	{}
 
 	class ULeeEquipmentInstance* AddEntry(TSubclassOf<ULeeEquipmentDefinition> EquipmentDefinition);
-	void RemoveEntry(ULeeEquipmentInstance* Instance); 
+	void RemoveEntry(ULeeEquipmentInstance* Instance);
+
+	ULeeAbilitySystemComponent* GetAbilitySystemComponent() const;
 
 	UPROPERTY()
 	TArray<FLeeAppliedEquipmentEntry> Entries;
@@ -41,6 +48,7 @@ struct FLeeEquipmentList
 	TObjectPtr<UActorComponent> OwnerComponent;
 	
 };
+
 
 
 UCLASS()

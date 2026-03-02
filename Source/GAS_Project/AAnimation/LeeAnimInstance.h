@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "GameplayEffectTypes.h"
 #include "Animation/AnimInstance.h"
 #include "LeeAnimInstance.generated.h"
 
@@ -15,7 +16,16 @@ class GAS_PROJECT_API ULeeAnimInstance : public UAnimInstance
 	GENERATED_BODY()
 
 public:
+
+	virtual void NativeInitializeAnimation() override;
+
+	void InitializeWithAbilitySystem(class UAbilitySystemComponent* ASC);
+	
 	UPROPERTY(BlueprintReadOnly, Category="Character State Data")
 	float GroundDistance = -1.f;
+
+	UPROPERTY(EditDefaultsOnly, Category="GameplayTags")
+	FGameplayTagBlueprintPropertyMap GameplayTagPropertyMap;
+		
 	
 };

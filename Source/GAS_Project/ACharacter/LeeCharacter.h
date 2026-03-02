@@ -3,18 +3,21 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "AbilitySystemInterface.h"
 #include "ModularCharacter.h"
 #include "GameFramework/Character.h"
 #include "LeeCharacter.generated.h"
 
 UCLASS()
-class GAS_PROJECT_API ALeeCharacter : public AModularCharacter
+class GAS_PROJECT_API ALeeCharacter : public AModularCharacter, public  IAbilitySystemInterface
 {
 	GENERATED_BODY()
 
 public:
 	// Sets default values for this character's properties
 	ALeeCharacter();
+
+	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
 
 protected:
 	// Called when the game starts or when spawned

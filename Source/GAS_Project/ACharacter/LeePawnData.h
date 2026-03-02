@@ -17,12 +17,20 @@ class GAS_PROJECT_API ULeePawnData : public UPrimaryDataAsset
 public:
 	ULeePawnData(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
+
+	// 어떤 클래스를 사용할지
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Lee|Pawn")
 	TSubclassOf<APawn> PawnClass;
 
+	// 어떤 카메라 모드를 사용할지
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly,Category="Lee|Camera")
 	TSubclassOf<class ULeeCameraMode> DefaultCameraMode;
 
+	// 어떤 Input Config 를 사용하지
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Lee|InputConfig")
 	TObjectPtr<class ULeeInputConfig> InputConfig;
+
+	// 해당 Pawn의 Ability System에 허용할 AbilitySet
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Lee|Abilities")
+	TArray<TObjectPtr<class ULeeAbilitySet>> AbilitySets;
 };

@@ -3,12 +3,30 @@
 
 #include "LeePlayerState.h"
 
+#include "Abilities/GameplayAbilityTypes.h"
+#include "GAS_Project/AAbilitySystem/LeeAbilitySet.h"
+#include "GAS_Project/AAbilitySystem/LeeAbilitySystemComponent.h"
+#include "GAS_Project/ACharacter/LeePawnData.h"
 #include "GAS_Project/GameModes/LeeExperienceManagerComponent.h"
 #include "GAS_Project/GameModes/LeeGameModeBase.h"
+
+ALeePlayerState::ALeePlayerState(const FObjectInitializer& ObjectInitializer)
+	:Super(ObjectInitializer)
+{
+	AbilitySystemComponent = ObjectInitializer.CreateDefaultSubobject<ULeeAbilitySystemComponent>(this, "AbilitySystemComponent");
+}
 
 void ALeePlayerState::PostInitializeComponents()
 {
 	Super::PostInitializeComponents();
+
+	check(AbilitySystemComponent)
+	{
+		FGameplayAbilityActorInfo* ActorInfo = AbilitySystemComponent->AbilityActorInfo.Get();
+		check(ActorInfo->OwnerActor == this);
+		check(ActorInfo->OwnerActor == ActorInfo->AvatarActor);
+	}
+	AbilitySystemComponent->InitAbilityActorInfo(this, GetPawn());
 
 	const AGameStateBase* GameState = GetWorld()->GetGameState();
 	check(GameState);
@@ -36,4 +54,14 @@ void ALeePlayerState::SetPawnData(const class ULeePawnData* InPawnData)
 
 	check(!PawnData);
 	PawnData = InPawnData;
+
+	for (ULeeAbilitySet* AbilitySet : PawnData->AbilitySets)
+	{
+		if (AbilitySet)
+		{
+			AbilitySet->GiveToAbilitySystem(AbilitySystemComponent, nullptr);
+			
+		}
+	}
+	
 }
