@@ -62,6 +62,10 @@ public:
 	class ULeeEquipmentInstance* EquipItem(TSubclassOf<class ULeeEquipmentDefinition> EquipmentDefinition);
 	void UnEquipItem(ULeeEquipmentInstance* ItemInstance);
 
+	UFUNCTION(BlueprintCallable)
+	TArray<class ULeeEquipmentInstance*> GetEquipmentInstancesOfType(TSubclassOf<class ULeeEquipmentInstance> InstanceType) const;
+	
+
 	UPROPERTY()
 	FLeeEquipmentList EquipmentList;
 };

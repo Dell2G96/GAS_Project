@@ -5,6 +5,7 @@
 
 #include "AbilitySystemComponent.h"
 #include "GAS_Project/AAbilitySystem/LeeGameplayAbilityTargetData_SingleTargetHit.h"
+#include "GAS_Project/APhysics/LeeCollisionChannels.h"
 
 ULeeGameplayAbility_RangedWeapon::ULeeGameplayAbility_RangedWeapon(const FObjectInitializer& ObjectInitializer)
 	:Super(ObjectInitializer)
@@ -276,8 +277,7 @@ FHitResult ULeeGameplayAbility_RangedWeapon::WeaponTrace(const FVector& StartTra
 ECollisionChannel ULeeGameplayAbility_RangedWeapon::DetermineTraceChannel(FCollisionQueryParams& TraceParams,
 	bool bIsSimulated) const
 {
-	// return Lee_TraceChannel_Weapon;
-	return ECC_Pawn;
+	return Lee_TraceChannel_Weapon;
 }
 
 void ULeeGameplayAbility_RangedWeapon::AddAdditionalTraceIgnoreActors(FCollisionQueryParams& TraceParams) const

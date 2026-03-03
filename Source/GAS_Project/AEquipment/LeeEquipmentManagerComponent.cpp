@@ -99,3 +99,23 @@ void ULeeEquipmentManagerComponent::UnEquipItem(ULeeEquipmentInstance* ItemInsta
 		EquipmentList.RemoveEntry(ItemInstance);
 	}
 }
+
+TArray<class ULeeEquipmentInstance*> ULeeEquipmentManagerComponent::GetEquipmentInstancesOfType(
+	TSubclassOf<class ULeeEquipmentInstance> InstanceType) const
+{
+	TArray<ULeeEquipmentInstance*> Result;
+
+	for (const FLeeAppliedEquipmentEntry& Entry : EquipmentList.Entries)
+	{
+		if (ULeeEquipmentInstance* Instance = Entry.Instance)
+		{
+			if (Instance->IsA(InstanceType))
+			{
+				Result.Add(Instance);
+				
+			}
+		}
+		
+	}
+	return Result;
+}

@@ -12,10 +12,10 @@ struct FExecutionAnimSet
 	GENERATED_BODY()
 public:
 	UPROPERTY(EditAnywhere, Category="GAS|Execution")
-	class UAnimMontage* ExecutionMontage;
+	class UAnimMontage* ExecutionMontage = nullptr;
 
 	UPROPERTY(EditAnywhere, Category="GAS|Execution")
-	class UAnimMontage* VictimMontage;
+	class UAnimMontage* VictimMontage = nullptr;
 	
 };
 
