@@ -1,20 +1,20 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "LeeGameplauCueManager.h"
+#include "LeeGameplayCueManager.h"
 
 #include "AbilitySystemGlobals.h"
 #include "GameplayCueSet.h"
 #include "Engine/AssetManager.h"
 
-ULeeGameplayCueManager* ULeeGameplayCueManager::Get()
-{
-	return Cast<ULeeGameplayCueManager>(UAbilitySystemGlobals::Get().GetGameplayCueManager());
-}
-
 ULeeGameplayCueManager::ULeeGameplayCueManager(const FObjectInitializer& ObjectInitializer)
 	:Super(ObjectInitializer)
 {
+}
+
+ULeeGameplayCueManager* ULeeGameplayCueManager::Get()
+{
+	return Cast<ULeeGameplayCueManager>(UAbilitySystemGlobals::Get().GetGameplayCueManager());
 }
 
 const FPrimaryAssetType UFortAssetManager_GameplayCueRefsType = TEXT("GameplayCueRefs");

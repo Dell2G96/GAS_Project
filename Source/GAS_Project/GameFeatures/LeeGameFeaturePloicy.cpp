@@ -1,13 +1,13 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "LeeGameFeature_AddGameplayCuePaths.h"
+#include "LeeGameFeaturePloicy.h"
 
 #include "GameFeatureAction.h"
 #include "GameFeatureAction_AddGameplayCuePath.h"
 #include "GameFeatureData.h"
 #include "GameplayCueSet.h"
-#include "GAS_Project/AAbilitySystem/LeeGameplauCueManager.h"
+#include "GAS_Project/AAbilitySystem/LeeGameplayCueManager.h"
 
 ULeeGameplayFeaturePolicy::ULeeGameplayFeaturePolicy(const FObjectInitializer& ObjectInitializer)
 	:Super(ObjectInitializer)
@@ -16,8 +16,10 @@ ULeeGameplayFeaturePolicy::ULeeGameplayFeaturePolicy(const FObjectInitializer& O
 
 void ULeeGameplayFeaturePolicy::InitGameFeatureManager()
 {
+	// GameFeature_AddGameplayCuePaths를 등록
 	Observers.Add(NewObject<ULeeGameFeature_AddGameplayCuePaths>());
 
+	// Observers를 순회하며, GameFeaturesSubsystem에 Observers를 순회하며 등록
 	UGameFeaturesSubsystem& Subsystem = UGameFeaturesSubsystem::Get();
 	for (UObject* Observer : Observers)
 	{
@@ -40,18 +42,19 @@ void ULeeGameplayFeaturePolicy::ShutdownGameFeatureManager()
 	Observers.Empty();
 }
 
-void ULeeGameFeature_AddGameplayCuePaths::OnGameFeatureRegistering(const UGameFeatureData* GameFeatureData,
-                                                                   const FString& PluginName, const FString& PluginURL)
+void ULeeGameFeature_AddGameplayCuePaths::OnGameFeatureRegistering(const UGameFeatureData* GameFeatureData,const FString& PluginName, const FString& PluginURL)
 {
+	// PluginName을 활용하여, PluginRootPath를 계산
 	const FString PluginRootPath = TEXT("/") + PluginName;
 
+	// GameFeatureData의 Action을 순회: 
+	// - 예로 들어, ShooterCore의 GameFeatureData에 Action을 추가했다면, 그 추가된 Action이 대상이 됨
 	for (const UGameFeatureAction* Action : GameFeatureData->GetActions())
 	{
 		if (const UGameFeatureAction_AddGameplayCuePath* AddGameplayCueGFA = Cast<UGameFeatureAction_AddGameplayCuePath>(Action) )
 		{
 			const TArray<FDirectoryPath>& DirsToAdd = AddGameplayCueGFA->DirectoryPathsToAdd;
 
-			//Todo 
 			if (ULeeGameplayCueManager* GCM = ULeeGameplayCueManager::Get())
 			{
 				UGameplayCueSet* RuntimeGameplayCueSet = GCM->GetRuntimeCueSet();

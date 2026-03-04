@@ -6,7 +6,7 @@
 #include "GameFeaturesProjectPolicies.h"
 #include "GameFeatureStateChangeObserver.h"
 #include "UObject/Object.h"
-#include "LeeGameFeature_AddGameplayCuePaths.generated.h"
+#include "LeeGameFeaturePloicy.generated.h"
 
 UCLASS()
 class ULeeGameplayFeaturePolicy : public UDefaultGameFeaturesProjectPolicies

@@ -4,7 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameplayCueManager.h"
-#include "LeeGameplauCueManager.generated.h"
+#include "LeeGameplayCueManager.generated.h"
 
 /**
  * 
