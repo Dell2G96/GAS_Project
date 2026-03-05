@@ -22,7 +22,13 @@ namespace MyTags
 		UE_DEFINE_GAMEPLAY_TAG(InputTag_Look_Mouse,"InputTag.Look.Mouse")
 		
 		UE_DEFINE_GAMEPLAY_TAG(InputTag_Weapon_Fire,"InputTag.Weapon.Fire")			
-		//UE_DEFINE_GAMEPLAY_TAG(InputTag_Look_Mouse,"InputTag.Look.Mouse")			
+		//UE_DEFINE_GAMEPLAY_TAG(InputTag_Look_Mouse,"InputTag.Look.Mouse")
+
+
+		UE_DEFINE_GAMEPLAY_TAG(UI_Layer_Game,"UI.Layer.Game")
+		UE_DEFINE_GAMEPLAY_TAG(UI_Layer_GameMenu,"UI.Layer.GameMenu")
+		UE_DEFINE_GAMEPLAY_TAG(UI_Layer_Menu,"UI.Layer.Menu")
+		UE_DEFINE_GAMEPLAY_TAG(UI_Layer_Modal,"UI.Layer.Modal")
 	}
 
 	/** Input Tags **/

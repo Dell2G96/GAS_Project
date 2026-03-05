@@ -18,7 +18,7 @@ ULeeAssetManager& ULeeAssetManager::Get()
 		return *Singleton;	
 	}
 
-	UE_LOG(LogLee, Fatal, TEXT("invalid AssetManagerClassname in DefaultEngine.ini(project settings); it must be HakAssetManager"));
+	UE_LOG(LogLee, Fatal, TEXT("invalid AssetManagerClassname in DefaultEngine.ini(project settings); it must be LeeAssetManager"));
 	
 	return *NewObject<ULeeAssetManager>();
 }

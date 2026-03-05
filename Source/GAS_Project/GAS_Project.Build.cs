@@ -35,6 +35,14 @@ public class GAS_Project : ModuleRules
 			"ModularGameplayActors",
 			//commonUser
 			"CommonUser",
+			// CommonUI
+			"CommonUI",
+			// CommonGame
+			"CommonGame",
+			//UIExtension
+			"UIExtension",
+			
+			
 
 			
 		});
@@ -42,7 +50,7 @@ public class GAS_Project : ModuleRules
 		//PrivateIncludePaths.Add("GAS_Project");
 
 
-		PrivateDependencyModuleNames.AddRange(new string[] { "AnimGraphRuntime", "AnimGraphRuntime" });
+		PrivateDependencyModuleNames.AddRange(new string[] { "AnimGraphRuntime", "AnimGraphRuntime", "CommonGame" });
 
 		// Uncomment if you are using Slate UI
 		// PrivateDependencyModuleNames.AddRange(new string[] { "Slate", "SlateCore" });

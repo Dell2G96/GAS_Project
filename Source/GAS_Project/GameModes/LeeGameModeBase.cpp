@@ -12,6 +12,7 @@
 #include "GAS_Project/APlayer/LeePlayerState.h"
 #include "GAS_Project/ACharacter/LeePawnData.h"
 #include "GAS_Project/ACharacter/LeePawnExtensionComponent.h"
+#include "GAS_Project/AUI/LeeHUD.h"
 #include "Kismet/GameplayStatics.h"
 
 ALeeGameModeBase::ALeeGameModeBase()
@@ -20,6 +21,7 @@ ALeeGameModeBase::ALeeGameModeBase()
 	PlayerControllerClass = ALeePlayerController::StaticClass();
 	PlayerStateClass = ALeePlayerState::StaticClass();
 	DefaultPawnClass = ALeeCharacter::StaticClass();
+	HUDClass = ALeeHUD::StaticClass();
 }
 
 void ALeeGameModeBase::InitGame(const FString& MapName, const FString& Options, FString& ErrorMessage)

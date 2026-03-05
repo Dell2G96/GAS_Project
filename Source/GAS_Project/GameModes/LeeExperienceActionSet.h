@@ -17,6 +17,10 @@ class GAS_PROJECT_API ULeeExperienceActionSet : public UPrimaryDataAsset
 public:
 	ULeeExperienceActionSet();
 
+#if WITH_EDITORONLY_DATA
+	virtual void UpdateAssetBundleData() override;
+#endif
+
 	UPROPERTY(EditAnywhere, Category="Actions To Perform")
 	TArray<TObjectPtr<class UGameFeatureAction>> Actions;
 	

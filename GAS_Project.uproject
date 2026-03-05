@@ -50,6 +50,18 @@
 		{
 			"Name": "ShooterCore",
 			"Enabled": true
+		},
+		{
+			"Name": "CommonUI",
+			"Enabled": true
+		},
+		{
+			"Name": "CommonGame",
+			"Enabled": true
+		},
+		{
+			"Name": "UIExtension",
+			"Enabled": true
 		}
 	]
 }

@@ -17,6 +17,10 @@ class GAS_PROJECT_API ULeeExperienceDefinition : public UPrimaryDataAsset
 public:
 	ULeeExperienceDefinition(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
+#if WITH_EDITORONLY_DATA
+	virtual void UpdateAssetBundleData() override;
+#endif
+	
 	UPROPERTY(EditDefaultsOnly, Category="Gameplay")
 	TObjectPtr<class ULeePawnData> DefaultPawnData;
 

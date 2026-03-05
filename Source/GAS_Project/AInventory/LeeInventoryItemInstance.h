@@ -10,13 +10,14 @@ class ULeeInventoryItemFragment;
 /**
  * 
  */
-UCLASS()
+UCLASS(BlueprintType)
 class GAS_PROJECT_API ULeeInventoryItemInstance : public UObject
 {
 	GENERATED_BODY()
 public:
 	ULeeInventoryItemInstance(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
+	UFUNCTION(BlueprintCallable, blueprintPure = false, meta=(DeterminesOutputType = FragmentClass))
 	const ULeeInventoryItemFragment* FindFragmentByClass(TSubclassOf<ULeeInventoryItemFragment> FragmentClass) const;
 
 	template<typename  ResultClass>

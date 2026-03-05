@@ -100,6 +100,22 @@ void ULeeEquipmentManagerComponent::UnEquipItem(ULeeEquipmentInstance* ItemInsta
 	}
 }
 
+ULeeEquipmentInstance* ULeeEquipmentManagerComponent::GetFirstInstanceOfType(
+	TSubclassOf<ULeeEquipmentInstance> InstanceType)
+{
+	for (FLeeAppliedEquipmentEntry& Entry : EquipmentList.Entries)
+	{
+		if (ULeeEquipmentInstance* Instance = Entry.Instance)
+		{
+			if (Instance->IsA(InstanceType))
+			{
+				return Instance;
+			}
+		}
+	}
+	return nullptr;
+}
+
 TArray<class ULeeEquipmentInstance*> ULeeEquipmentManagerComponent::GetEquipmentInstancesOfType(
 	TSubclassOf<class ULeeEquipmentInstance> InstanceType) const
 {

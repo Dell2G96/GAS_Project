@@ -55,6 +55,16 @@ void ULeeExperienceManagerComponent::StartExperiencedLoad()
 	TSet<FPrimaryAssetId> BundleAssetList;
 	BundleAssetList.Add(CurrentExperience->GetPrimaryAssetId());
 
+	for (const TObjectPtr<ULeeExperienceActionSet>& ActionSet : CurrentExperience->ActionSets)
+	{
+		// LAS_Shooter_SharedHUD를 추가
+		// BundleAssetList는 Bundle로 등록한 root의 PrimaryDataAsset을 추가하는 과정
+		if (ActionSet)
+		{
+			BundleAssetList.Add(ActionSet->GetPrimaryAssetId());
+		}
+	}
+	
 	TArray<FName> BundlesToLoad;
 	{
 		const ENetMode OwnerNetMode = GetOwner()->GetNetMode();

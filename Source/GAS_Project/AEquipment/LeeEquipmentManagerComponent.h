@@ -64,7 +64,14 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	TArray<class ULeeEquipmentInstance*> GetEquipmentInstancesOfType(TSubclassOf<class ULeeEquipmentInstance> InstanceType) const;
-	
+
+	ULeeEquipmentInstance* GetFirstInstanceOfType(TSubclassOf<ULeeEquipmentInstance>InstanceType);
+
+	template<typename T>
+	T* GetFirstInstanceOfType()
+	{
+		return (T*)GetFirstInstanceOfType(T::StaticClass());
+	}
 
 	UPROPERTY()
 	FLeeEquipmentList EquipmentList;
