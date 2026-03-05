@@ -42,9 +42,6 @@ public class GAS_Project : ModuleRules
 			//UIExtension
 			"UIExtension",
 			
-			
-
-			
 		});
 		
 		//PrivateIncludePaths.Add("GAS_Project");
