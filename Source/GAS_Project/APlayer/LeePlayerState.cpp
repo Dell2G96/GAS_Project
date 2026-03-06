@@ -6,6 +6,8 @@
 #include "Abilities/GameplayAbilityTypes.h"
 #include "GAS_Project/AAbilitySystem/LeeAbilitySet.h"
 #include "GAS_Project/AAbilitySystem/LeeAbilitySystemComponent.h"
+#include "GAS_Project/AAbilitySystem/AttributeSets/LeeCombatSet.h"
+#include "GAS_Project/AAbilitySystem/AttributeSets/LeeHealthSet.h"
 #include "GAS_Project/ACharacter/LeePawnData.h"
 #include "GAS_Project/GameModes/LeeExperienceManagerComponent.h"
 #include "GAS_Project/GameModes/LeeGameModeBase.h"
@@ -14,6 +16,9 @@ ALeePlayerState::ALeePlayerState(const FObjectInitializer& ObjectInitializer)
 	:Super(ObjectInitializer)
 {
 	AbilitySystemComponent = ObjectInitializer.CreateDefaultSubobject<ULeeAbilitySystemComponent>(this, "AbilitySystemComponent");
+
+	CreateDefaultSubobject<ULeeHealthSet>(TEXT("HealthSet"));
+	CreateDefaultSubobject<ULeeCombatSet>(TEXT("CombatSet"));
 }
 
 void ALeePlayerState::PostInitializeComponents()
