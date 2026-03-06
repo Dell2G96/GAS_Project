@@ -31,13 +31,6 @@ public:
 
 	void SetPawnData(const ULeePawnData* InPawnData);
 	void SetUpPlayerInputComponent();
-
-	// UPawnComponent interfaces
-	virtual void OnRegister() final;
-	virtual void BeginPlay() final;
-	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) final;
-
-
 	
 	class ULeeAbilitySystemComponent* GetLeeAbilitySystemComponent() const
 	{
@@ -45,6 +38,15 @@ public:
 	}
 	void InitializeAbilitySystem(class ULeeAbilitySystemComponent* InASC, AActor* InOwnerActor);
 	void UnInitializeAbilitySystem();
+
+	void OnAbilitySystemInitialized_RegistedAndCall(FSimpleMulticastDelegate::FDelegate Delegate);
+	void OnAbilitySystemUnInitialized_Registed(FSimpleMulticastDelegate::FDelegate Delegate);
+
+	// UPawnComponent interfaces
+	virtual void OnRegister() final;
+	virtual void BeginPlay() final;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) final;
+
 
 	// IGameFrameworkInitStateInterface
 	virtual FName GetFeatureName() const final { return NAME_ActorFeatureName; }
@@ -57,6 +59,9 @@ public:
 
 	UPROPERTY(EditInstanceOnly, Category="LEE|AbilitySystem")
 	TObjectPtr<class ULeeAbilitySystemComponent> AbilitySystemComponent;
+
+	FSimpleMulticastDelegate OnAbilitySystemInitialized;
+	FSimpleMulticastDelegate OnAbilitySystemUnInitialized;
 };
 
 

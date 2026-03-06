@@ -16,4 +16,5 @@ class GAS_PROJECT_API ULeeGameplayAbility_FromEquipment : public ULeeGameplayAbi
 	GENERATED_BODY()
 public:
 	ULeeEquipmentInstance* GetAssociatedEquipment() const;
+	ULeeInventoryItemInstance* GetAssociatedItem() const;
 };

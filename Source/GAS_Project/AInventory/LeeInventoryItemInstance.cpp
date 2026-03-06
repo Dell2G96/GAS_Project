@@ -22,3 +22,23 @@ const ULeeInventoryItemFragment* ULeeInventoryItemInstance::FindFragmentByClass(
 	}
 	return nullptr;
 }
+
+void ULeeInventoryItemInstance::AddStatTagStack(FGameplayTag Tag, int32 StackCount)
+{
+	StatTags.AddStack(Tag, StackCount);
+}
+
+void ULeeInventoryItemInstance::RemoveStatTagstack(FGameplayTag Tag, int32 StackCount)
+{
+	StatTags.RemoveStack(Tag, StackCount);
+}
+
+bool ULeeInventoryItemInstance::HasStatTag(FGameplayTag Tag) const
+{
+	return StatTags.ContainsTag(Tag);
+}
+
+int32 ULeeInventoryItemInstance::GetStatTagStackCount(FGameplayTag Tag) const
+{
+	return StatTags.GetStackCount(Tag);
+}

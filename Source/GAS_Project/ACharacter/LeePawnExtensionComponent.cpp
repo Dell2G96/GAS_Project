@@ -106,6 +106,8 @@ void ULeePawnExtensionComponent::InitializeAbilitySystem(class ULeeAbilitySystem
 
 	AbilitySystemComponent = InASC;
 	AbilitySystemComponent->InitAbilityActorInfo(InOwnerActor, Pawn);
+
+	OnAbilitySystemInitialized.Broadcast();
 }
 
 void ULeePawnExtensionComponent::UnInitializeAbilitySystem()
@@ -114,7 +116,33 @@ void ULeePawnExtensionComponent::UnInitializeAbilitySystem()
 	{
 		return;
 	}
+	if (AbilitySystemComponent->GetAvatarActor() == GetOwner())
+	{
+		OnAbilitySystemUnInitialized.Broadcast();
+	}
 	AbilitySystemComponent = nullptr;
+}
+
+void ULeePawnExtensionComponent::OnAbilitySystemInitialized_RegistedAndCall(
+	FSimpleMulticastDelegate::FDelegate Delegate)
+{
+	if (!OnAbilitySystemInitialized.IsBoundToObject(Delegate.GetUObject()))
+	{
+		OnAbilitySystemInitialized.Add(Delegate);
+	}
+	
+	if (AbilitySystemComponent)
+	{
+		Delegate.Execute();
+	}
+}
+
+void ULeePawnExtensionComponent::OnAbilitySystemUnInitialized_Registed(FSimpleMulticastDelegate::FDelegate Delegate)
+{
+	if (!OnAbilitySystemUnInitialized.IsBoundToObject(Delegate.GetUObject()))
+	{
+		OnAbilitySystemUnInitialized.Add(Delegate);
+	}
 }
 
 void ULeePawnExtensionComponent::OnActorInitStateChanged(const FActorInitStateChangedParams& Params)

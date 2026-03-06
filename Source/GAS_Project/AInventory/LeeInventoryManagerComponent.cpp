@@ -19,6 +19,14 @@ ULeeInventoryItemInstance* FLeeInventoryList::AddEntry(TSubclassOf<class ULeeInv
 	NewEntry.Instance = NewObject<ULeeInventoryItemInstance>(OwningActor);
 	NewEntry.Instance->ItemDef = ItemDef;
 
+	for (const ULeeInventoryItemFragment* Fragment : GetDefault<ULeeInventoryItemDefinition>(ItemDef)->Fragments)
+	{
+		if (Fragment)
+		{
+			Fragment->OnInstanceCreated(NewEntry.Instance);
+		}
+	}
+
 	Result = NewEntry.Instance;
 	return Result;
 	

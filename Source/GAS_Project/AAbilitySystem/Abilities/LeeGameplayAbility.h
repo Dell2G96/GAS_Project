@@ -22,6 +22,14 @@ class GAS_PROJECT_API ULeeGameplayAbility : public UGameplayAbility
 public:
 	ULeeGameplayAbility(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
+
+	virtual bool CheckCost(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, OUT FGameplayTagContainer* OptionalRelevantTags = nullptr) const override;
+	virtual void ApplyCost(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo) const override;
+	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Lee|AbilityActivation")
 	ELeeAbilityActivationPolicy ActivationPolicy;
+
+	/** ability costs to apply HakGameplayAbility separately */
+	UPROPERTY(EditDefaultsOnly, Instanced, Category = "Hak|Costs")
+	TArray<TObjectPtr<class ULeeAbilityCost>> AdditionalCosts;
 };

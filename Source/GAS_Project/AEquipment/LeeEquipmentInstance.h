@@ -12,7 +12,7 @@
  * 
  */
 UCLASS(BlueprintType, Blueprintable)
-class GAS_PROJECT_API ULeeEquipmentInstance : public ULeeInventoryItemFragment
+class GAS_PROJECT_API ULeeEquipmentInstance : public UObject
 {
 	GENERATED_BODY()
 	

@@ -12,7 +12,7 @@ class ULeeInventoryItemFragment : public UObject
 	GENERATED_BODY()
 
 public:
-	
+	virtual void OnInstanceCreated(class ULeeInventoryItemInstance* Instance) const {}
 };
 
 

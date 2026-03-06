@@ -15,20 +15,19 @@ class GAS_PROJECT_API ALeeCharacter : public AModularCharacter, public  IAbility
 
 public:
 	// Sets default values for this character's properties
-	ALeeCharacter();
+	ALeeCharacter(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
+	void OnAbilitySystemInitialized();
+	void OnAbilitySystemUnInitialized();
+
+	virtual void SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) final;
+
+
+	
 	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
 
-protected:
-	// Called when the game starts or when spawned
-	virtual void BeginPlay() override;
 
-public:
-	// Called every frame
-	virtual void Tick(float DeltaTime) override;
-
-	// Called to bind functionality to input
-	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
+	
 
 public:
 	// UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Lee|Character")
@@ -39,4 +38,7 @@ public:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Lee|Character")
 	TObjectPtr<class ULeeCameraComponent> CameraComponent;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Lee|Character")
+	TObjectPtr<class ULeeHealthComponent> HealthComponent;
 };
