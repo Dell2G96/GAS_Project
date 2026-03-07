@@ -41,6 +41,7 @@ public class GAS_Project : ModuleRules
 			"CommonGame",
 			//UIExtension
 			"UIExtension",
+			//SoulsCore
 			
 		});
 		

@@ -63,6 +63,10 @@
 		{
 			"Name": "UIExtension",
 			"Enabled": true
+		},
+		{
+			"Name": "SoulsCore",
+			"Enabled": true
 		}
 	]
 }
