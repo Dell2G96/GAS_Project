@@ -39,7 +39,7 @@ static AssetType* GetAsset(const TSoftObjectPtr<AssetType>& AssetPointer, bool b
 	TSet<TObjectPtr<const UObject>> LoadedAssets;
 
 	// Object 단위 Locking
-	FCriticalSection SyncObject;
+	FCriticalSection LoadedAssetsCritical;
 };
 
 template <typename AssetType>

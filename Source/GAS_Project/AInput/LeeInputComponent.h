@@ -17,11 +17,17 @@ class GAS_PROJECT_API ULeeInputComponent : public UEnhancedInputComponent
 public:
 	ULeeInputComponent(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
+	void AddInputMappings(const ULeeInputConfig* InputConfig, class UEnhancedInputLocalPlayerSubsystem* InputSubsystem) const;
+
+	void RemoveInputMappings(const ULeeInputConfig* InputConfig, UEnhancedInputLocalPlayerSubsystem* InputSubsystem) const;
+	
 	template<class UserClass, typename FuncType>
 	void BindNativeAction(const class ULeeInputConfig* InputConfig, const FGameplayTag& InputTag, ETriggerEvent TriggerEvent, UserClass* Object, FuncType Func, bool bLogIfNotFound);
 
 	template <class UserClass, typename PressedFuncType, typename ReleasedFuncType>
 	void BindAbilityActions(const ULeeInputConfig* InputConfig, UserClass* Object, PressedFuncType PressedFunc, ReleasedFuncType ReleasedFunc, TArray<uint32>& BindHandles);
+
+	void RemoveBinds(TArray<uint32>& BindHandles);
 };
 
 template <class UserClass, typename FuncType>

@@ -57,3 +57,12 @@ UObject* ULeeAssetManager::SynchronousLoadAsset(const FSoftObjectPath& AssetPath
 	}
 	return nullptr;
 }
+
+void ULeeAssetManager::AddLoadedAsset(const UObject* Asset)
+{
+	if (ensureAlways(Asset))
+	{
+		FScopeLock LoadedAssetsLock(&LoadedAssetsCritical);
+		LoadedAssets.Add(Asset);
+	}
+}

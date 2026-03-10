@@ -29,7 +29,7 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Lee|AbilityActivation")
 	ELeeAbilityActivationPolicy ActivationPolicy;
 
-	/** ability costs to apply HakGameplayAbility separately */
-	UPROPERTY(EditDefaultsOnly, Instanced, Category = "Hak|Costs")
+	/** ability costs to apply LeeGameplayAbility separately */
+	UPROPERTY(EditDefaultsOnly, Instanced, Category = "Lee|Costs")
 	TArray<TObjectPtr<class ULeeAbilityCost>> AdditionalCosts;
 };

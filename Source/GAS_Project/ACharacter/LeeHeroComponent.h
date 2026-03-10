@@ -2,11 +2,10 @@
 
 #pragma once
 
-#include "CoreMinimal.h"
-#include "Components/GameFrameworkComponentDelegates.h"
 #include "Components/GameFrameworkInitStateInterface.h"
 #include "Components/PawnComponent.h"
-#include "GAS_Project/AInput/LeeMappableConfigPair.h"
+#include "GameplayAbilitySpecHandle.h"
+
 #include "LeeHeroComponent.generated.h"
 
 
@@ -42,8 +41,18 @@ public:
 	void Input_AbilityInputTagPressed(FGameplayTag InputTag);
 	void Input_AbilityInputTagReleased(FGameplayTag InputTag);
 
+protected:
 	UPROPERTY(EditAnywhere)
-	TArray<struct FLeeMappableConfigPair> DefaultInputConfigs;
+	TArray<struct FInputMappingContextAndPriority> DefaultInputMappings;
+
+	UPROPERTY()
+	TSubclassOf<class ULeeCameraMode> AbilityCameraMode;
+
+	FGameplayAbilitySpecHandle AbilityCameraModeOwningSpecHandle;
+
+	bool bReadyToBindInputs;
+
+	
 	
 };
 

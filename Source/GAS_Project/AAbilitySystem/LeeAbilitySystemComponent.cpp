@@ -36,7 +36,7 @@ void ULeeAbilitySystemComponent::AbilityInputTagPressed(const FGameplayTag& Inpu
 	{
 		for (const FGameplayAbilitySpec& AbilitySpec : ActivatableAbilities.Items)
 		{
-			if (AbilitySpec.Ability && (AbilitySpec.DynamicAbilityTags.HasTagExact(InputTag)))
+			if (AbilitySpec.Ability && (AbilitySpec.GetDynamicSpecSourceTags().HasTagExact(InputTag)))
 			{
 				InputPressedSpecHandles.AddUnique(AbilitySpec.Handle);
 				InputHeldSpecHandles.AddUnique(AbilitySpec.Handle);
@@ -51,7 +51,7 @@ void ULeeAbilitySystemComponent::AbilityInputTagReleased(const FGameplayTag& Inp
 	{
 		for (const FGameplayAbilitySpec& AbilitySpec : ActivatableAbilities.Items)
 		{
-			if (AbilitySpec.Ability && (AbilitySpec.DynamicAbilityTags.HasTagExact(InputTag)))
+			if (AbilitySpec.Ability && (AbilitySpec.GetDynamicSpecSourceTags().HasTagExact(InputTag)))
 			{
 				// Released에 추가하고, Held에서는 제거해준다
 				InputReleasedSpecHandles.AddUnique(AbilitySpec.Handle);

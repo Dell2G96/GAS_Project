@@ -14,6 +14,12 @@
 	"IsBetaVersion": false,
 	"IsExperimentalVersion": false,
 	"Installed": false,
+	"Plugins": [
+		{
+			"Name": "ModularGameplay",
+			"Enabled": true
+		}
+	],
 	"Modules": [
 		{
 			"Name": "ModularGamePlayActors",

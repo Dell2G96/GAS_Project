@@ -9,15 +9,16 @@
 
 #include "Components/GameFrameworkComponentManager.h"
 #include "LeeGameplayTags.h"
-#include "PlayerMappableInputConfig.h"
 
 #include "GAS_Project/MyTags.h"
 #include "GAS_Project/AAbilitySystem/LeeAbilitySystemComponent.h"
 #include "GAS_Project/ACamera/LeeCameraComponent.h"
 #include "GAS_Project/AInput/LeeInputComponent.h"
+#include "GAS_Project/AInput/LeeMappableConfigPair.h"
 #include "GAS_Project/APlayer/LeePlayerController.h"
 #include "GAS_Project/APlayer/LeePlayerState.h"
-#include "GAS_Project/GameModes/LeeExperienceManagerComponent.h"
+#include "GAS_Project/GameFeatures/GameFeatureAction_AddInputContextMapping.h"
+#include "UserSettings/EnhancedInputUserSettings.h"
 
 
 const FName ULeeHeroComponent::NAME_ActorFeatureName("Hero");
@@ -227,44 +228,43 @@ void ULeeHeroComponent::InitializePlayerInput(UInputComponent* PlayerInputCompon
 			if (const ULeeInputConfig* InputConfig = PawnData->InputConfig)
 			{
 				const FGameplayTag& GameplayTags = FGameplayTag();
-
-				for (const FLeeMappableConfigPair& Pair : DefaultInputConfigs)
+				
+				for (const FInputMappingContextAndPriority& Mapping : DefaultInputMappings)
 				{
-					if (Pair.bShouldActivateAutomatically)
+					if (UInputMappingContext* IMC = Mapping.InputMapping.LoadSynchronous())
 					{
-						FModifyContextOptions Options = {};
-						Options.bIgnoreAllPressedKeysUntilRelease = false;
-
-						// // 5.6: UPlayerMappableInputConfig 대신 MappingContexts 직접 사용
-						// for (const FInputMappingContextAndPriority& MappingPair : Pair.GetMappingContexts())
-						// {
-						// 	if (MappingPair.InputMapping)
-						// 	{
-						// 		Subsystem->AddMappingContext(MappingPair.InputMapping, MappingPair.Priority, Options);
-						// 	}
-						// }
-
-						for (const auto ConfigObject = Pair.Config.LoadSynchronous(); const auto& MappingContextPair : ConfigObject->GetMappingContexts())
+						if (Mapping.bRegisterWithSettings)
 						{
-							const UInputMappingContext* MappingContext = MappingContextPair.Key;
-							const int32 Priority = MappingContextPair.Value;
-							Subsystem->AddMappingContext(MappingContext, Priority, Options);
-						}
+							if (UEnhancedInputUserSettings* Settings = Subsystem->GetUserSettings())
+							{
+								Settings->RegisterInputMappingContext(IMC);
+
+								FModifyContextOptions Options = {};
+								Options.bIgnoreAllPressedKeysUntilRelease = false;
+
+								Subsystem->AddMappingContext(IMC,Mapping.Priority,Options);
+							}
+						}	
 					}
-				} // DefaultInputConfigs
-				// Cast로 변경: B_SimpleHeroPawn 등 ULeeInputComponent가 아닌 Pawn에서도 크래시하지 않도록
+				}
 				if (ULeeInputComponent* LeeIC = Cast<ULeeInputComponent>(PlayerInputComponent))
 				{
 					{
+						LeeIC->AddInputMappings(InputConfig,Subsystem);
 						TArray<uint32> BindHandles;
 						//LeeIC->BindAbilityAction();
 						LeeIC->BindAbilityActions(InputConfig, this, &ThisClass::Input_AbilityInputTagPressed, &ThisClass::Input_AbilityInputTagReleased, BindHandles);
+					
+						LeeIC->BindNativeAction(InputConfig, MyTags::Lyra::InputTag_Move, ETriggerEvent::Triggered, this, &ThisClass::Input_Move,false);
+						LeeIC->BindNativeAction(InputConfig, MyTags::Lyra::InputTag_Look_Mouse, ETriggerEvent::Triggered, this, &ThisClass::Input_LookMouse,false);
 					}
-					LeeIC->BindNativeAction(InputConfig, MyTags::Lyra::InputTag_Move, ETriggerEvent::Triggered, this, &ThisClass::Input_Move,false);
-					LeeIC->BindNativeAction(InputConfig, MyTags::Lyra::InputTag_Look_Mouse, ETriggerEvent::Triggered, this, &ThisClass::Input_LookMouse,false);
 				}
 			}
 		}
+	}
+	if (ensure(!bReadyToBindInputs))
+	{
+		bReadyToBindInputs = true;
 	}
 	UGameFrameworkComponentManager::SendGameFrameworkComponentExtensionEvent(const_cast<APawn*>(Pawn), NAME_BindInputsNow);
 }

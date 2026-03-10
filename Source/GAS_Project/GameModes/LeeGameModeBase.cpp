@@ -4,6 +4,7 @@
 #include "LeeGameModeBase.h"
 
 #include "LeeExperienceDefinition.h"
+#include "LeeWorldSetting.h"
 #include "LeeExperienceManagerComponent.h"
 #include "LeeGameState.h"
 #include "GAS_Project/LeeLogChannels.h"
@@ -99,11 +100,23 @@ void ALeeGameModeBase::HandleMatchAssignmentIfNotExpectingOne()
 
 	UWorld* World = GetWorld();
 
+	// 1) URL Options에서 "Experience" 파라미터 확인
 	if (!ExperienceId.IsValid() && UGameplayStatics::HasOption(OptionsString, TEXT("Experience")))
 	{
 		const FString ExperienceFromOptions = UGameplayStatics::ParseOption(OptionsString, TEXT("Experience"));
 		ExperienceId = FPrimaryAssetId(FName(FPrimaryAssetType((*ULeeExperienceDefinition::StaticClass()->GetName()))),FName(*ExperienceFromOptions));
 	}
+
+	// 2) WorldSettings에서 DefaultGameplayExperience 확인
+	if (!ExperienceId.IsValid())
+	{
+		if (ALeeWorldSetting* TypedWorldSettings = Cast<ALeeWorldSetting>(World->GetWorldSettings()))
+		{
+			ExperienceId = TypedWorldSettings->GetDefaultGameplayExperience();
+		}
+	}
+
+	// 3) 최종 폴백: B_DefaultExperience
 	if (!ExperienceId.IsValid()) 
 	{
 		ExperienceId = FPrimaryAssetId(FPrimaryAssetType("LeeExperienceDefinition"), FName("B_DefaultExperience"));
