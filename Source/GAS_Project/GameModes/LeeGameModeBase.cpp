@@ -3,10 +3,12 @@
 
 #include "LeeGameModeBase.h"
 
+#include "GameMapsSettings.h"
 #include "LeeExperienceDefinition.h"
 #include "LeeWorldSetting.h"
 #include "LeeExperienceManagerComponent.h"
 #include "LeeGameState.h"
+#include "GameFramework/GameSession.h"
 #include "GAS_Project/LeeLogChannels.h"
 #include "GAS_Project/ACharacter/LeeCharacter.h"
 #include "GAS_Project/APlayer/LeePlayerController.h"
@@ -16,9 +18,12 @@
 #include "GAS_Project/AUI/LeeHUD.h"
 #include "Kismet/GameplayStatics.h"
 
-ALeeGameModeBase::ALeeGameModeBase()
+ALeeGameModeBase::ALeeGameModeBase(const FObjectInitializer& ObjectInitializer)
+: Super(ObjectInitializer)
+
 {
 	GameStateClass = ALeeGameState::StaticClass();
+	GameSessionClass = ALeeGameState::StaticClass();
 	PlayerControllerClass = ALeePlayerController::StaticClass();
 	PlayerStateClass = ALeePlayerState::StaticClass();
 	DefaultPawnClass = ALeeCharacter::StaticClass();
@@ -94,10 +99,95 @@ APawn* ALeeGameModeBase::SpawnDefaultPawnAtTransform_Implementation(AController*
 	return nullptr;
 }
 
+bool ALeeGameModeBase::ShouldSpawnAtStartSpot(AController* Player)
+{
+	return Super::ShouldSpawnAtStartSpot(Player);
+}
+
+AActor* ALeeGameModeBase::ChoosePlayerStart_Implementation(AController* Player)
+{
+	return Super::ChoosePlayerStart_Implementation(Player);
+}
+
+void ALeeGameModeBase::FinishRestartPlayer(AController* NewPlayer, const FRotator& StartRotation)
+{
+	Super::FinishRestartPlayer(NewPlayer, StartRotation);
+}
+
+bool ALeeGameModeBase::PlayerCanRestart_Implementation(APlayerController* Player)
+{
+	return Super::PlayerCanRestart_Implementation(Player);
+}
+
+bool ALeeGameModeBase::UpdatePlayerStartSpot(AController* Player, const FString& Portal, FString& OutErrorMessage)
+{
+	return Super::UpdatePlayerStartSpot(Player, Portal, OutErrorMessage);
+}
+
+void ALeeGameModeBase::GenericPlayerInitialization(AController* NewPlayer)
+{
+	Super::GenericPlayerInitialization(NewPlayer);
+}
+
+void ALeeGameModeBase::FailedToRestartPlayer(AController* NewPlayer)
+{
+	Super::FailedToRestartPlayer(NewPlayer);
+}
+
+void ALeeGameModeBase::RequestPlayerRestartNextFrame(AController* Controller, bool bForceReset)
+{
+}
+
+bool ALeeGameModeBase::ControllerCanRestart(AController* Controller)
+{
+	return false;
+}
+
+
+void ALeeGameModeBase::OnMatchAssignmentGiven(FPrimaryAssetId ExperienceId, const FString& ExperienceIdSource)
+{
+}
+
+bool ALeeGameModeBase::TryDedicatedServerLogin()
+{
+	// // Some basic code to register as an active dedicated server, this would be heavily modified by the game
+	// FString DefaultMap = UGameMapsSettings::GetGameDefaultMap();
+	// UWorld* World = GetWorld();
+	// UGameInstance* GameInstance = GetGameInstance();
+	// if (GameInstance && World && World->GetNetMode() == NM_DedicatedServer && World->URL.Map == DefaultMap)
+	// {
+	// 	// Only register if this is the default map on a dedicated server
+	// 	// UCommonUserSubsystem* UserSubsystem = GameInstance->GetSubsystem<UCommonUserSubsystem>();
+	//
+	// 	// Dedicated servers may need to do an online login
+	// 	UserSubsystem->OnUserInitializeComplete.AddDynamic(this, &ALyraGameMode::OnUserInitializedForDedicatedServer);
+	//
+	// 	// There are no local users on dedicated server, but index 0 means the default platform user which is handled by the online login code
+	// 	if (!UserSubsystem->TryToLoginForOnlinePlay(0))
+	// 	{
+	// 		OnUserInitializedForDedicatedServer(nullptr, false, FText(), ECommonUserPrivilege::CanPlayOnline, ECommonUserOnlineContext::Default);
+	// 	}
+	//
+	// 	return true;
+	// }
+
+	return false;
+}
+
+// void ALeeGameModeBase::HostDedicatedServerMatch(ECommonSessionOnlineMode OnlineMode)
+// {
+// }
+//
+// void ALeeGameModeBase::OnUserInitializedForDedicatedServer(const UCommonUserInfo* UserInfo, bool bSuccess, FText Error,
+// 	ECommonUserPrivilege RequestedPrivilege, ECommonUserOnlineContext OnlineContext)
+// {
+// }
+
 void ALeeGameModeBase::HandleMatchAssignmentIfNotExpectingOne()
 {
 	FPrimaryAssetId ExperienceId;
-
+	FString ExperienceIdSource;
+	
 	UWorld* World = GetWorld();
 
 	// 1) URL Options에서 "Experience" 파라미터 확인
@@ -105,7 +195,15 @@ void ALeeGameModeBase::HandleMatchAssignmentIfNotExpectingOne()
 	{
 		const FString ExperienceFromOptions = UGameplayStatics::ParseOption(OptionsString, TEXT("Experience"));
 		ExperienceId = FPrimaryAssetId(FName(FPrimaryAssetType((*ULeeExperienceDefinition::StaticClass()->GetName()))),FName(*ExperienceFromOptions));
+		
+		ExperienceIdSource = TEXT("OptionsString");
 	}
+
+	// if (!ExperienceId.IsValid() && World->IsPlayInEditor())
+	// {
+	// 	ExperienceId = GetDefault<ULeeDeveloperSettings>()->ExperienceOverride;
+	// 	ExperienceIdSource = TEXT("DeveloperSettings");
+	// }
 
 	// 2) WorldSettings에서 DefaultGameplayExperience 확인
 	if (!ExperienceId.IsValid())
@@ -113,13 +211,21 @@ void ALeeGameModeBase::HandleMatchAssignmentIfNotExpectingOne()
 		if (ALeeWorldSetting* TypedWorldSettings = Cast<ALeeWorldSetting>(World->GetWorldSettings()))
 		{
 			ExperienceId = TypedWorldSettings->GetDefaultGameplayExperience();
+			ExperienceIdSource = TEXT("WorldSettings");
 		}
 	}
 
 	// 3) 최종 폴백: B_DefaultExperience
 	if (!ExperienceId.IsValid()) 
 	{
+		if (TryDedicatedServerLogin())
+		{
+			// This will start to host as a dedicated server
+			return;
+		}
+		
 		ExperienceId = FPrimaryAssetId(FPrimaryAssetType("LeeExperienceDefinition"), FName("B_DefaultExperience"));
+		ExperienceIdSource = TEXT("Default");
 	}
 	OnMatchAssignmentGiven(ExperienceId);
 }

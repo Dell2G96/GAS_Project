@@ -4,6 +4,7 @@
 #include "LeePawnExtensionComponent.h"
 
 #include "Components/GameFrameworkComponentManager.h"
+#include "Net/UnrealNetwork.h"
 #include "GAS_Project/LeeLogChannels.h"
 #include "GAS_Project/MyTags.h"
 #include "GAS_Project/AAbilitySystem/LeeAbilitySystemComponent.h"
@@ -15,6 +16,21 @@ ULeePawnExtensionComponent::ULeePawnExtensionComponent(const FObjectInitializer&
 {
 	PrimaryComponentTick.bStartWithTickEnabled = false;
 	PrimaryComponentTick.bCanEverTick = false;
+
+	SetIsReplicatedByDefault(true);
+}
+
+void ULeePawnExtensionComponent::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME(ULeePawnExtensionComponent, PawnData);
+}
+
+void ULeePawnExtensionComponent::OnRep_PawnData()
+{
+	// 클라이언트에서 PawnData를 수신하면 InitState 체인 재개
+	CheckDefaultInitialization();
 }
 
 void ULeePawnExtensionComponent::SetPawnData(const class ULeePawnData* InPawnData)
@@ -29,7 +45,7 @@ void ULeePawnExtensionComponent::SetPawnData(const class ULeePawnData* InPawnDat
 	{
 		return;
 	}
-
+	
 	PawnData = InPawnData;
 }
 

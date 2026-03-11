@@ -46,6 +46,7 @@ public:
 	virtual void OnRegister() final;
 	virtual void BeginPlay() final;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) final;
+	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
 
 
 	// IGameFrameworkInitStateInterface
@@ -54,8 +55,11 @@ public:
 	virtual bool CanChangeInitState(UGameFrameworkComponentManager* Manager, FGameplayTag CurrentState, FGameplayTag DesiredState) const final;
 	virtual void CheckDefaultInitialization() final;	
 	
-	UPROPERTY(EditInstanceOnly, Category="LEE|Pawn")
+	UPROPERTY(EditInstanceOnly, ReplicatedUsing=OnRep_PawnData, Category="LEE|Pawn")
 	TObjectPtr<const class ULeePawnData> PawnData;
+
+	UFUNCTION()
+	void OnRep_PawnData();
 
 	UPROPERTY(EditInstanceOnly, Category="LEE|AbilitySystem")
 	TObjectPtr<class ULeeAbilitySystemComponent> AbilitySystemComponent;

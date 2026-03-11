@@ -8,7 +8,131 @@
 #include "GameFeaturesSubsystemSettings.h"
 #include "LeeExperienceActionSet.h"
 #include "LeeExperienceDefinition.h"
+#include "Net/UnrealNetwork.h"
 #include "GAS_Project/System/LeeAssetManager.h"
+
+ULeeExperienceManagerComponent::ULeeExperienceManagerComponent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+}
+
+void ULeeExperienceManagerComponent::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME(ULeeExperienceManagerComponent, CurrentExperience);
+}
+
+void ULeeExperienceManagerComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	Super::EndPlay(EndPlayReason);
+
+	// // deactivate any features this experience loaded
+	// //@TODO: This should be handled FILO as well
+	// for (const FString& PluginURL : GameFeaturePluginURLs)
+	// {
+	// 	if (ULeeExperienceManager::RequestToDeactivatePlugin(PluginURL))
+	// 	{
+	// 		UGameFeaturesSubsystem::Get().DeactivateGameFeaturePlugin(PluginURL);
+	// 	}
+	// }
+	//
+	// //@TODO: Ensure proper handling of a partially-loaded state too
+	// if (LoadState == ELeeExperienceLoadState::Loaded)
+	// {
+	// 	LoadState = ELeeExperienceLoadState::Deactivating;
+	//
+	// 	// Make sure we won't complete the transition prematurely if someone registers as a pauser but fires immediately
+	// 	NumExpectedPausers = INDEX_NONE;
+	// 	NumObservedPausers = 0;
+	//
+	// 	// Deactivate and unload the actions
+	// 	FGameFeatureDeactivatingContext Context(TEXT(""), [this](FStringView) { this->OnActionDeactivationCompleted(); });
+	//
+	// 	const FWorldContext* ExistingWorldContext = GEngine->GetWorldContextFromWorld(GetWorld());
+	// 	if (ExistingWorldContext)
+	// 	{
+	// 		Context.SetRequiredWorldContextHandle(ExistingWorldContext->ContextHandle);
+	// 	}
+	//
+	// 	auto DeactivateListOfActions = [&Context](const TArray<UGameFeatureAction*>& ActionList)
+	// 	{
+	// 		for (UGameFeatureAction* Action : ActionList)
+	// 		{
+	// 			if (Action)
+	// 			{
+	// 				Action->OnGameFeatureDeactivating(Context);
+	// 				Action->OnGameFeatureUnregistering();
+	// 			}
+	// 		}
+	// 	};
+	//
+	// 	DeactivateListOfActions(CurrentExperience->Actions);
+	// 	for (const TObjectPtr<ULeeExperienceActionSet>& ActionSet : CurrentExperience->ActionSets)
+	// 	{
+	// 		if (ActionSet != nullptr)
+	// 		{
+	// 			DeactivateListOfActions(ActionSet->Actions);
+	// 		}
+	// 	}
+	//
+	// 	NumExpectedPausers = Context.GetNumPausers();
+	//
+	// 	if (NumExpectedPausers > 0)
+	// 	{
+	// 		UE_LOG(LogLeeExperience, Error, TEXT("Actions that have asynchronous deactivation aren't fully supported yet in Lee experiences"));
+	// 	}
+	//
+	// 	if (NumExpectedPausers == NumObservedPausers)
+	// 	{
+	// 		OnAllActionsDeactivated();
+	// 	}
+	// }
+}
+
+void ULeeExperienceManagerComponent::SetCurrentExperience(FPrimaryAssetId ExperienceId)
+{
+	ULeeAssetManager& AssetManager = ULeeAssetManager::Get();
+	FSoftObjectPath AssetPath = AssetManager.GetPrimaryAssetPath(ExperienceId);
+	TSubclassOf<ULeeExperienceDefinition> AssetClass = Cast<UClass>(AssetPath.TryLoad());
+	check(AssetClass);
+	const ULeeExperienceDefinition* Experience = GetDefault<ULeeExperienceDefinition>(AssetClass);
+
+	check(Experience != nullptr);
+	check(CurrentExperience == nullptr);
+	CurrentExperience = Experience;
+	StartExperienceLoad();
+}
+
+bool ULeeExperienceManagerComponent::IsExperienceLoaded() const
+{
+	return (LoadState == ELeeExperienceLoadState::Loaded) && (CurrentExperience != nullptr);
+
+}
+
+void ULeeExperienceManagerComponent::OnRep_CurrentExperience()
+{
+	StartExperienceLoad();
+}
+
+void ULeeExperienceManagerComponent::OnActionDeactivationCompleted()
+{
+	// check(IsInGameThread());
+	// ++NumObservedPausers;
+	//
+	// if (NumObservedPausers == NumExpectedPausers)
+	// {
+	// 	OnAllActionsDeactivated();
+	// }
+}
+
+void ULeeExperienceManagerComponent::OnAllActionsDeactivated()
+{
+	//@TODO: We actually only deactivated and didn't fully unload...
+	LoadState = ELeeExperienceLoadState::Unloaded;
+	CurrentExperience = nullptr;
+	//@TODO:	GEngine->ForceGarbageCollection(true);
+}
 
 void ULeeExperienceManagerComponent::CallOrRegister_OnExperienceLoaded(FOnLeeExperienceLoaded::FDelegate&& Delegate)
 {
@@ -41,10 +165,10 @@ void ULeeExperienceManagerComponent::ServerSetCurrentExperience(FPrimaryAssetId 
 		CurrentExperience = Experience;
 	}
 
-	StartExperiencedLoad();
+	StartExperienceLoad();
 }
 
-void ULeeExperienceManagerComponent::StartExperiencedLoad()
+void ULeeExperienceManagerComponent::StartExperienceLoad()
 {
 	check(CurrentExperience);
 	check(LoadState == ELeeExperienceLoadState::Unloaded);

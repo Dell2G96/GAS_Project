@@ -18,9 +18,16 @@ class GAS_PROJECT_API UGameFeatureAction_WorldActionBase : public UGameFeatureAc
 
 public:
 	virtual void OnGameFeatureActivating(struct FGameFeatureActivatingContext& Context) override;
+	virtual void OnGameFeatureDeactivating(FGameFeatureDeactivatingContext& Context) override;
 
+	
 	/**
 	 * interface
 	 */
+	void HandleGameInstanceStart(UGameInstance* GameInstance, FGameFeatureStateChangeContext ChangeContext);
+	
 	virtual void AddToWorld(const FWorldContext& WorldContext, const struct FGameFeatureStateChangeContext& ChangeContext) PURE_VIRTUAL(UGameFeatureAction_WorldActionBase::AddToWorld, );
+
+private:
+	TMap<FGameFeatureStateChangeContext, FDelegateHandle> GameInstanceStartHandles;
 };

@@ -10,6 +10,7 @@
 #include "GAS_Project/AAbilitySystem/AttributeSets/LeeHealthSet.h"
 #include "GAS_Project/ACharacter/LeePawnData.h"
 #include "GAS_Project/GameModes/LeeExperienceManagerComponent.h"
+#include "GAS_Project/GameModes/LeeExperienceDefinition.h"
 #include "GAS_Project/GameModes/LeeGameModeBase.h"
 
 ALeePlayerState::ALeePlayerState(const FObjectInitializer& ObjectInitializer)
@@ -44,12 +45,11 @@ void ALeePlayerState::PostInitializeComponents()
 
 void ALeePlayerState::OnExperienceLoaded(const class ULeeExperienceDefinition* CurrentExperience)
 {
-	if (ALeeGameModeBase* GameMode = GetWorld()->GetAuthGameMode<ALeeGameModeBase>())
+	// GetAuthGameMode()은 클라이언트에서 null을 반환하므로,
+	// CurrentExperience 파라미터에서 직접 PawnData를 가져옴
+	if (CurrentExperience && CurrentExperience->DefaultPawnData)
 	{
-		const ULeePawnData* NewPawnData = GameMode->GetPawnDataForController(GetOwningController());
-		check(NewPawnData);
-
-		SetPawnData(NewPawnData);
+		SetPawnData(CurrentExperience->DefaultPawnData);
 	}
 }
 
@@ -57,16 +57,21 @@ void ALeePlayerState::SetPawnData(const class ULeePawnData* InPawnData)
 {
 	check(InPawnData);
 
-	check(!PawnData);
+	if (PawnData)
+	{
+		return;
+	}
 	PawnData = InPawnData;
 
-	for (ULeeAbilitySet* AbilitySet : PawnData->AbilitySets)
+	// AbilitySet은 Authority(서버)에서만 부여
+	if (HasAuthority())
 	{
-		if (AbilitySet)
+		for (ULeeAbilitySet* AbilitySet : PawnData->AbilitySets)
 		{
-			AbilitySet->GiveToAbilitySystem(AbilitySystemComponent, nullptr);
-			
+			if (AbilitySet)
+			{
+				AbilitySet->GiveToAbilitySystem(AbilitySystemComponent, nullptr);
+			}
 		}
 	}
-	
-}
+}
