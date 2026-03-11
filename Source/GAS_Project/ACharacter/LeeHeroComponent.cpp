@@ -220,7 +220,7 @@ void ULeeHeroComponent::InitializePlayerInput(UInputComponent* PlayerInputCompon
 	UEnhancedInputLocalPlayerSubsystem* Subsystem = LP->GetSubsystem<UEnhancedInputLocalPlayerSubsystem>();
 	check(Subsystem);
 
-	Subsystem->ClearAllMappings();
+	//Subsystem->ClearAllMappings();
 	if (const ULeePawnExtensionComponent* PawnExtComp = ULeePawnExtensionComponent::FindPawnExtensionComponent(Pawn))
 	{
 		if (const ULeePawnData* PawnData = PawnExtComp->GetPawnData<ULeePawnData>())
@@ -244,7 +244,11 @@ void ULeeHeroComponent::InitializePlayerInput(UInputComponent* PlayerInputCompon
 
 								Subsystem->AddMappingContext(IMC,Mapping.Priority,Options);
 							}
-						}	
+						}
+						FModifyContextOptions Options = {};
+						Options.bIgnoreAllPressedKeysUntilRelease = false;
+
+						Subsystem->AddMappingContext(IMC,Mapping.Priority,Options);
 					}
 				}
 				if (ULeeInputComponent* LeeIC = Cast<ULeeInputComponent>(PlayerInputComponent))
