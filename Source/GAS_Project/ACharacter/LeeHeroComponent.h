@@ -20,6 +20,9 @@ class GAS_PROJECT_API ULeeHeroComponent : public UPawnComponent, public IGameFra
 public:
 	ULeeHeroComponent(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
+	UFUNCTION(BlueprintPure, Category = "Lyra|Hero")
+	static ULeeHeroComponent* FindHeroComponent(const AActor* Actor) { return (Actor ? Actor->FindComponentByClass<ULeeHeroComponent>() : nullptr); }
+	
 	static const FName NAME_ActorFeatureName;
 
 	static const FName NAME_BindInputsNow;

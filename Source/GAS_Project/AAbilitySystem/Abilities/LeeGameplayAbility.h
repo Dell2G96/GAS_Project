@@ -22,7 +22,28 @@ class GAS_PROJECT_API ULeeGameplayAbility : public UGameplayAbility
 public:
 	ULeeGameplayAbility(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
+	virtual void OnGiveAbility(const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilitySpec& Spec) override;
 
+	UFUNCTION(BlueprintImplementableEvent, Category = Ability, DisplayName = "OnAbilityAdded")
+	void K2_OnAbilityAdded();
+	
+	UFUNCTION(BlueprintCallable, Category="Lee|Ability")
+	class ULeeAbilitySystemComponent* GetLeeAbilitySystemComponentFromActorInfo() const ;
+
+	UFUNCTION(BlueprintCallable, Category="Lee|Ability")
+	class ALeePlayerController* GetLeePlayerControllerFromActorInfo() const ;
+
+	UFUNCTION(BlueprintCallable, Category="Lee|Ability")
+	class ALeeCharacter* GetLeeCharacterFromActorInfo() const ;
+
+	UFUNCTION(BlueprintCallable, Category="Lee|Ability")
+	class ULeeHeroComponent* GetHeroComponentFromActorInfo() const ;
+
+	void TryActivateAbilityOnSpawn(const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilitySpec& Spec) const;
+
+
+
+	
 	virtual bool CheckCost(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, OUT FGameplayTagContainer* OptionalRelevantTags = nullptr) const override;
 	virtual void ApplyCost(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo) const override;
 	

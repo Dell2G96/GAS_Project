@@ -20,7 +20,8 @@ public:
 	void AbilityInputTagPressed(const FGameplayTag& InputTag);
 	void AbilityInputTagReleased(const FGameplayTag& InputTag);
 	void ProcessAbilityInput(float DeltaTime, bool bGamePaused);
-	
+
+	void TryActivateAbilitiesOnSpawn();
 	TArray<FGameplayAbilitySpecHandle> InputPressedSpecHandles;
 	TArray<FGameplayAbilitySpecHandle> InputReleasedSpecHandles;
 	TArray<FGameplayAbilitySpecHandle> InputHeldSpecHandles;

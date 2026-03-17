@@ -27,7 +27,9 @@ void ULeeAbilitySystemComponent::InitAbilityActorInfo(AActor* InOwnerActor, AAct
 		{
 			LyraAnimInst->InitializeWithAbilitySystem(this);
 		}
+		TryActivateAbilitiesOnSpawn();
 	}
+
 }
 
 void ULeeAbilitySystemComponent::AbilityInputTagPressed(const FGameplayTag& InputTag)
@@ -133,3 +135,16 @@ void ULeeAbilitySystemComponent::ProcessAbilityInput(float DeltaTime, bool bGame
 	InputPressedSpecHandles.Reset();
 	InputReleasedSpecHandles.Reset();
 }
+
+void ULeeAbilitySystemComponent::TryActivateAbilitiesOnSpawn()
+{
+	ABILITYLIST_SCOPE_LOCK();
+	for (const FGameplayAbilitySpec& AbilitySpec : ActivatableAbilities.Items)
+	{
+		if (const ULeeGameplayAbility* LeeAbilityCDO = Cast<ULeeGameplayAbility>(AbilitySpec.Ability))
+		{
+			LeeAbilityCDO->TryActivateAbilityOnSpawn(AbilityActorInfo.Get(), AbilitySpec);
+		}
+	}
+}
+
