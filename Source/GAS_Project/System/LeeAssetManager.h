@@ -3,13 +3,15 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "LeeGameData.h"
 #include "Engine/AssetManager.h"
+#include "GAS_Project/ACharacter/LeePawnData.h"
 #include "LeeAssetManager.generated.h"
 
 /**
  * 
  */
-UCLASS()
+UCLASS(Config = Game)
 class GAS_PROJECT_API ULeeAssetManager : public UAssetManager
 {
 	GENERATED_BODY()
@@ -19,17 +21,43 @@ public:
 
 	static ULeeAssetManager& Get();
 
+	template <typename AssetType>
+static AssetType* GetAsset(const TSoftObjectPtr<AssetType>& AssetPointer, bool bKeepInMemory = true);
+
+	template <typename AssetType>
+	static TSubclassOf<AssetType> GetSubclass(const TSoftClassPtr<AssetType>& AssetPointer, bool bKeepInMemory = true);
+	
+	// 26.03.19 추가
+	const ULeeGameData& GetGameData();
+	const ULeePawnData* GetDefaultPawnData() const;
+
+protected:
+	template <typename GameDataClass>
+	const GameDataClass& GetOrLoadTypedGameData(const TSoftObjectPtr<GameDataClass>& DataPath)
+	{
+		if (TObjectPtr<UPrimaryDataAsset> const* pResult = GameDataMap.Find(GameDataClass::StaticClass()))
+		{
+			return *CastChecked<GameDataClass>(*pResult);
+		}
+
+		return * CastChecked<const GameDataClass>(LoadGameDataOfClass(GameDataClass::StaticClass(), DataPath, GameDataClass::StaticClass()->GetFName()));
+	}
+
+	UPrimaryDataAsset* LoadGameDataOfClass(TSubclassOf<UPrimaryDataAsset> DataClass, const TSoftObjectPtr<UPrimaryDataAsset>& DataClassPath, FPrimaryAssetType PrimaryAssetType);
+
+
+
+
+
+	
+public:
 	virtual void StartInitialLoading() final;
 
 	static bool ShouldLogAssetLoads();
 
 	static UObject* SynchronousLoadAsset(const FSoftObjectPath& AssetPath);
 
-	template <typename AssetType>
-static AssetType* GetAsset(const TSoftObjectPtr<AssetType>& AssetPointer, bool bKeepInMemory = true);
 
-	template <typename AssetType>
-	static TSubclassOf<AssetType> GetSubclass(const TSoftClassPtr<AssetType>& AssetPointer, bool bKeepInMemory = true);
 
 	/** [THREAD-SAFE] 메모리에 로딩된 에셋 캐싱 */
 	void AddLoadedAsset(const UObject* Asset);
@@ -40,6 +68,17 @@ static AssetType* GetAsset(const TSoftObjectPtr<AssetType>& AssetPointer, bool b
 
 	// Object 단위 Locking
 	FCriticalSection LoadedAssetsCritical;
+
+
+protected:
+	UPROPERTY(Config)
+	TSoftObjectPtr<ULeeGameData> LeeGameDataPath;
+	
+	UPROPERTY(Transient)
+	TMap<TObjectPtr<UClass> , TObjectPtr<UPrimaryDataAsset>> GameDataMap;
+
+	UPROPERTY(Config)
+	TSoftObjectPtr<ULeePawnData> DefaultPawnData;
 };
 
 template <typename AssetType>

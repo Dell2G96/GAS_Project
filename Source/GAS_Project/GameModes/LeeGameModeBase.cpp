@@ -10,12 +10,14 @@
 #include "LeeGameState.h"
 #include "GameFramework/GameSession.h"
 #include "GAS_Project/LeeLogChannels.h"
+#include "GAS_Project/AAI/LeePlayerBotController.h"
 #include "GAS_Project/ACharacter/LeeCharacter.h"
 #include "GAS_Project/APlayer/LeePlayerController.h"
 #include "GAS_Project/APlayer/LeePlayerState.h"
 #include "GAS_Project/ACharacter/LeePawnData.h"
 #include "GAS_Project/ACharacter/LeePawnExtensionComponent.h"
 #include "GAS_Project/AUI/LeeHUD.h"
+#include "GAS_Project/System/LeeAssetManager.h"
 #include "Kismet/GameplayStatics.h"
 
 ALeeGameModeBase::ALeeGameModeBase(const FObjectInitializer& ObjectInitializer)
@@ -25,6 +27,7 @@ ALeeGameModeBase::ALeeGameModeBase(const FObjectInitializer& ObjectInitializer)
 	GameStateClass = ALeeGameState::StaticClass();
 	GameSessionClass = ALeeGameState::StaticClass();
 	PlayerControllerClass = ALeePlayerController::StaticClass();
+	
 	PlayerStateClass = ALeePlayerState::StaticClass();
 	DefaultPawnClass = ALeeCharacter::StaticClass();
 	HUDClass = ALeeHUD::StaticClass();
@@ -283,10 +286,27 @@ const class ULeePawnData* ALeeGameModeBase::GetPawnDataForController(const ACont
 	if (ExperienceManagerComponent->IsExperienceLoaded())
 	{
 		const ULeeExperienceDefinition* Experience = ExperienceManagerComponent->GetCurrentExperienceChecked();
+
+		// 26.03.19 추가
+		if (InController->IsPlayerController())
+		{
+			return Experience->DefaultPawnData;
+		}
+		else if (const ALeePlayerBotController* BotController = Cast<ALeePlayerBotController>(InController))
+		{
+			const ULeePawnData* LeeEnemyPawnData = Experience->EnemyPawnClasses[BotController->BotIdentifier];
+			if (LeeEnemyPawnData != nullptr)
+			{
+				return LeeEnemyPawnData;
+			}
+		}
+		
 		if (Experience->DefaultPawnData)
 		{
 			return Experience->DefaultPawnData;
 		}
+
+		
 	}
 
 	return nullptr;

@@ -22,6 +22,12 @@ public:
 	UFUNCTION(BlueprintCallable, blueprintPure = false, meta=(DeterminesOutputType = FragmentClass))
 	const ULeeInventoryItemFragment* FindFragmentByClass(TSubclassOf<ULeeInventoryItemFragment> FragmentClass) const;
 
+	UFUNCTION(BlueprintCallable, Category=Inventory)
+	TSubclassOf<class ULeeInventoryItemDefinition> GetItemDef() const
+	{
+		return ItemDef;
+	}
+
 	template<typename  ResultClass>
 	const ResultClass* FindFragmentByClass() const
 	{

@@ -29,6 +29,26 @@ namespace MyTags
 		UE_DEFINE_GAMEPLAY_TAG(UI_Layer_GameMenu,"UI.Layer.GameMenu")
 		UE_DEFINE_GAMEPLAY_TAG(UI_Layer_Menu,"UI.Layer.Menu")
 		UE_DEFINE_GAMEPLAY_TAG(UI_Layer_Modal,"UI.Layer.Modal")
+
+		UE_DEFINE_GAMEPLAY_TAG(Lyra_QickBar_Message_SlotsChanged, "Lyra.QuickBar.Message.SlotsChanged")
+		UE_DEFINE_GAMEPLAY_TAG(Lyra_QickBar_Message_ActiveIndexChanged, "Lyra.QuickBar.Message.ActiveIndexChanged")
+	}
+
+	namespace Souls
+	{
+		UE_DEFINE_GAMEPLAY_TAG(Gameplay_Damage, "Souls.Gameplay.Damage")             
+		UE_DEFINE_GAMEPLAY_TAG(Gameplay_DamageImmunity, "Souls.Gameplay.DamageImmunity")     
+		UE_DEFINE_GAMEPLAY_TAG(Gameplay_DamageSelfDestruct, "Souls.Gameplay.SelfDestruct") 
+		UE_DEFINE_GAMEPLAY_TAG(Gameplay_FellOutOfWorld, "Souls.Gameplay.FellOutOfWorld")    
+		UE_DEFINE_GAMEPLAY_TAG(Gameplay_Damage_Message, "Souls.Gameplay.Message")
+
+		
+		UE_DEFINE_GAMEPLAY_TAG(SetByCaller_Damage, "Souls.SetByCaller.Damage")
+
+
+		
+		
+		
 	}
 
 	/** Input Tags **/

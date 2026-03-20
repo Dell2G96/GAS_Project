@@ -4,6 +4,7 @@
 #include "LeePlayerState.h"
 
 #include "Abilities/GameplayAbilityTypes.h"
+#include "GAS_Project/LeeLogChannels.h"
 #include "GAS_Project/AAbilitySystem/LeeAbilitySet.h"
 #include "GAS_Project/AAbilitySystem/LeeAbilitySystemComponent.h"
 #include "GAS_Project/AAbilitySystem/AttributeSets/LeeCombatSet.h"
@@ -47,9 +48,22 @@ void ALeePlayerState::OnExperienceLoaded(const class ULeeExperienceDefinition* C
 {
 	// GetAuthGameMode()은 클라이언트에서 null을 반환하므로,
 	// CurrentExperience 파라미터에서 직접 PawnData를 가져옴
-	if (CurrentExperience && CurrentExperience->DefaultPawnData)
+	// Lecacy
+	// if (CurrentExperience && CurrentExperience->DefaultPawnData)
+	// {
+	// 	SetPawnData(CurrentExperience->DefaultPawnData);
+	// }
+
+	if (ALeeGameModeBase* LeeGameMode = GetWorld()->GetAuthGameMode<ALeeGameModeBase>())
 	{
-		SetPawnData(CurrentExperience->DefaultPawnData);
+		if (const ULeePawnData* NewPawnData = LeeGameMode->GetPawnDataForController(GetOwningController()))
+		{
+			SetPawnData(NewPawnData);
+		}
+		else
+		{
+			UE_LOG(LogLee, Error, TEXT("ALeePlayerState::OnExperienceLoaded(): Unable to find PawnData to initialize player state [%s]!"), *GetNameSafe(this));
+		}
 	}
 }
 
@@ -74,4 +88,4 @@ void ALeePlayerState::SetPawnData(const class ULeePawnData* InPawnData)
 			}
 		}
 	}
-}
+}

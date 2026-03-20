@@ -46,6 +46,8 @@ public:
 	void OnAllActionsDeactivated();
 	
 	void CallOrRegister_OnExperienceLoaded(FOnLeeExperienceLoaded::FDelegate&& Delegate);
+	void CallOrRegister_OnExperienceLoaded_LowPriority(FOnLeeExperienceLoaded::FDelegate&& Delegate);
+	
 	void ServerSetCurrentExperience(FPrimaryAssetId ExperiencedId);
 
 	void StartExperienceLoad();
@@ -61,6 +63,8 @@ public:
 	ELeeExperienceLoadState LoadState = ELeeExperienceLoadState::Unloaded;
 
 	FOnLeeExperienceLoaded OnExperienceLoaded;
+
+	FOnLeeExperienceLoaded OnExperienceLoaded_LowPriority;
 
 	int32 NumGameFeaturePluginsloading = 0;
 	TArray<FString> GameFeaturePluginURLs;

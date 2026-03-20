@@ -6,13 +6,25 @@
 #include "LeeEquipmentDefinition.h"
 #include "LeeEquipmentInstance.h"
 #include "LeeEquipmentManagerComponent.h"
+#include "GameFramework/GameplayMessageSubsystem.h"
+#include "GAS_Project/MyTags.h"
 #include "GAS_Project/AInventory/LeeInventoryFragment_EquippableItem.h"
 #include "GAS_Project/AInventory/LeeInventoryItemInstance.h"
+#include "Net/UnrealNetwork.h"
 
 
 ULeeQuickBarComponent::ULeeQuickBarComponent(const FObjectInitializer& ObjectInitializer)
 	:Super(ObjectInitializer)
 {
+	SetIsReplicatedByDefault(true);
+}
+
+void ULeeQuickBarComponent::GetLifetimeReplicatedProps(TArray< FLifetimeProperty >& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME(ThisClass, Slots);
+	DOREPLIFETIME(ThisClass, ActiveSlotIndex);
 }
 
 void ULeeQuickBarComponent::BeginPlay()
@@ -24,6 +36,122 @@ void ULeeQuickBarComponent::BeginPlay()
 	
 	Super::BeginPlay();
 }
+
+
+void ULeeQuickBarComponent::CycleActiveSlotForward()
+{
+	if (Slots.Num() < 2)
+	{
+		return;
+	}
+	const int32 OldIndex = (ActiveSlotIndex < 0 ? Slots.Num() -1  : ActiveSlotIndex);
+	int32 NewIndex = ActiveSlotIndex;
+	do
+	{
+		NewIndex = (NewIndex + 1) % Slots.Num();
+		if (Slots[NewIndex] != nullptr)
+		{
+			SetActiveSlotIndex(NewIndex);
+			return ;
+		}
+	} while (NewIndex != OldIndex);
+}
+
+void ULeeQuickBarComponent::CycleActiveSlotBackward()
+{
+	if (Slots.Num() < 2)
+	{
+		return;
+	}
+	const int32 OldIndex = (ActiveSlotIndex < 0 ? Slots.Num()-1 : ActiveSlotIndex);
+	int32 NewIndex = ActiveSlotIndex;
+	do
+	{
+		NewIndex = (NewIndex - 1 + Slots.Num()) % Slots.Num();
+		if (Slots[NewIndex] != nullptr)
+		{
+			SetActiveSlotIndex(NewIndex);
+			return;
+		}
+	} while (NewIndex != OldIndex);
+
+}
+
+class ULeeInventoryItemInstance* ULeeQuickBarComponent::GetActiveSlotItem() const
+{
+	return Slots.IsValidIndex(ActiveSlotIndex) ? Slots[ActiveSlotIndex] : nullptr;
+}
+
+int32 ULeeQuickBarComponent::GetNextFreeItemSlot() const
+{
+	int32 SlotIndex = 0;
+	for (const TObjectPtr<ULeeInventoryItemInstance>& ItemPtr : Slots)
+	{
+		if (ItemPtr == nullptr)
+		{
+			return SlotIndex;
+		}
+		++SlotIndex;
+	}
+
+	return INDEX_NONE;
+}
+
+class ULeeInventoryItemInstance* ULeeQuickBarComponent::RemoveItemFromSlot(int32 SlotIndex)
+{
+	ULeeInventoryItemInstance* Result = nullptr;
+
+	if (ActiveSlotIndex == SlotIndex)
+	{
+		UnequipItemInSlot();
+		ActiveSlotIndex = -1;
+	}
+	if (Slots.IsValidIndex(SlotIndex))
+	{
+		Result = Slots[SlotIndex];
+		if (Result != nullptr)
+		{
+			Slots[SlotIndex] = nullptr;
+			OnRep_Slots();
+		}
+	}
+	return Result;
+}
+
+void ULeeQuickBarComponent::OnRep_Slots()
+{
+	FLeeQuickBarSlotsChangeMessage Message;
+	Message.Owner = GetOwner();
+	Message.Slots = Slots;
+
+	UGameplayMessageSubsystem& MessageSystem = UGameplayMessageSubsystem::Get(this);
+	MessageSystem.BroadcastMessage(MyTags::Lyra::Lyra_QickBar_Message_SlotsChanged, Message);
+}
+
+void ULeeQuickBarComponent::OnRep_ActiveSlotIndex()
+{
+	FLeeQuickBarActiveIndexChangedMessage Message;
+	Message.Owner = GetOwner();
+	Message.ActiveIndex = ActiveSlotIndex;
+
+	UGameplayMessageSubsystem& MessageSystem = UGameplayMessageSubsystem::Get(this);
+	MessageSystem.BroadcastMessage(MyTags::Lyra::Lyra_QickBar_Message_ActiveIndexChanged, Message);
+}
+
+void ULeeQuickBarComponent::SetActiveSlotIndex_Implementation(int32 NewIndex)
+{
+	if (Slots.IsValidIndex(NewIndex) && (ActiveSlotIndex != NewIndex))
+	{
+		UnequipItemInSlot();
+
+		ActiveSlotIndex = NewIndex;
+
+		EquipItemInSlot();
+
+		OnRep_ActiveSlotIndex();
+	}
+}
+
 
 class ULeeEquipmentManagerComponent* ULeeQuickBarComponent::FindEquipmentManger() const
 {
@@ -82,12 +210,3 @@ void ULeeQuickBarComponent::AddItemToSlot(int32 SlotIndex, class ULeeInventoryIt
 	}
 }
 
-void ULeeQuickBarComponent::SetActiveSlotIndex(int32 NewIndex)
-{
-	if (Slots.IsValidIndex(NewIndex) && (ActiveSlotIndex != NewIndex))
-	{
-		UnequipItemInSlot();
-		ActiveSlotIndex = NewIndex;
-		EquipItemInSlot();
-	}
-}

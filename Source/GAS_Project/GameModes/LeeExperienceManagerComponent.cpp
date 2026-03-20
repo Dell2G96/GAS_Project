@@ -148,6 +148,19 @@ void ULeeExperienceManagerComponent::CallOrRegister_OnExperienceLoaded(FOnLeeExp
 	}
 }
 
+void ULeeExperienceManagerComponent::CallOrRegister_OnExperienceLoaded_LowPriority(
+	FOnLeeExperienceLoaded::FDelegate&& Delegate)
+{
+	if (IsExperienceLoaded())
+	{
+		Delegate.Execute(CurrentExperience);
+	}
+	else
+	{
+		OnExperienceLoaded_LowPriority.Add(MoveTemp(Delegate));
+	}
+}
+
 void ULeeExperienceManagerComponent::ServerSetCurrentExperience(FPrimaryAssetId ExperiencedId)
 {
 	ULeeAssetManager& AssetManager = ULeeAssetManager::Get();
@@ -267,6 +280,7 @@ void ULeeExperienceManagerComponent::OnExperienceLoadComplete()
 	{
 		OnExperienceFullLoadComplete();
 	}
+	
 }
 
 void ULeeExperienceManagerComponent::OnGameFeaturePluginLoadComplete(const UE::GameFeatures::FResult& Result)
@@ -327,6 +341,9 @@ void ULeeExperienceManagerComponent::OnExperienceFullLoadComplete()
 	LoadState = ELeeExperienceLoadState::Loaded;
 	OnExperienceLoaded.Broadcast(CurrentExperience);
 	OnExperienceLoaded.Clear();
+
+	OnExperienceLoaded_LowPriority.Broadcast(CurrentExperience);
+	OnExperienceLoaded_LowPriority.Clear();
 }
 
 const ULeeExperienceDefinition* ULeeExperienceManagerComponent::GetCurrentExperienceChecked() const

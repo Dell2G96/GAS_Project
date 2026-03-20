@@ -11,8 +11,13 @@ public class GAS_Project : ModuleRules
 		PublicDependencyModuleNames.AddRange(new string[]
 		{
 			"Core", 
+			"CoreOnline",
 			"CoreUObject",
+			"ApplicationCore",
+
 			"Engine",
+			"PhysicsCore",
+
 			// Input
 			"InputCore",
 			"EnhancedInput",
@@ -24,6 +29,7 @@ public class GAS_Project : ModuleRules
 			"AnimGraphRuntime",
 			"MotionWarping",
 			"UMG",
+			
 			"AIModule",
 			"SlateCore",
 			"Slate",
@@ -32,7 +38,7 @@ public class GAS_Project : ModuleRules
 			"ModularGameplay",
 			"GameFeatures",
 			//"ModularGameplayActors",
-			"ModularGameplayActors",
+			"ModularGamePlayActors",
 			//commonUser
 			"CommonUser",
 			// CommonUI
@@ -43,12 +49,23 @@ public class GAS_Project : ModuleRules
 			"UIExtension",
 			//SoulsCore
 			
+			"DataRegistry",
+			"ReplicationGraph",
+			"SignificanceManager",
+			"Hotfix",
+			
+			"GameplayMessageRuntime"
+
+
+
+
+			
 		});
 		
 		//PrivateIncludePaths.Add("GAS_Project");
 
 
-		PrivateDependencyModuleNames.AddRange(new string[] { "AnimGraphRuntime", "AnimGraphRuntime", "CommonGame" });
+		PrivateDependencyModuleNames.AddRange(new string[] { "AnimGraphRuntime", "AnimGraphRuntime", "CommonGame", "GameplayMessageRuntime" });
 
 		// Uncomment if you are using Slate UI
 		// PrivateDependencyModuleNames.AddRange(new string[] { "Slate", "SlateCore" });

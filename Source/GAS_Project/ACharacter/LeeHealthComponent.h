@@ -9,10 +9,22 @@
 #include "LeeHealthComponent.generated.h"
 
 
-
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FLeeHealthComponent, AActor* , OwningActor);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_FourParams(FLeeHealth_AttributeChanged, ULeeHealthComponent* , HealthComponent, float, OldValue, float ,NewValue, AActor*, Instigator);
 
-UCLASS()
+UENUM()
+enum class ELeeDeathState : uint8
+{
+	NotDead = 0,
+	DeathStarted,
+	DeathFinished
+	
+};
+
+
+
+
+UCLASS(Blueprintable, Meta=(BlueprintSpawnableComponent))
 class GAS_PROJECT_API ULeeHealthComponent : public UGameFrameworkComponent
 {
 	GENERATED_BODY()
@@ -35,7 +47,16 @@ public:
 	void UninitializeAbilitySystem();
 
 	void HandleHealthChanged(const FOnAttributeChangeData& ChangeData);
+
+
+	//26.03.19 추가
+	virtual void DamageSelfDestruct(bool bFellOutOfWorld = false);
+
+	UPROPERTY(BlueprintAssignable)
+	FLeeHealth_AttributeChanged OnHealthChanged;
 	
+
+protected:
 	
 	UPROPERTY()
 	TObjectPtr<class ULeeAbilitySystemComponent> AbilitySystemComponent;
@@ -43,7 +64,8 @@ public:
 	UPROPERTY()
 	TObjectPtr<const class ULeeHealthSet> HealthSet;
 
-	UPROPERTY(BlueprintAssignable)
-	FLeeHealth_AttributeChanged OnHealthChanged;
+	UPROPERTY()
+	ELeeDeathState DeathState;
+
 	
 };

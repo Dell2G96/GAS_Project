@@ -5,8 +5,11 @@
 
 #include "GameplayEffectExtension.h"
 #include "GAS_Project/LeeLogChannels.h"
+#include "GAS_Project/MyTags.h"
 #include "GAS_Project/AAbilitySystem/LeeAbilitySystemComponent.h"
 #include "GAS_Project/AAbilitySystem/AttributeSets/LeeHealthSet.h"
+#include "GAS_Project/System/LeeAssetManager.h"
+#include "GAS_Project/System/LeeGameData.h"
 
 ULeeHealthComponent::ULeeHealthComponent(const FObjectInitializer& ObjectInitializer)
 	:Super(ObjectInitializer)
@@ -98,5 +101,39 @@ float ULeeHealthComponent::GetHealthNormalized() const
 void ULeeHealthComponent::HandleHealthChanged(const FOnAttributeChangeData& ChangeData)
 {
 	OnHealthChanged.Broadcast(this,ChangeData.OldValue, ChangeData.NewValue, GetInstigatorFromAttributeChangeData(ChangeData));
+}
+
+void ULeeHealthComponent::DamageSelfDestruct(bool bFellOutOfWorld)
+{
+	if ((DeathState == ELeeDeathState::NotDead) && AbilitySystemComponent)
+	{
+		const TSubclassOf<UGameplayEffect> DamageGE = ULeeAssetManager::GetSubclass(ULeeGameData::Get().DamageGameplayEffect_SetByCaller);
+
+		if (!DamageGE)
+		{
+			UE_LOG(LogLee, Error, TEXT("LyraHealthComponent: DamageSelfDestruct failed for owner [%s]. Unable to find gameplay effect [%s]."), *GetNameSafe(GetOwner()), *ULeeGameData::Get().DamageGameplayEffect_SetByCaller.GetAssetName());
+			return;
+		}
+
+		FGameplayEffectSpecHandle SpecHandle = AbilitySystemComponent->MakeOutgoingSpec(DamageGE, 1.f, AbilitySystemComponent->MakeEffectContext());
+		FGameplayEffectSpec* Spec = SpecHandle.Data.Get();
+
+		if (!Spec)
+		{
+			UE_LOG(LogLee, Error, TEXT("LyraHealthComponent: DamageSelfDestruct failed for owner [%s]. Unable to make outgoing spec for [%s]."), *GetNameSafe(GetOwner()), *GetNameSafe(DamageGE));
+			return;
+		}
+
+		Spec->AddDynamicAssetTag(MyTags::Souls::Gameplay_DamageSelfDestruct);
+
+		if (bFellOutOfWorld)
+		{
+			Spec->AddDynamicAssetTag(MyTags::Souls::Gameplay_FellOutOfWorld);
+		}
+		const float DamageAmount = -GetMaxHealth();
+
+		Spec->SetSetByCallerMagnitude(MyTags::Souls::SetByCaller_Damage, DamageAmount);
+		AbilitySystemComponent->ApplyGameplayEffectSpecToSelf(*Spec);
+	}
 }
 

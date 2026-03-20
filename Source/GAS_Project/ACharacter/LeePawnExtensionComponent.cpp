@@ -27,6 +27,26 @@ void ULeePawnExtensionComponent::GetLifetimeReplicatedProps(TArray<class FLifeti
 	DOREPLIFETIME(ULeePawnExtensionComponent, PawnData);
 }
 
+
+void ULeePawnExtensionComponent::OnRegister()
+{
+	Super::OnRegister();
+
+	// 올바른 Actor에 등록되었는지 확인:
+	{
+		if (!GetPawn<APawn>())
+		{
+			UE_LOG(LogLee, Error, TEXT("this component has been added to a BP whose base class is not a Pawn!"));
+			return;
+		}
+	}
+
+	RegisterInitStateFeature();
+
+	// 디버깅을 위한 함수
+	UGameFrameworkComponentManager* Manager = UGameFrameworkComponentManager::GetForActor(GetOwningActor());
+}
+
 void ULeePawnExtensionComponent::OnRep_PawnData()
 {
 	// 클라이언트에서 PawnData를 수신하면 InitState 체인 재개
@@ -55,24 +75,6 @@ void ULeePawnExtensionComponent::SetUpPlayerInputComponent()
 	CheckDefaultInitialization();
 }
 
-void ULeePawnExtensionComponent::OnRegister()
-{
-	Super::OnRegister();
-
-	// 올바른 Actor에 등록되었는지 확인:
-	{
-		if (!GetPawn<APawn>())
-		{
-			UE_LOG(LogLee, Error, TEXT("this component has been added to a BP whose base class is not a Pawn!"));
-			return;
-		}
-	}
-
-	RegisterInitStateFeature();
-
-	// 디버깅을 위한 함수
-	UGameFrameworkComponentManager* Manager = UGameFrameworkComponentManager::GetForActor(GetOwningActor());
-}
 
 void ULeePawnExtensionComponent::BeginPlay()
 {

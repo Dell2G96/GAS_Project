@@ -27,7 +27,10 @@ public:
 	UPROPERTY(EditDefaultsOnly, Category="Gameplay")
 	TArray<FString> GameFeaturesToEnable;
 
-
+	// EnemyPawn Data 추가
+	UPROPERTY(EditDefaultsOnly, Category= Gameplay)
+	TMap<int32, TObjectPtr<const ULeePawnData>> EnemyPawnClasses;
+	
 	// Gameplay 용도에 맞게 분류의 목적으로 사용
 	UPROPERTY(EditDefaultsOnly, Category=Gameplay)
 	TArray<TObjectPtr<class ULeeExperienceActionSet>> ActionSets;

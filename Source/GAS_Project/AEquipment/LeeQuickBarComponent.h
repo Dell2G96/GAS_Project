@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Components/ControllerComponent.h"
+#include "GAS_Project/AInventory/LeeInventoryItemInstance.h"
 #include "LeeQuickBarComponent.generated.h"
 
 
@@ -15,30 +16,86 @@ class GAS_PROJECT_API ULeeQuickBarComponent : public UControllerComponent
 public:
 	ULeeQuickBarComponent(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
+	UFUNCTION(BlueprintCallable, Category="Lee")
+	void CycleActiveSlotForward();
+
+	UFUNCTION(BlueprintCallable, Category="Lee")
+	void CycleActiveSlotBackward();
+
+	UFUNCTION(Server, Reliable, BlueprintCallable, Category= "Lee")
+	void SetActiveSlotIndex(int32 NewIndex);
+
+	UFUNCTION(BlueprintCallable, BlueprintPure=false)
+	TArray<ULeeInventoryItemInstance*> GetSlots() const
+	{
+		return Slots;
+	}
+
+	UFUNCTION(BlueprintCallable, BlueprintPure = false)
+	int32 GetActiveSlotIndex() const { return ActiveSlotIndex; }
+
+	UFUNCTION(BlueprintCallable, BlueprintPure = false)
+	class ULeeInventoryItemInstance* GetActiveSlotItem() const;
+
+	UFUNCTION(BlueprintCallable, BlueprintPure = false)
+	int32 GetNextFreeItemSlot() const;
+
+	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly)
+	void AddItemToSlot(int32 SlotIndex, ULeeInventoryItemInstance* Item);
+
+	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly)
+	class ULeeInventoryItemInstance* RemoveItemFromSlot(int32 SlotIndex);
+
 	virtual void BeginPlay() override;
 
-	class ULeeEquipmentManagerComponent* FindEquipmentManger() const;
 	void UnequipItemInSlot();
 	void EquipItemInSlot();
-
-	UFUNCTION(BlueprintCallable)
-	void AddItemToSlot(int32 SlotIndex, class ULeeInventoryItemInstance* Item);
-
-	UFUNCTION(BlueprintCallable, Category= "Lee")
-	void SetActiveSlotIndex(int32 NewIndex);
 	
+	class ULeeEquipmentManagerComponent* FindEquipmentManger() const;
 
+protected:
 	UPROPERTY()
 	int32 NumSlots = 3;
 
-	UPROPERTY()
-	TArray<TObjectPtr<class ULeeInventoryItemInstance>> Slots;
+	UFUNCTION()
+	void OnRep_Slots();
+	
+	UFUNCTION()
+	void OnRep_ActiveSlotIndex();
 
-	UPROPERTY()
+private:
+	UPROPERTY(ReplicatedUsing=OnRep_Slots)
+	TArray<TObjectPtr<class ULeeInventoryItemInstance>> Slots;;
+	
+	UPROPERTY(ReplicatedUsing=OnRep_ActiveSlotIndex)
 	int32 ActiveSlotIndex = -1;
 
 	UPROPERTY()
 	TObjectPtr<class ULeeEquipmentInstance> EquippedItem;
+};
+
+USTRUCT(BlueprintType)
+struct FLeeQuickBarSlotsChangeMessage
+{
+	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadOnly, Category=Inventory)
+	TObjectPtr<AActor> Owner = nullptr;
+
+	UPROPERTY(BlueprintReadOnly, Category=Inventory)
+	TArray<TObjectPtr<ULeeInventoryItemInstance>> Slots;
+};
+
+USTRUCT(BlueprintType)
+struct FLeeQuickBarActiveIndexChangedMessage
+{
+	GENERATED_BODY()
+
 	
+	UPROPERTY(BlueprintReadOnly, Category=Inventory)
+	TObjectPtr<AActor> Owner = nullptr;
+
+	UPROPERTY(BlueprintReadOnly, Category=Inventory)
+	int32 ActiveIndex = 0;
 	
 };
