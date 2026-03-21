@@ -4,11 +4,22 @@
 #include "LeeGameplayAbility.h"
 
 #include "AbilitySystemComponent.h"
+#include "AbilitySystemLog.h"
 #include "LeeAbilityCost.h"
 #include "GAS_Project/AAbilitySystem/LeeAbilitySystemComponent.h"
 #include "GAS_Project/ACharacter/LeeCharacter.h"
 #include "GAS_Project/ACharacter/LeeHeroComponent.h"
 #include "GAS_Project/APlayer/LeePlayerController.h"
+
+#define ENSURE_ABILITY_IS_INSTANTIATED_OR_RETURN(FunctionName, ReturnValue)																				\
+{																																						\
+if (!ensure(IsInstantiated()))																														\
+{																																					\
+ABILITY_LOG(Error, TEXT("%s: " #FunctionName " cannot be called on a non-instanced ability. Check the instancing policy."), *GetPathName());	\
+return ReturnValue;																																\
+}																																					\
+}
+
 
 ULeeGameplayAbility::ULeeGameplayAbility(const FObjectInitializer& ObjectInitializer)
 	:Super(ObjectInitializer)
@@ -70,6 +81,59 @@ void ULeeGameplayAbility::TryActivateAbilityOnSpawn(const FGameplayAbilityActorI
 			}
 		}
 	}
+}
+
+bool ULeeGameplayAbility::CanChangeActivationGroup(ELeeAbilityActivationGroup NewGroup) const
+{
+	if (!IsInstantiated() || !IsActive())
+	{
+		return false;
+	}
+
+	if (ActivationGroup == NewGroup)
+	{
+		return true;
+	}
+
+	ULeeAbilitySystemComponent* LyraASC = GetLeeAbilitySystemComponentFromActorInfo();
+	check(LyraASC);
+
+	if ((ActivationGroup != ELeeAbilityActivationGroup::Exclusive_Blocking) && LyraASC->IsActivationGroupBlocked(NewGroup))
+	{
+		// This ability can't change groups if it's blocked (unless it is the one doing the blocking).
+		return false;
+	}
+
+	if ((NewGroup == ELeeAbilityActivationGroup::Exclusive_Replaceable) && !CanBeCanceled())
+	{
+		// This ability can't become replaceable if it can't be canceled.
+		return false;
+	}
+
+	return true;
+}
+
+bool ULeeGameplayAbility::ChangeActivationGroup(ELeeAbilityActivationGroup NewGroup)
+{
+	ENSURE_ABILITY_IS_INSTANTIATED_OR_RETURN(ChangeActivationGroup, false);
+
+	if (!CanChangeActivationGroup(NewGroup))
+	{
+		return false;
+	}
+
+	if (ActivationGroup != NewGroup)
+	{
+		ULeeAbilitySystemComponent* LyraASC = GetLeeAbilitySystemComponentFromActorInfo();
+		check(LyraASC);
+
+		LyraASC->RemoveAbilityFromActivationGroup(ActivationGroup, this);
+		LyraASC->AddAbilityToActivationGroup(NewGroup, this);
+
+		ActivationGroup = NewGroup;
+	}
+
+	return true;
 }
 
 bool ULeeGameplayAbility::CheckCost(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo,

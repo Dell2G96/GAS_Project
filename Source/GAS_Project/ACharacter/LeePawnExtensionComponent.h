@@ -39,6 +39,10 @@ public:
 	void InitializeAbilitySystem(class ULeeAbilitySystemComponent* InASC, AActor* InOwnerActor);
 	void UnInitializeAbilitySystem();
 
+	void HandleControllerChanged();
+	void HandlePlayerStateReplicated();
+	void SetupPlayerInputComponent();
+
 	void OnAbilitySystemInitialized_RegistedAndCall(FSimpleMulticastDelegate::FDelegate Delegate);
 	void OnAbilitySystemUnInitialized_Registed(FSimpleMulticastDelegate::FDelegate Delegate);
 

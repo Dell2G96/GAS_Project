@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "ActiveGameplayEffectHandle.h"
 #include "GameplayAbilitySpecHandle.h"
 #include "GameplayTagContainer.h"
 #include "Engine/DataAsset.h"
@@ -28,6 +29,33 @@ public:
 	
 };
 
+//////////////////////////////////////////////
+//		FLeeAbilitySet_GameplayEffect		//
+//////////////////////////////////////////////
+USTRUCT()
+struct FLeeAbilitySet_GameplayEffect
+{
+	GENERATED_BODY()
+public:
+	UPROPERTY(EditDefaultsOnly)
+	TSubclassOf<class UGameplayEffect> GameplayEffect;
+
+	UPROPERTY(EditDefaultsOnly)
+	float EffectLevel = 1.f;
+};
+
+//////////////////////////////////////////////
+//		FLeeAbilitySet_AttributeSet			//
+//////////////////////////////////////////////
+USTRUCT()
+struct FLeeAbilitySet_AttributeSet
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditDefaultsOnly)
+	TSubclassOf<class UAttributeSet> AttributeSet;
+};
+
 
 //////////////////////////////////////////////
 //		FLeeAbilitySet_GrantedHandles		//
@@ -38,12 +66,21 @@ struct FLeeAbilitySet_GrantedHandles
 	GENERATED_BODY()
 
 	void AddAbilitySpecHandle(const FGameplayAbilitySpecHandle& Handle);
-	void TakeFromAbilitySystem(class ULeeAbilitySystemComponent* LeeASC);
+	void AddGameplayeEffectHandle(const FActiveGameplayEffectHandle& Handle);
+	void AddAttributeSet(UAttributeSet* Set);
 
+	void TakeFromAbilitySystem(class ULeeAbilitySystemComponent* LeeASC);
+	
 protected:
 	// 허용된 GameplayAbilitySpecHandle
 	UPROPERTY()
 	TArray<FGameplayAbilitySpecHandle> AbilitySpecHandles;
+
+	UPROPERTY()
+	TArray<FActiveGameplayEffectHandle> GameplayEffectHandles;
+
+	UPROPERTY()
+	TArray<TObjectPtr<UAttributeSet>> GrantedAttributeSets;
 	
 };
 
@@ -51,7 +88,7 @@ protected:
 //////////////////////////////////////////////
 //				ULeeAbilitySet				//
 //////////////////////////////////////////////
-UCLASS()
+UCLASS(BlueprintType, Const)
 class GAS_PROJECT_API ULeeAbilitySet : public UPrimaryDataAsset
 {
 	GENERATED_BODY()
@@ -62,4 +99,10 @@ public:
 	
 	UPROPERTY(EditDefaultsOnly, Category="Gameplay Abilities")
 	TArray<FLeeAbilitySet_GameplayAbility> GrantedGameplayAbilities;
+
+	UPROPERTY(EditDefaultsOnly, Category="GameplayEffect", meta=(TitilePropety=GameplayEffect))
+	TArray<FLeeAbilitySet_GameplayEffect> GrantedGameplayEffects;
+	
+	UPROPERTY(EditDefaultsOnly, Category="Gameplay Abilities")
+	TArray<FLeeAbilitySet_AttributeSet> GrantedAttributes;
 };

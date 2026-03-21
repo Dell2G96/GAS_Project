@@ -14,6 +14,19 @@ void FLeeAbilitySet_GrantedHandles::AddAbilitySpecHandle(const FGameplayAbilityS
 	}
 }
 
+void FLeeAbilitySet_GrantedHandles::AddGameplayeEffectHandle(const FActiveGameplayEffectHandle& Handle)
+{
+	if (Handle.IsValid())
+	{
+		GameplayEffectHandles.Add(Handle);
+	}
+}
+
+void FLeeAbilitySet_GrantedHandles::AddAttributeSet(UAttributeSet* Set)
+{
+	GrantedAttributeSets.Add(Set);
+}
+
 void FLeeAbilitySet_GrantedHandles::TakeFromAbilitySystem(class ULeeAbilitySystemComponent* LeeASC)
 {
 	if (!LeeASC->IsOwnerActorAuthoritative())

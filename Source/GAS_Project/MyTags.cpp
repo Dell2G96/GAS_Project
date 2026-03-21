@@ -6,6 +6,30 @@
 
 namespace MyTags
 {
+	
+	UE_DEFINE_GAMEPLAY_TAG(Movement_Mode_Walking, "Movement.Mode.Walking");
+	UE_DEFINE_GAMEPLAY_TAG(Movement_Mode_NavWalking, "Movement.Mode.NavWalking");
+	UE_DEFINE_GAMEPLAY_TAG(Movement_Mode_Falling, "Movement.Mode.Falling");
+	UE_DEFINE_GAMEPLAY_TAG(Movement_Mode_Swimming, "Movement.Mode.Swimming");
+	UE_DEFINE_GAMEPLAY_TAG(Movement_Mode_Flying, "Movement.Mode.Flying");
+	UE_DEFINE_GAMEPLAY_TAG(Movement_Mode_Custom, "Movement.Mode.Custom");
+
+	const TMap<uint8, FGameplayTag> MovementModeTagMap =
+	{
+		{ MOVE_Walking, Movement_Mode_Walking },
+		{ MOVE_NavWalking, Movement_Mode_NavWalking },
+		{ MOVE_Falling, Movement_Mode_Falling },
+		{ MOVE_Swimming, Movement_Mode_Swimming },
+		{ MOVE_Flying, Movement_Mode_Flying },
+		{ MOVE_Custom, Movement_Mode_Custom }
+	};
+
+	const TMap<uint8, FGameplayTag> CustomMovementModeTagMap =
+	{
+		// Fill these in with your custom modes
+	};
+
+	
 	namespace InitState
 	{
 		UE_DEFINE_GAMEPLAY_TAG(Spawned,"InitState.Spawned")
@@ -35,6 +59,11 @@ namespace MyTags
 
 
 		UE_DEFINE_GAMEPLAY_TAG(Lyra_Elimination_Message, "Lyra.Elimination.Message")
+
+		//Status
+		UE_DEFINE_GAMEPLAY_TAG(Status_Death_Dying, "Lyra.Status.Death.Dying")
+		UE_DEFINE_GAMEPLAY_TAG(Status_Death_Dead, "Lyra.Status.Death.Dead")
+		UE_DEFINE_GAMEPLAY_TAG(Status_Crouching, "Lyra.Status.Crouching")
 		
 
 	}
@@ -47,6 +76,7 @@ namespace MyTags
 		UE_DEFINE_GAMEPLAY_TAG(Gameplay_DamageSelfDestruct, "Souls.Gameplay.SelfDestruct") 
 		UE_DEFINE_GAMEPLAY_TAG(Gameplay_FellOutOfWorld, "Souls.Gameplay.FellOutOfWorld")    
 		UE_DEFINE_GAMEPLAY_TAG(Gameplay_Damage_Message, "Souls.Gameplay.Message")
+		UE_DEFINE_GAMEPLAY_TAG(Gameplay_MovementStopped, "Souls.Gameplay.MovementStopped")
 
 		//GameplayEvent
 		UE_DEFINE_GAMEPLAY_TAG(GameplayEvent_Death, "Souls.GameplayEvent.Death")
@@ -56,9 +86,11 @@ namespace MyTags
 		UE_DEFINE_GAMEPLAY_TAG(SetByCaller_Damage, "Souls.SetByCaller.Damage")
 
 
-		//Status
-		UE_DEFINE_GAMEPLAY_TAG(Status_Death_Dying, "Souls.Status.Death.Dying")
-		UE_DEFINE_GAMEPLAY_TAG(Status_Death_Dead, "Souls.Status.Death.Dead")
+		
+
+
+		UE_DEFINE_GAMEPLAY_TAG(Ability_Behavior_SurvivesDeath, "Souls.Ability.Behavior.SurvivesDeath")
+
 		
 		
 		

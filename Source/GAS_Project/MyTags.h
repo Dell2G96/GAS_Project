@@ -6,6 +6,9 @@
 
 namespace MyTags
 {
+	extern const TMap<uint8, FGameplayTag> MovementModeTagMap;
+	extern const TMap<uint8, FGameplayTag> CustomMovementModeTagMap;
+	
 	namespace InitState
 	{
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Spawned)
@@ -32,6 +35,12 @@ namespace MyTags
 
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Lyra_Elimination_Message)
 
+		//Status
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Status_Death_Dying)
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Status_Death_Dead)
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Status_Crouching)
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Status_Death_Dead)
+
 		
 	}
 
@@ -43,6 +52,7 @@ namespace MyTags
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Gameplay_DamageSelfDestruct)
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Gameplay_FellOutOfWorld)
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Gameplay_Damage_Message)
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Gameplay_MovementStopped)
 
 		//GameplayEvent
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(GameplayEvent_Death)
@@ -52,9 +62,12 @@ namespace MyTags
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(SetByCaller_Damage)
 		
 
-		//Status
-		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Status_Death_Dying)
-		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Status_Death_Dead)
+		
+
+
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Ability_Behavior_SurvivesDeath)
+
+		
 	}
 	
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(None);

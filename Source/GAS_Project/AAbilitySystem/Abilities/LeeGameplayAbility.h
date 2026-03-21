@@ -15,6 +15,21 @@ enum class ELeeAbilityActivationPolicy : uint8
 	OnSpawn			  // avatar가 생성되었을 경우
 };
 
+UENUM(BlueprintType)
+enum class ELeeAbilityActivationGroup : uint8
+{
+	// Ability runs independently of all other abilities.
+	Independent,
+
+	// Ability is canceled and replaced by other exclusive abilities.
+	Exclusive_Replaceable,
+
+	// Ability blocks all other exclusive abilities from activating.
+	Exclusive_Blocking,
+
+	MAX	UMETA(Hidden)
+};
+
 UCLASS()
 class GAS_PROJECT_API ULeeGameplayAbility : public UGameplayAbility
 {
@@ -41,11 +56,23 @@ public:
 
 	void TryActivateAbilityOnSpawn(const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilitySpec& Spec) const;
 
-
+	UFUNCTION(BlueprintCallable, BlueprintPure = false, Category = "Lyra|Ability", Meta = (ExpandBoolAsExecs = "ReturnValue"))
+	bool CanChangeActivationGroup(ELeeAbilityActivationGroup NewGroup) const;
+	
+	UFUNCTION(BlueprintCallable, BlueprintPure = false, Category= "Lee|Ability", meta=(ExpandBoolAsExecs = "ReturnValue"))
+	bool ChangeActivationGroup(ELeeAbilityActivationGroup NewGroup);
 
 	
 	virtual bool CheckCost(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, OUT FGameplayTagContainer* OptionalRelevantTags = nullptr) const override;
 	virtual void ApplyCost(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo) const override;
+
+	ELeeAbilityActivationPolicy GetActivationPolicy() const { return ActivationPolicy; }
+	ELeeAbilityActivationGroup GetActivationGroup() const { return ActivationGroup; }
+
+protected:
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category= "Lee|Ability Activation")
+	ELeeAbilityActivationGroup ActivationGroup;
 	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Lee|AbilityActivation")
 	ELeeAbilityActivationPolicy ActivationPolicy;

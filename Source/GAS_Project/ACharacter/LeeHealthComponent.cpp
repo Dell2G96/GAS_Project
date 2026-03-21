@@ -102,8 +102,8 @@ void ULeeHealthComponent::ClearGameplayTags()
 {
 	if (AbilitySystemComponent)
 	{
-		AbilitySystemComponent->SetLooseGameplayTagCount(MyTags::Souls::Status_Death_Dying, 0);
-		AbilitySystemComponent->SetLooseGameplayTagCount(MyTags::Souls::Status_Death_Dead, 0);
+		AbilitySystemComponent->SetLooseGameplayTagCount(MyTags::Lyra::Status_Death_Dying, 0);
+		AbilitySystemComponent->SetLooseGameplayTagCount(MyTags::Lyra::Status_Death_Dead, 0);
 	}
 }
 
@@ -237,7 +237,7 @@ void ULeeHealthComponent::StartDeath()
 
 	if (AbilitySystemComponent)
 	{
-		AbilitySystemComponent->SetLooseGameplayTagCount(MyTags::Souls::Status_Death_Dying, 1);
+		AbilitySystemComponent->SetLooseGameplayTagCount(MyTags::Lyra::Status_Death_Dying, 1);
 	}
 
 	AActor* Owner = GetOwner();
@@ -259,7 +259,7 @@ void ULeeHealthComponent::FinishDeath()
 
 	if (AbilitySystemComponent)
 	{
-		AbilitySystemComponent->SetLooseGameplayTagCount(MyTags::Souls::Status_Death_Dead, 1);
+		AbilitySystemComponent->SetLooseGameplayTagCount(MyTags::Lyra::Status_Death_Dead, 1);
 	}
 
 	AActor* Owner = GetOwner();

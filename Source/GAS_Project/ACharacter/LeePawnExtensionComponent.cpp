@@ -141,6 +141,34 @@ void ULeePawnExtensionComponent::UnInitializeAbilitySystem()
 	AbilitySystemComponent = nullptr;
 }
 
+void ULeePawnExtensionComponent::HandleControllerChanged()
+{
+	if (AbilitySystemComponent && (AbilitySystemComponent->GetAvatarActor() == GetPawnChecked<APawn>()))
+	{
+		ensure(AbilitySystemComponent->AbilityActorInfo->OwnerActor == AbilitySystemComponent->GetOwnerActor());
+		if (AbilitySystemComponent->GetOwnerActor() == nullptr)
+		{
+			UnInitializeAbilitySystem();
+		}
+		else
+		{
+			AbilitySystemComponent->RefreshAbilityActorInfo();
+		}
+	}
+
+	CheckDefaultInitialization();
+}
+
+void ULeePawnExtensionComponent::HandlePlayerStateReplicated()
+{
+	CheckDefaultInitialization();
+}
+
+void ULeePawnExtensionComponent::SetupPlayerInputComponent()
+{
+	CheckDefaultInitialization();
+}
+
 void ULeePawnExtensionComponent::OnAbilitySystemInitialized_RegistedAndCall(
 	FSimpleMulticastDelegate::FDelegate Delegate)
 {
