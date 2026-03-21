@@ -34,3 +34,4 @@ protected:
 #endif
 	
 };
+#undef  UE_API

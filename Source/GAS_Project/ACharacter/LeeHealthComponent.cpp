@@ -4,12 +4,17 @@
 #include "LeeHealthComponent.h"
 
 #include "GameplayEffectExtension.h"
+#include "GameFramework/GameplayMessageSubsystem.h"
 #include "GAS_Project/LeeLogChannels.h"
 #include "GAS_Project/MyTags.h"
 #include "GAS_Project/AAbilitySystem/LeeAbilitySystemComponent.h"
 #include "GAS_Project/AAbilitySystem/AttributeSets/LeeHealthSet.h"
+#include "GAS_Project/AMessage/LeeVerbMessage.h"
+#include "GAS_Project/AMessage/LeeVerbMessageHelpers.h"
 #include "GAS_Project/System/LeeAssetManager.h"
 #include "GAS_Project/System/LeeGameData.h"
+#include "GameFramework/PlayerState.h"
+#include "GAS_Project/_Souls/Abilities/LeeSoulsStatSet.h"
 
 ULeeHealthComponent::ULeeHealthComponent(const FObjectInitializer& ObjectInitializer)
 	:Super(ObjectInitializer)
@@ -17,70 +22,96 @@ ULeeHealthComponent::ULeeHealthComponent(const FObjectInitializer& ObjectInitial
 	PrimaryComponentTick.bStartWithTickEnabled = false;
 	PrimaryComponentTick.bCanEverTick =false;
 
+	SetIsReplicatedByDefault(true);
+
 	AbilitySystemComponent = nullptr;
 	HealthSet = nullptr;
+	DeathState = ELeeDeathState::NotDead;
 	
 }
 
-void ULeeHealthComponent::InitializeAbilitySystem(class ULeeAbilitySystemComponent* InASC)
+void ULeeHealthComponent::OnUnregister()
+{
+	UninitializeFromAbilitySystem();
+	
+	Super::OnUnregister();
+}
+
+void ULeeHealthComponent::InitializeWithAbilitySystem(class ULeeAbilitySystemComponent* InASC)
 {
 	AActor* Owner = GetOwner();
 	check(Owner);
 
 	if (AbilitySystemComponent)
 	{
-		UE_LOG(LogLee, Error, TEXT("HakHealthComponent: Health component for owner [%s] has already been initialized with an ability system."), *GetNameSafe(Owner));
-		return ;
+		UE_LOG(LogLee, Error, TEXT("LeeHealthComponent: Health component for owner [%s] has already been initialized with an ability system."), *GetNameSafe(Owner));
+		return;
 	}
 
 	AbilitySystemComponent = InASC;
 	if (!AbilitySystemComponent)
 	{
+		UE_LOG(LogLee, Error, TEXT("LeeHealthComponent: Cannot initialize health component for owner [%s] with NULL ability system."), *GetNameSafe(Owner));
 		return;
 	}
 
-	HealthSet = AbilitySystemComponent->GetSet<ULeeHealthSet>();
+	HealthSet = AbilitySystemComponent->GetSet<ULeeSoulsStatSet>();
 	if (!HealthSet)
 	{
+		UE_LOG(LogLee, Error, TEXT("LeeHealthComponent: Cannot initialize health component for owner [%s] with NULL health set on the ability system."), *GetNameSafe(Owner));
 		return;
 	}
 
-	AbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(ULeeHealthSet::GetHealthAttribute()).AddUObject(this, &ThisClass::HandleHealthChanged);
+	HealthSet->OnMaxHealthChanged.AddUObject(this, &ThisClass::HandleMaxHealthChanged);
+	HealthSet->OnHealthChanged.AddUObject(this, &ThisClass::HandleHealthChanged);
+	HealthSet->OnMaxStaminaChanged.AddUObject(this, &ThisClass::HandleMaxStaminaChanged);
+	HealthSet->OnStaminaChanged.AddUObject(this, &ThisClass::HandleStaminaChanged);
+	HealthSet->OnOutOfHealth.AddUObject(this, &ThisClass::HandleOutOfHealth);
+
+
+	AbilitySystemComponent->SetNumericAttributeBase(ULeeSoulsStatSet::GetHealthAttribute(), HealthSet->GetMaxHealth());
+	AbilitySystemComponent->SetNumericAttributeBase(ULeeSoulsStatSet::GetStaminaAttribute(), HealthSet->GetMaxStamina());
+
+	ClearGameplayTags();
 
 	OnHealthChanged.Broadcast(this, HealthSet->GetHealth(), HealthSet->GetHealth(), nullptr);
+	OnMaxHealthChanged.Broadcast(this, HealthSet->GetMaxHealth(), HealthSet->GetMaxHealth(), nullptr);
+	OnStaminaChanged.Broadcast(this, HealthSet->GetStamina(), HealthSet->GetStamina(), nullptr);
+	OnMaxStaminaChanged.Broadcast(this, HealthSet->GetMaxStamina(), HealthSet->GetMaxStamina(), nullptr);
 }
 
-void ULeeHealthComponent::UninitializeAbilitySystem()
+
+void ULeeHealthComponent::UninitializeFromAbilitySystem()
 {
-	AbilitySystemComponent = nullptr;
+	ClearGameplayTags();
+
+	if (HealthSet)
+	{
+		HealthSet->OnHealthChanged.RemoveAll(this);
+		HealthSet->OnMaxHealthChanged.RemoveAll(this);
+		HealthSet->OnStaminaChanged.RemoveAll(this);
+		HealthSet->OnMaxStaminaChanged.RemoveAll(this);
+		HealthSet->OnOutOfHealth.RemoveAll(this);
+	}
+
 	HealthSet = nullptr;
+	AbilitySystemComponent = nullptr;
 }
 
-static AActor* GetInstigatorFromAttributeChangeData(const FOnAttributeChangeData& ChangeData)
+void ULeeHealthComponent::ClearGameplayTags()
 {
-	if (ChangeData.GEModData != nullptr)
+	if (AbilitySystemComponent)
 	{
-		const FGameplayEffectContextHandle& EffectContextHandle = ChangeData.GEModData->EffectSpec.GetEffectContext();
-		return EffectContextHandle.GetOriginalInstigator();
+		AbilitySystemComponent->SetLooseGameplayTagCount(MyTags::Souls::Status_Death_Dying, 0);
+		AbilitySystemComponent->SetLooseGameplayTagCount(MyTags::Souls::Status_Death_Dead, 0);
 	}
-	return nullptr;
-}
-
-
-ULeeHealthComponent* ULeeHealthComponent::FindHealthComponent(const AActor* Actor)
-{
-	if (!Actor)
-	{
-		return nullptr;
-	}
-	ULeeHealthComponent* HealthComponent = Actor->FindComponentByClass<ULeeHealthComponent>();
-	return HealthComponent;
 }
 
 float ULeeHealthComponent::GetHealth() const
 {
 	return (HealthSet ? HealthSet->GetHealth() : 0.f);
 }
+
 
 float ULeeHealthComponent::GetMaxHealth() const
 {
@@ -98,10 +129,147 @@ float ULeeHealthComponent::GetHealthNormalized() const
 	return 0.f;
 }
 
-void ULeeHealthComponent::HandleHealthChanged(const FOnAttributeChangeData& ChangeData)
+
+float ULeeHealthComponent::GetStamina() const
 {
-	OnHealthChanged.Broadcast(this,ChangeData.OldValue, ChangeData.NewValue, GetInstigatorFromAttributeChangeData(ChangeData));
+	return (HealthSet ? HealthSet->GetStamina() : 0.0f);
 }
+
+float ULeeHealthComponent::GetMaxStamina() const
+{
+	return (HealthSet ? HealthSet->GetMaxStamina() : 0.0f);
+
+}
+
+float ULeeHealthComponent::GetStaminaNormalized() const
+{
+	if (HealthSet)
+	{
+		const float Stamina = HealthSet->GetStamina();
+		const float MaxStamina = HealthSet->GetMaxStamina();
+
+		return ((MaxStamina > 0.0f) ? (Stamina / MaxStamina) : 0.0f);
+	}
+
+	return 0.0f;
+}
+
+
+
+
+void ULeeHealthComponent::HandleHealthChanged(AActor* DamageInstigator, AActor* DamageCauser,
+	const FGameplayEffectSpec* DamageEffectSpec, float DamageMagnitude, float OldValue, float NewValue)
+{
+	OnHealthChanged.Broadcast(this, OldValue, NewValue, DamageInstigator);
+}
+
+void ULeeHealthComponent::HandleMaxHealthChanged(AActor* DamageInstigator, AActor* DamageCauser,
+	const FGameplayEffectSpec* DamageEffectSpec, float DamageMagnitude, float OldValue, float NewValue)
+{
+	OnMaxHealthChanged.Broadcast(this, OldValue, NewValue, DamageInstigator);
+}
+
+void ULeeHealthComponent::HandleStaminaChanged(AActor* DamageInstigator, AActor* DamageCauser,
+	const FGameplayEffectSpec* DamageEffectSpec, float DamageMagnitude, float OldValue, float NewValue)
+{
+	OnStaminaChanged.Broadcast(this, OldValue, NewValue, DamageInstigator);
+}
+
+void ULeeHealthComponent::HandleMaxStaminaChanged(AActor* DamageInstigator, AActor* DamageCauser,
+	const FGameplayEffectSpec* DamageEffectSpec, float DamageMagnitude, float OldValue, float NewValue)
+{
+	OnMaxStaminaChanged.Broadcast(this, OldValue, NewValue, DamageInstigator);
+}
+
+void ULeeHealthComponent::HandleOutOfHealth(AActor* DamageInstigator, AActor* DamageCauser,
+	const FGameplayEffectSpec* DamageEffectSpec, float DamageMagnitude, float OldValue, float NewValue)
+{
+	
+#if WITH_SERVER_CODE
+	if (AbilitySystemComponent && DamageEffectSpec)
+	{
+		// Send the "GameplayEvent.Death" gameplay event through the owner's ability system.  This can be used to trigger a death gameplay ability.
+		{
+			FGameplayEventData Payload;
+			Payload.EventTag = MyTags::Souls::GameplayEvent_Death;
+			Payload.Instigator = DamageInstigator;
+			Payload.Target = AbilitySystemComponent->GetAvatarActor();
+			Payload.OptionalObject = DamageEffectSpec->Def;
+			Payload.ContextHandle = DamageEffectSpec->GetEffectContext();
+			Payload.InstigatorTags = *DamageEffectSpec->CapturedSourceTags.GetAggregatedTags();
+			Payload.TargetTags = *DamageEffectSpec->CapturedTargetTags.GetAggregatedTags();
+			Payload.EventMagnitude = DamageMagnitude;
+
+			FScopedPredictionWindow NewScopedWindow(AbilitySystemComponent, true);
+			AbilitySystemComponent->HandleGameplayEvent(Payload.EventTag, &Payload);
+		}
+
+		// Send a standardized verb message that other systems can observe
+		{
+			FLeeVerbMessage Message;
+			Message.Verb = MyTags::Lyra::Lyra_Elimination_Message;
+			Message.Instigator = DamageInstigator;
+			Message.InstigatorTags = *DamageEffectSpec->CapturedSourceTags.GetAggregatedTags();
+			Message.Target = ULeeVerbMessageHelpers::GetPlayerStateFromObject(AbilitySystemComponent->GetAvatarActor());
+			Message.TargetTags = *DamageEffectSpec->CapturedTargetTags.GetAggregatedTags();
+			//@TODO: Fill out context tags, and any non-ability-system source/instigator tags
+			//@TODO: Determine if it's an opposing team kill, self-own, team kill, etc...
+
+			UGameplayMessageSubsystem& MessageSystem = UGameplayMessageSubsystem::Get(GetWorld());
+			MessageSystem.BroadcastMessage(Message.Verb, Message);
+		}
+
+		//@TODO: assist messages (could compute from damage dealt elsewhere)?
+	}
+
+#endif // #if WITH_SERVER_CODE
+}
+
+
+void ULeeHealthComponent::StartDeath()
+{
+	if (DeathState != ELeeDeathState::NotDead)
+	{
+		return;
+	}
+
+	DeathState = ELeeDeathState::DeathStarted;
+
+	if (AbilitySystemComponent)
+	{
+		AbilitySystemComponent->SetLooseGameplayTagCount(MyTags::Souls::Status_Death_Dying, 1);
+	}
+
+	AActor* Owner = GetOwner();
+	check(Owner);
+
+	OnDeathStarted.Broadcast(Owner);
+
+	Owner->ForceNetUpdate();
+}
+
+void ULeeHealthComponent::FinishDeath()
+{
+	if (DeathState != ELeeDeathState::DeathStarted)
+	{
+		return;
+	}
+
+	DeathState = ELeeDeathState::DeathFinished;
+
+	if (AbilitySystemComponent)
+	{
+		AbilitySystemComponent->SetLooseGameplayTagCount(MyTags::Souls::Status_Death_Dead, 1);
+	}
+
+	AActor* Owner = GetOwner();
+	check(Owner);
+
+	OnDeathFinished.Broadcast(Owner);
+
+	Owner->ForceNetUpdate();
+}
+
 
 void ULeeHealthComponent::DamageSelfDestruct(bool bFellOutOfWorld)
 {
@@ -137,3 +305,70 @@ void ULeeHealthComponent::DamageSelfDestruct(bool bFellOutOfWorld)
 	}
 }
 
+
+void ULeeHealthComponent::UninitializeAbilitySystem()
+{
+	AbilitySystemComponent = nullptr;
+	HealthSet = nullptr;
+}
+
+static AActor* GetInstigatorFromAttributeChangeData(const FOnAttributeChangeData& ChangeData)
+{
+	if (ChangeData.GEModData != nullptr)
+	{
+		const FGameplayEffectContextHandle& EffectContextHandle = ChangeData.GEModData->EffectSpec.GetEffectContext();
+		return EffectContextHandle.GetOriginalInstigator();
+	}
+	return nullptr;
+}
+
+
+// ULeeHealthComponent* ULeeHealthComponent::FindHealthComponent(const AActor* Actor)
+// {
+// 	if (!Actor)
+// 	{
+// 		return nullptr;
+// 	}
+// 	ULeeHealthComponent* HealthComponent = Actor->FindComponentByClass<ULeeHealthComponent>();
+// 	return HealthComponent;
+// }
+
+
+
+
+void ULeeHealthComponent::HandleHealthChanged(const FOnAttributeChangeData& ChangeData)
+{
+	OnHealthChanged.Broadcast(this,ChangeData.OldValue, ChangeData.NewValue, GetInstigatorFromAttributeChangeData(ChangeData));
+}
+
+
+
+
+//
+// void ULeeHealthComponent::InitializeAbilitySystem(class ULeeAbilitySystemComponent* InASC)
+// {
+// 	AActor* Owner = GetOwner();
+// 	check(Owner);
+//
+// 	if (AbilitySystemComponent)
+// 	{
+// 		UE_LOG(LogLee, Error, TEXT("HakHealthComponent: Health component for owner [%s] has already been initialized with an ability system."), *GetNameSafe(Owner));
+// 		return ;
+// 	}
+//
+// 	AbilitySystemComponent = InASC;
+// 	if (!AbilitySystemComponent)
+// 	{
+// 		return;
+// 	}
+//
+// 	HealthSet = AbilitySystemComponent->GetSet<ULeeHealthSet>();
+// 	if (!HealthSet)
+// 	{
+// 		return;
+// 	}
+//
+// 	AbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(ULeeHealthSet::GetHealthAttribute()).AddUObject(this, &ThisClass::HandleHealthChanged);
+//
+// 	OnHealthChanged.Broadcast(this, HealthSet->GetHealth(), HealthSet->GetHealth(), nullptr);
+// }

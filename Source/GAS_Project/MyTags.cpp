@@ -32,20 +32,33 @@ namespace MyTags
 
 		UE_DEFINE_GAMEPLAY_TAG(Lyra_QickBar_Message_SlotsChanged, "Lyra.QuickBar.Message.SlotsChanged")
 		UE_DEFINE_GAMEPLAY_TAG(Lyra_QickBar_Message_ActiveIndexChanged, "Lyra.QuickBar.Message.ActiveIndexChanged")
+
+
+		UE_DEFINE_GAMEPLAY_TAG(Lyra_Elimination_Message, "Lyra.Elimination.Message")
+		
+
 	}
 
 	namespace Souls
 	{
+		//Gameplay
 		UE_DEFINE_GAMEPLAY_TAG(Gameplay_Damage, "Souls.Gameplay.Damage")             
 		UE_DEFINE_GAMEPLAY_TAG(Gameplay_DamageImmunity, "Souls.Gameplay.DamageImmunity")     
 		UE_DEFINE_GAMEPLAY_TAG(Gameplay_DamageSelfDestruct, "Souls.Gameplay.SelfDestruct") 
 		UE_DEFINE_GAMEPLAY_TAG(Gameplay_FellOutOfWorld, "Souls.Gameplay.FellOutOfWorld")    
 		UE_DEFINE_GAMEPLAY_TAG(Gameplay_Damage_Message, "Souls.Gameplay.Message")
 
-		
+		//GameplayEvent
+		UE_DEFINE_GAMEPLAY_TAG(GameplayEvent_Death, "Souls.GameplayEvent.Death")
+
+
+		//SetByCaller
 		UE_DEFINE_GAMEPLAY_TAG(SetByCaller_Damage, "Souls.SetByCaller.Damage")
 
 
+		//Status
+		UE_DEFINE_GAMEPLAY_TAG(Status_Death_Dying, "Souls.Status.Death.Dying")
+		UE_DEFINE_GAMEPLAY_TAG(Status_Death_Dead, "Souls.Status.Death.Dead")
 		
 		
 		

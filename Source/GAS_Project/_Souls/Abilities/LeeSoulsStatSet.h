@@ -25,25 +25,26 @@ public:
 
 
 
-	UPROPERTY(BlueprintReadOnly, Category = "Lyra|RPGStats")
+	UPROPERTY(BlueprintReadOnly, Category = "Lee|SoulsStats")
 	FGameplayAttributeData Health;
 
 
-	UPROPERTY(BlueprintReadOnly, Category = "Lyra|RPGStats")
+	UPROPERTY(BlueprintReadOnly, Category = "Lee|SoulsStats")
 	FGameplayAttributeData MaxHealth;
 
 
-	UPROPERTY(BlueprintReadOnly, Category = "Lyra|RPGStats")
+	UPROPERTY(BlueprintReadOnly, Category = "Lee|SoulsStats")
 	FGameplayAttributeData Stamina;
 
 
-	UPROPERTY(BlueprintReadOnly, Category = "Lyra|RPGStats")
+	UPROPERTY(BlueprintReadOnly, Category = "Lee|SoulsStats")
 	FGameplayAttributeData MaxStamina;
 
 	mutable FLeeAttributeEvent OnHealthChanged;
 	mutable FLeeAttributeEvent OnStaminaChanged;
 	mutable FLeeAttributeEvent OnMaxHealthChanged;
 	mutable FLeeAttributeEvent OnMaxStaminaChanged;
+	
 	// Delegate to broadcast when the health attribute reaches zero
 	mutable FLeeAttributeEvent OnOutOfHealth;
 

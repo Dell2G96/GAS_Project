@@ -43,7 +43,7 @@ void ALeeCharacter::OnAbilitySystemInitialized()
 	ULeeAbilitySystemComponent* LeeASC = Cast<ULeeAbilitySystemComponent>(GetAbilitySystemComponent());
 	check(LeeASC);
 
-	HealthComponent->InitializeAbilitySystem(LeeASC);
+	HealthComponent->InitializeWithAbilitySystem(LeeASC);
 }
 
 void ALeeCharacter::OnAbilitySystemUnInitialized()

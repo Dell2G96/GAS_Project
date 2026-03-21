@@ -54,8 +54,8 @@ public class GAS_Project : ModuleRules
 			"SignificanceManager",
 			"Hotfix",
 			
-			"GameplayMessageRuntime"
-
+			"GameplayMessageRuntime",
+			"NetCore",
 
 
 

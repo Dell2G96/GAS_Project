@@ -29,19 +29,32 @@ namespace MyTags
 		
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Lyra_QickBar_Message_SlotsChanged)
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Lyra_QickBar_Message_ActiveIndexChanged)
+
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Lyra_Elimination_Message)
+
+		
 	}
 
 	namespace Souls
 	{
-		// Gameplay.Damage
+		// Gameplay
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Gameplay_Damage)
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Gameplay_DamageImmunity)
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Gameplay_DamageSelfDestruct)
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Gameplay_FellOutOfWorld)
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Gameplay_Damage_Message)
 
+		//GameplayEvent
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(GameplayEvent_Death)
+		
+
 		//SetByCaller
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(SetByCaller_Damage)
+		
+
+		//Status
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Status_Death_Dying)
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Status_Death_Dead)
 	}
 	
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(None);
