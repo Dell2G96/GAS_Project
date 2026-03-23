@@ -31,7 +31,7 @@ ALeeCharacter::ALeeCharacter(const FObjectInitializer& ObjectInitializer)
 	check(CapsuleComp);
 	CapsuleComp->InitCapsuleSize(40.0f, 90.0f);
 	CapsuleComp->SetCollisionProfileName(NAME_LeeCharacterCollisionProfile_Capsule);
-	
+
 	USkeletalMeshComponent* MeshComp = GetMesh();
 	check(MeshComp);
 	MeshComp->SetRelativeRotation(FRotator(0.0f, -90.0f, 0.0f));  // Rotate mesh to be X forward since it is exported as Y forward.
@@ -180,7 +180,7 @@ void ALeeCharacter::OnAbilitySystemInitialized()
 	HealthComponent->InitializeWithAbilitySystem(LeeASC);
 }
 
-void ALeeCharacter::OnAbilitySystemUnInitialized()	
+void ALeeCharacter::OnAbilitySystemUnInitialized()
 {
 	HealthComponent->UninitializeAbilitySystem();
 }

@@ -22,8 +22,8 @@ public:
 
 
 /** Pair this with a ModularGameState */
-UCLASS(Blueprintable)
-class MODULARGAMEPLAYACTORS_API AModularGameState : public AGameState
+UCLASS(MinimalAPI, Blueprintable)
+class AModularGameState : public AGameState
 {
 	GENERATED_BODY()
 

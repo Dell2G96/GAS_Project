@@ -43,9 +43,6 @@
 		{
 			"Name": "ModularGameplay",
 			"Enabled": true
-		},		{
-			"Name": "ModularGamePlayActors",
-			"Enabled": true
 		},
 		{
 			"Name": "GameFeatures",

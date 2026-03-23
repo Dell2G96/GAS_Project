@@ -11,7 +11,6 @@
 #include "Blueprint/UserWidget.h"
 #include "GameFramework/Character.h"
 #include "GameFramework/CharacterMovementComponent.h"
-#include "GAS_Project/LeeLogChannels.h"
 #include "GAS_Project/MyTags.h"
 #include "GAS_Project/Characters/CCharacter.h"
 #include "GAS_Project/Characters/Enemy/CEnemyBase.h"
@@ -194,7 +193,6 @@ void ACPlayerController::StopJumping()
 
 void ACPlayerController::Move(const FInputActionValue& Value)
 {
-    UE_LOG(LogLee, Error, TEXT("잘못된 "))
     if (!IsValid(GetPawn())) return;
     if (!IsAlive() || IsKnockdown()) return;
 

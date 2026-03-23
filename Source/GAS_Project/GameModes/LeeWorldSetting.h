@@ -5,22 +5,22 @@
 #include "GameFramework/WorldSettings.h"
 #include "LeeWorldSetting.generated.h"
 
+#define UE_API GAS_PROJECT_API
 
 
-
-UCLASS()
-class GAS_PROJECT_API ALeeWorldSetting : public AWorldSettings
+UCLASS(MinimalAPI)
+class ALeeWorldSetting : public AWorldSettings
 {
 	GENERATED_BODY()
 public:
-	ALeeWorldSetting(const FObjectInitializer& ObjectInitializer);
+	UE_API ALeeWorldSetting(const FObjectInitializer& ObjectInitializer);
 
 #if WITH_EDITOR
-	 virtual void CheckForErrors() override;
+	UE_API virtual void CheckForErrors() override;
 #endif
 
 public:
-	 FPrimaryAssetId GetDefaultGameplayExperience() const;
+	UE_API FPrimaryAssetId GetDefaultGameplayExperience() const;
 
 protected:
 	UPROPERTY(EditDefaultsOnly, Category=GameMode)
@@ -34,3 +34,4 @@ protected:
 #endif
 	
 };
+#undef  UE_API

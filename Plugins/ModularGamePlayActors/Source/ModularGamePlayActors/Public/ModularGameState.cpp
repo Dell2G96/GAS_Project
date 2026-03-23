@@ -6,8 +6,6 @@
 #include "Components/GameFrameworkComponentManager.h"
 #include "Components/GameStateComponent.h"
 
-
-// AModularGameStateBase //
 void AModularGameStateBase::PreInitializeComponents()
 {
 	Super::PreInitializeComponents();
@@ -31,9 +29,6 @@ void AModularGameStateBase::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	Super::EndPlay(EndPlayReason);
 
 }
-
-
-// AModularGameState //
 
 void AModularGameState::PreInitializeComponents()
 {

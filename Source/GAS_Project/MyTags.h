@@ -61,7 +61,10 @@ namespace MyTags
 		//SetByCaller
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(SetByCaller_Damage)
 		
+
 		
+
+
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Ability_Behavior_SurvivesDeath)
 
 		
