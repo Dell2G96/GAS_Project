@@ -95,10 +95,10 @@ bool ULeeGameplayAbility::CanChangeActivationGroup(ELeeAbilityActivationGroup Ne
 		return true;
 	}
 
-	ULeeAbilitySystemComponent* LyraASC = GetLeeAbilitySystemComponentFromActorInfo();
-	check(LyraASC);
+	ULeeAbilitySystemComponent* LeeASC = GetLeeAbilitySystemComponentFromActorInfo();
+	check(LeeASC);
 
-	if ((ActivationGroup != ELeeAbilityActivationGroup::Exclusive_Blocking) && LyraASC->IsActivationGroupBlocked(NewGroup))
+	if ((ActivationGroup != ELeeAbilityActivationGroup::Exclusive_Blocking) && LeeASC->IsActivationGroupBlocked(NewGroup))
 	{
 		// This ability can't change groups if it's blocked (unless it is the one doing the blocking).
 		return false;
@@ -124,11 +124,11 @@ bool ULeeGameplayAbility::ChangeActivationGroup(ELeeAbilityActivationGroup NewGr
 
 	if (ActivationGroup != NewGroup)
 	{
-		ULeeAbilitySystemComponent* LyraASC = GetLeeAbilitySystemComponentFromActorInfo();
-		check(LyraASC);
+		ULeeAbilitySystemComponent* LeeASC = GetLeeAbilitySystemComponentFromActorInfo();
+		check(LeeASC);
 
-		LyraASC->RemoveAbilityFromActivationGroup(ActivationGroup, this);
-		LyraASC->AddAbilityToActivationGroup(NewGroup, this);
+		LeeASC->RemoveAbilityFromActivationGroup(ActivationGroup, this);
+		LeeASC->AddAbilityToActivationGroup(NewGroup, this);
 
 		ActivationGroup = NewGroup;
 	}
