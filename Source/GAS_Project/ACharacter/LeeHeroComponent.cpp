@@ -103,6 +103,7 @@ bool ULeeHeroComponent::CanChangeInitState(class UGameFrameworkComponentManager*
 	{
 		if (!LeePS)
 		{
+			UE_LOG(LogLee, Warning, TEXT("HeroComponent Spawned->DataAvailable Failed: LeePS is null"));
 			return false;
 		}
 		return true;
@@ -111,7 +112,15 @@ bool ULeeHeroComponent::CanChangeInitState(class UGameFrameworkComponentManager*
 	if (CurrentState == MyTags::InitState::DataAvailable && DesiredState == MyTags::InitState::DataInitialized)
 	{
 		// PawnExtensionComponent가 DataInitialized될 때까지 기다림 (== 모든 Feature Component가 DataAvailable인 상태)
-		return LeePS && Manager->HasFeatureReachedInitState(Pawn, ULeePawnExtensionComponent::NAME_ActorFeatureName, MyTags::InitState::DataInitialized);
+		bool bHasPS = LeePS != nullptr;
+		bool bPawnExtReady = Manager->HasFeatureReachedInitState(Pawn, ULeePawnExtensionComponent::NAME_ActorFeatureName, MyTags::InitState::DataInitialized);
+		
+		if (!bHasPS || !bPawnExtReady)
+		{
+			UE_LOG(LogLee, Warning, TEXT("HeroComponent DataAvailable->DataInitialized Waiting... HasPS: %d, PawnExtReady: %d"), bHasPS, bPawnExtReady);
+		}
+		
+		return bHasPS && bPawnExtReady;
 	}
 
 	// DataInitialized -> GameplayReady
@@ -140,20 +149,14 @@ void ULeeHeroComponent::HandleChangeInitState(class UGameFrameworkComponentManag
 		}
 		
 		const bool bIsLocallyControlled = Pawn->IsLocallyControlled();
+		
 		const ULeePawnData* PawnData = nullptr;
+		
 		if (ULeePawnExtensionComponent* PawnExtComp = ULeePawnExtensionComponent::FindPawnExtensionComponent(Pawn))
 		{
 			PawnData = PawnExtComp->GetPawnData<ULeePawnData>();
 			PawnExtComp->InitializeAbilitySystem(LeePS->GetLeeAbilitySystemComponent(), LeePS);
 			
-		}
-		
-		if (bIsLocallyControlled && PawnData)
-		{
-			if (ULeeCameraComponent* CameraComp = ULeeCameraComponent::FindCameraComponent(Pawn))
-			{
-				CameraComp->DetermineCameraModeDelegate.BindUObject(this, &ThisClass::DetermineCameraMode);
-			}
 		}
 
 		if (ALeePlayerController* LeePC = GetController<ALeePlayerController>())
@@ -163,6 +166,30 @@ void ULeeHeroComponent::HandleChangeInitState(class UGameFrameworkComponentManag
 				InitializePlayerInput(Pawn->InputComponent);
 			}
 		}
+
+		if (PawnData)
+		{
+			if (ULeeCameraComponent* CameraComponent = ULeeCameraComponent::FindCameraComponent(Pawn))
+			{
+				CameraComponent->DetermineCameraModeDelegate.BindUObject(this, &ThisClass::DetermineCameraMode);
+			}
+		}
+		
+		// if (bIsLocallyControlled && PawnData)
+		// {
+		// 	if (ULeeCameraComponent* CameraComp = ULeeCameraComponent::FindCameraComponent(Pawn))
+		// 	{
+		// 		CameraComp->DetermineCameraModeDelegate.BindUObject(this, &ThisClass::DetermineCameraMode);
+		// 	}
+		// }
+		//
+		// if (ALeePlayerController* LeePC = GetController<ALeePlayerController>())
+		// {
+		// 	if (Pawn->InputComponent != nullptr)
+		// 	{
+		// 		InitializePlayerInput(Pawn->InputComponent);
+		// 	}
+		// }
 		
 	}
 

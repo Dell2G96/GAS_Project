@@ -17,6 +17,7 @@
 #include "GAS_Project/GameModes/LeeExperienceDefinition.h"
 #include "GAS_Project/GameModes/LeeGameModeBase.h"
 #include "GAS_Project/_Souls/Abilities/LeeSoulsStatSet.h"
+#include "Net/Core/PushModel/PushModel.h"
 #include "Net/UnrealNetwork.h"
 
 

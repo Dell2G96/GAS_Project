@@ -53,7 +53,6 @@ public class GAS_Project : ModuleRules
 			"ReplicationGraph",
 			"SignificanceManager",
 			"Hotfix",
-			
 			"GameplayMessageRuntime",
 			"NetCore",
 

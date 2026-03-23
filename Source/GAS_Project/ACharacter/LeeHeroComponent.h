@@ -55,6 +55,10 @@ protected:
 
 	bool bReadyToBindInputs;
 
+	// 26.03.23 23:45 - Input 초기화 여부 확인용 접근자
+public:
+	bool GetReadyToBindInputs() const { return bReadyToBindInputs; }
+
 	
 	
 };

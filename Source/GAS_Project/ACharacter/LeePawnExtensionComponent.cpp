@@ -229,6 +229,7 @@ bool ULeePawnExtensionComponent::CanChangeInitState(UGameFrameworkComponentManag
 		// 아마 PawnData를 누군가 설정하는 모양이다
 		if (!PawnData)
 		{
+			UE_LOG(LogLee, Warning, TEXT("PawnExtComponent Spawned->DataAvailable Failed: PawnData is null"));
 			return false;
 		}
 
@@ -238,6 +239,7 @@ bool ULeePawnExtensionComponent::CanChangeInitState(UGameFrameworkComponentManag
 		{
 			if (!GetController<AController>())
 			{
+				UE_LOG(LogLee, Warning, TEXT("PawnExtComponent Spawned->DataAvailable Failed: Locally controlled but no Controller"));
 				return false;
 			}
 		}
@@ -250,7 +252,12 @@ bool ULeePawnExtensionComponent::CanChangeInitState(UGameFrameworkComponentManag
 	{
 		// Actor에 바인드된 모든 Feature들이 DataAvailable 상태일 때, DataInitialized로 넘어감:
 		// - HaveAllFeaturesReachedInitState 확인
-		return Manager->HaveAllFeaturesReachedInitState(Pawn, MyTags::InitState::DataAvailable);
+		bool bAllReady = Manager->HaveAllFeaturesReachedInitState(Pawn, MyTags::InitState::DataAvailable);
+		if (!bAllReady)
+		{
+			UE_LOG(LogLee, Warning, TEXT("PawnExtComponent DataAvailable->DataInitialized Waiting... Not all features reached DataAvailable."));
+		}
+		return bAllReady;
 	}
 
 	// DataInitialized -> GameplayReady

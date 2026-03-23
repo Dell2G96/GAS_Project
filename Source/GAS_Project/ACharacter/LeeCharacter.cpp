@@ -5,6 +5,7 @@
 
 #include "LeeCharacterMovementComponent.h"
 #include "LeeHealthComponent.h"
+#include "LeeHeroComponent.h"
 #include "LeePawnExtensionComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "GAS_Project/LeeLogChannels.h"
@@ -31,7 +32,7 @@ ALeeCharacter::ALeeCharacter(const FObjectInitializer& ObjectInitializer)
 	check(CapsuleComp);
 	CapsuleComp->InitCapsuleSize(40.0f, 90.0f);
 	CapsuleComp->SetCollisionProfileName(NAME_LeeCharacterCollisionProfile_Capsule);
-
+	
 	USkeletalMeshComponent* MeshComp = GetMesh();
 	check(MeshComp);
 	MeshComp->SetRelativeRotation(FRotator(0.0f, -90.0f, 0.0f));  // Rotate mesh to be X forward since it is exported as Y forward.
@@ -44,13 +45,13 @@ ALeeCharacter::ALeeCharacter(const FObjectInitializer& ObjectInitializer)
 	LeeMoveComp->BrakingFriction = 6.0f;
 	LeeMoveComp->GroundFriction = 8.0f;
 	LeeMoveComp->BrakingDecelerationWalking = 1400.0f;
-	LeeMoveComp->bUseControllerDesiredRotation = false;
-	LeeMoveComp->bOrientRotationToMovement = false;
 	LeeMoveComp->RotationRate = FRotator(0.0f, 720.0f, 0.0f);
 	LeeMoveComp->bAllowPhysicsRotationDuringAnimRootMotion = false;
 	LeeMoveComp->GetNavAgentPropertiesRef().bCanCrouch = true;
 	LeeMoveComp->bCanWalkOffLedgesWhenCrouching = true;
 	LeeMoveComp->SetCrouchedHalfHeight(65.0f);
+	LeeMoveComp->bUseControllerDesiredRotation = true;
+    LeeMoveComp->bOrientRotationToMovement = true;
 	
 	PawnExtComponent = CreateDefaultSubobject<ULeePawnExtensionComponent>(TEXT("PawnExtComponent"));
 	{
@@ -60,7 +61,7 @@ ALeeCharacter::ALeeCharacter(const FObjectInitializer& ObjectInitializer)
 		PawnExtComponent->OnAbilitySystemUnInitialized_Registed(FSimpleMulticastDelegate::FDelegate::CreateUObject(this,&ThisClass::OnAbilitySystemUnInitialized));
 	}
 	
-	// InputComponentClass = ULeeInputComponent::StaticClass();
+	// 26.03.23 23:45 - InputComponentClass 주석 해제: Cast<ULeeInputComponent> 성공을 위해 필수
 	
 
 	// CameraComponent 생성
@@ -180,7 +181,7 @@ void ALeeCharacter::OnAbilitySystemInitialized()
 	HealthComponent->InitializeWithAbilitySystem(LeeASC);
 }
 
-void ALeeCharacter::OnAbilitySystemUnInitialized()
+void ALeeCharacter::OnAbilitySystemUnInitialized()	
 {
 	HealthComponent->UninitializeAbilitySystem();
 }
@@ -243,6 +244,16 @@ void ALeeCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompon
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
 
 	PawnExtComponent->SetupPlayerInputComponent();
+
+	// 26.03.23 23:45 - InitState가 이미 DataInitialized에 도달했지만
+	// Pawn->InputComponent가 null이어서 InitializePlayerInput이 호출되지 못한 경우의 보완 처리
+	if (ULeeHeroComponent* HeroComp = ULeeHeroComponent::FindHeroComponent(this))
+	{
+		if (!HeroComp->GetReadyToBindInputs())
+		{
+			HeroComp->InitializePlayerInput(PlayerInputComponent);
+		}
+	}
 }
 
 
