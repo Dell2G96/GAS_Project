@@ -44,7 +44,8 @@ public:
 
 	void OnActionDeactivationCompleted();
 	void OnAllActionsDeactivated();
-	
+
+	void CallOrRegister_OnExperienceLoaded_HighPriority(FOnLeeExperienceLoaded::FDelegate&& Delegate);
 	void CallOrRegister_OnExperienceLoaded(FOnLeeExperienceLoaded::FDelegate&& Delegate);
 	void CallOrRegister_OnExperienceLoaded_LowPriority(FOnLeeExperienceLoaded::FDelegate&& Delegate);
 	
@@ -62,6 +63,8 @@ public:
 
 	ELeeExperienceLoadState LoadState = ELeeExperienceLoadState::Unloaded;
 
+	FOnLeeExperienceLoaded OnExperienceLoaded_HighPriority;
+	
 	FOnLeeExperienceLoaded OnExperienceLoaded;
 
 	FOnLeeExperienceLoaded OnExperienceLoaded_LowPriority;

@@ -1,0 +1,113 @@
+// Fill out your copyright notice in the Description page of Project Settings.
+
+
+#include "LeeTeamDisplayAsset.h"
+
+#include "LeeTeamSubsystem.h"
+#include "NiagaraComponent.h"
+
+void ULeeTeamDisplayAsset::ApplyToMaterial(class UMaterialInstanceDynamic* Meterial)
+{
+	if (Meterial)
+	{
+		for (const auto& KVP : ScalarParameters)
+		{
+			Meterial->SetScalarParameterValue(KVP.Key, KVP.Value);
+		}
+
+		for (const auto& KVP : ColorParameters)
+		{
+			Meterial->SetVectorParameterValue(KVP.Key, FVector(KVP.Value));
+		}
+
+		for (const auto& KVP : TextureParameters)
+		{
+			Meterial->SetTextureParameterValue(KVP.Key, KVP.Value);
+		}
+	}
+}
+
+void ULeeTeamDisplayAsset::ApplyToMeshComponent(class UMeshComponent* MeshComponent)
+{
+	for (const auto& KVP : ScalarParameters)
+	{
+		MeshComponent->SetScalarParameterValueOnMaterials(KVP.Key, KVP.Value);
+	}
+
+	for (const auto& KVP : ColorParameters)
+	{
+		MeshComponent->SetVectorParameterValueOnMaterials(KVP.Key, FVector(KVP.Value));
+	}
+
+	const TArray<UMaterialInterface*> MaterialInterfaces = MeshComponent->GetMaterials();
+	for (int32 MaterialIndex = 0; MaterialIndex < MaterialInterfaces.Num(); ++MaterialIndex)
+	{
+		if (UMaterialInterface* MaterialInterface = MaterialInterfaces[MaterialIndex])
+		{
+			UMaterialInstanceDynamic* DynamicMaterial = Cast<UMaterialInstanceDynamic>(MaterialInterface);
+			if (!DynamicMaterial)
+			{
+				DynamicMaterial = MeshComponent->CreateAndSetMaterialInstanceDynamic(MaterialIndex);
+			}
+
+			for (const auto& KVP : TextureParameters)
+			{
+				DynamicMaterial->SetTextureParameterValue(KVP.Key, KVP.Value);
+			}
+		}
+	}
+}
+
+void ULeeTeamDisplayAsset::ApplyToNiagaraComponent(class UNiagaraComponent* NiagaraComponent)
+{
+	if (NiagaraComponent)
+	{
+		for (const auto& KVP : ScalarParameters)
+		{
+			NiagaraComponent->SetVariableFloat(KVP.Key, KVP.Value);
+		}
+
+		for (const auto& KVP : ColorParameters)
+		{
+			NiagaraComponent->SetVariableLinearColor(KVP.Key, KVP.Value);
+		}
+
+		for (const auto& KVP : TextureParameters)
+		{
+			UTexture* Texture = KVP.Value;
+			NiagaraComponent->SetVariableTexture(KVP.Key, Texture);
+		}
+	}
+}
+
+void ULeeTeamDisplayAsset::ApplyToActor(AActor* TargetActor, bool bIncludeChildActors)
+{
+	if (TargetActor != nullptr)
+	{
+		TargetActor->ForEachComponent(bIncludeChildActors, [this](UActorComponent* InComponent)
+		{
+			if (UMeshComponent* MeshComponent = Cast<UMeshComponent>(InComponent))
+			{
+				ApplyToMeshComponent(MeshComponent);
+			}
+			else if (UNiagaraComponent* NiagaraComponent = Cast<UNiagaraComponent>(InComponent))
+			{
+				ApplyToNiagaraComponent(NiagaraComponent);
+			}
+		});
+	}
+}
+
+
+
+#if WITH_EDITOR
+void ULeeTeamDisplayAsset::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
+{
+	Super::PostEditChangeProperty(PropertyChangedEvent);
+
+	for (ULeeTeamSubsystem* TeamSubsystem : TObjectRange<ULeeTeamSubsystem>())
+	{
+		TeamSubsystem->NotifyTeamDisplayAssetModified(this);
+	}
+}
+#endif

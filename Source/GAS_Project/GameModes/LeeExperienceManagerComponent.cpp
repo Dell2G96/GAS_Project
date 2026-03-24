@@ -134,6 +134,19 @@ void ULeeExperienceManagerComponent::OnAllActionsDeactivated()
 	//@TODO:	GEngine->ForceGarbageCollection(true);
 }
 
+void ULeeExperienceManagerComponent::CallOrRegister_OnExperienceLoaded_HighPriority(
+	FOnLeeExperienceLoaded::FDelegate&& Delegate)
+{
+	if (IsExperienceLoaded())
+	{
+		Delegate.Execute(CurrentExperience);
+	}
+	else
+	{
+		OnExperienceLoaded_HighPriority.Add(MoveTemp(Delegate));
+	}
+}
+
 void ULeeExperienceManagerComponent::CallOrRegister_OnExperienceLoaded(FOnLeeExperienceLoaded::FDelegate&& Delegate)
 {
 	if (IsExperienceLoaded())

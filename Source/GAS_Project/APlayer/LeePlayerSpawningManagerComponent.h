@@ -35,7 +35,7 @@ private:
 	AActor* ChoosePlayerStart(AController* Player);
 	bool ControllerCanRestart(AController* Player);
 	void FinishRestartPlayer(AController* NewPlayer, const FRotator& StartRotation);
-	friend class ALeeGameMode;
+	friend class ALeeGameModeBase;
 
 	UPROPERTY(Transient)
 	TArray<TWeakObjectPtr<ALeePlayerStart>> CachedPlayerStarts;
