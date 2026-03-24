@@ -60,6 +60,10 @@ namespace MyTags
 
 		UE_DEFINE_GAMEPLAY_TAG(Lyra_Elimination_Message, "Lyra.Elimination.Message")
 
+		
+		UE_DEFINE_GAMEPLAY_TAG(Lyra_Enemy_Found, "Lyra.Enemy.Found")
+		UE_DEFINE_GAMEPLAY_TAG(Lyra_Enemy_Lost, "Lyra.Enemy.Lost")
+
 		//Status
 		UE_DEFINE_GAMEPLAY_TAG(Status_Death_Dying, "Lyra.Status.Death.Dying")
 		UE_DEFINE_GAMEPLAY_TAG(Status_Death_Dead, "Lyra.Status.Death.Dead")

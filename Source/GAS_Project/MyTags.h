@@ -35,6 +35,10 @@ namespace MyTags
 
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Lyra_Elimination_Message)
 
+		
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Lyra_Enemy_Found)
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Lyra_Enemy_Lost)
+
 		//Status
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Status_Death_Dying)
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Status_Death_Dead)
