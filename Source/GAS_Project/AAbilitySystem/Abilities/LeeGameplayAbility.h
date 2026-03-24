@@ -49,6 +49,9 @@ public:
 	class ALeePlayerController* GetLeePlayerControllerFromActorInfo() const ;
 
 	UFUNCTION(BlueprintCallable, Category="Lee|Ability")
+	AController* GetControllerFromActorInfo() const ; 
+
+	UFUNCTION(BlueprintCallable, Category="Lee|Ability")
 	class ALeeCharacter* GetLeeCharacterFromActorInfo() const ;
 
 	UFUNCTION(BlueprintCallable, Category="Lee|Ability")

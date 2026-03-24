@@ -46,6 +46,7 @@ namespace MyTags
 		UE_DEFINE_GAMEPLAY_TAG(InputTag_Look_Mouse,"InputTag.Look.Mouse")
 		
 		UE_DEFINE_GAMEPLAY_TAG(InputTag_Weapon_Fire,"InputTag.Weapon.Fire")			
+		UE_DEFINE_GAMEPLAY_TAG(InputTag_BowAim,"InputTag.BowAim")			
 		//UE_DEFINE_GAMEPLAY_TAG(InputTag_Look_Mouse,"InputTag.Look.Mouse")
 
 
@@ -82,8 +83,16 @@ namespace MyTags
 		UE_DEFINE_GAMEPLAY_TAG(Gameplay_Damage_Message, "Souls.Gameplay.Message")
 		UE_DEFINE_GAMEPLAY_TAG(Gameplay_MovementStopped, "Souls.Gameplay.MovementStopped")
 
+
+
+
+		//Ability
+		UE_DEFINE_GAMEPLAY_TAG(Ability_Type_Action_BowAim, "Souls.Ability.Type.Action.BowAim")
+		
+		
 		//GameplayEvent
 		UE_DEFINE_GAMEPLAY_TAG(GameplayEvent_Death, "Souls.GameplayEvent.Death")
+		UE_DEFINE_GAMEPLAY_TAG(GameplayEvent_Bow_SpawnArrow, "Souls.GameplayEvent.Bow.SpawnArrow")
 
 
 		//SetByCaller
@@ -94,6 +103,9 @@ namespace MyTags
 
 
 		UE_DEFINE_GAMEPLAY_TAG(Ability_Behavior_SurvivesDeath, "Souls.Ability.Behavior.SurvivesDeath")
+
+		//Event
+		UE_DEFINE_GAMEPLAY_TAG(Event_Movement_BowAnim, "Souls.Event.Movement.BowAnim")
 
 		
 		

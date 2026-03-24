@@ -58,6 +58,36 @@ class ULeeHeroComponent* ULeeGameplayAbility::GetHeroComponentFromActorInfo() co
 	return (CurrentActorInfo ? ULeeHeroComponent::FindHeroComponent(CurrentActorInfo->AvatarActor.Get()) : nullptr);
 }
 
+AController* ULeeGameplayAbility::GetControllerFromActorInfo() const
+{
+	if (CurrentActorInfo)
+	{
+		if (AController* PC = CurrentActorInfo->PlayerController.Get())
+		{
+			return PC;
+		}
+
+		AActor* TestActor = CurrentActorInfo->OwnerActor.Get();
+		while (TestActor)
+		{
+			if (AController* C = Cast<AController>(TestActor))
+			{
+				return C;
+			}
+
+			if (APawn* Pawn = Cast<APawn>(TestActor))
+			{
+				return Pawn->GetController();
+			}
+
+			TestActor = TestActor->GetOwner();
+		}
+	}
+
+	return nullptr;
+	
+}
+
 void ULeeGameplayAbility::TryActivateAbilityOnSpawn(const FGameplayAbilityActorInfo* ActorInfo,
                                                     const FGameplayAbilitySpec& Spec) const
 {
