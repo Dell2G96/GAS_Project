@@ -25,6 +25,7 @@ namespace MyTags
 
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(InputTag_Weapon_Fire)
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(InputTag_BowAim)
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(InputTag_BowFire)
 
 		
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(UI_Layer_Game)
@@ -63,6 +64,10 @@ namespace MyTags
 
 		//Aility
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Ability_Type_Action_BowAim)
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Ability_Type_Action_BowFire)
+
+		//Cooldown
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Cooldown_BowFire)
 
 		//GameplayEvent
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(GameplayEvent_Death)

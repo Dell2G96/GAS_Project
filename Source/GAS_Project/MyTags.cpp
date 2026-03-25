@@ -47,6 +47,7 @@ namespace MyTags
 		
 		UE_DEFINE_GAMEPLAY_TAG(InputTag_Weapon_Fire,"InputTag.Weapon.Fire")			
 		UE_DEFINE_GAMEPLAY_TAG(InputTag_BowAim,"InputTag.BowAim")			
+		UE_DEFINE_GAMEPLAY_TAG(InputTag_BowFire,"InputTag.BowFire")			
 		//UE_DEFINE_GAMEPLAY_TAG(InputTag_Look_Mouse,"InputTag.Look.Mouse")
 
 
@@ -88,6 +89,10 @@ namespace MyTags
 
 		//Ability
 		UE_DEFINE_GAMEPLAY_TAG(Ability_Type_Action_BowAim, "Souls.Ability.Type.Action.BowAim")
+		UE_DEFINE_GAMEPLAY_TAG(Ability_Type_Action_BowFire, "Souls.Ability.Type_Action.BowFire")
+
+		// CoolDown
+		UE_DEFINE_GAMEPLAY_TAG(Cooldown_BowFire, "Souls.Cooldown.BowFire")
 		
 		
 		//GameplayEvent

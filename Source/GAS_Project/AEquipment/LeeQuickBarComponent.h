@@ -31,6 +31,7 @@ public:
 		return Slots;
 	}
 
+	
 	UFUNCTION(BlueprintCallable, BlueprintPure = false)
 	int32 GetActiveSlotIndex() const { return ActiveSlotIndex; }
 
