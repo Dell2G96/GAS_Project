@@ -31,7 +31,11 @@
 			"Enabled": true
 		},
 		{
-			"Name": "ModularGameplayActors",
+			"Name": "ModularGamePlayActors",
+			"Enabled": true
+		},
+		{
+			"Name": "OnlineFramework",
 			"Enabled": true
 		}
 	]

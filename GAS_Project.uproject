@@ -12,7 +12,8 @@
 				"Engine",
 				"GameplayAbilities",
 				"ModularGameplay",
-				"CoreUObject"
+				"CoreUObject",
+				"DeveloperSettings"
 			]
 		}
 	],
@@ -76,8 +77,16 @@
 			"Name": "DataRegistry",        
 			"Enabled": true
 		},
+		{
+			"Name": "CommonLoadingScreen",
+			"Enabled": true
+		},
+		{
+			"Name": "ControlFlows",
+			"Enabled": true
+		},
 		{ "Name": "ReplicationGraph",    "Enabled": true },
 		{ "Name": "SignificanceManager", "Enabled": true },
-		{ "Name": "OnlineFramework",     "Enabled": true },
+		{ "Name": "OnlineFramework",     "Enabled": true }
 	]
 }

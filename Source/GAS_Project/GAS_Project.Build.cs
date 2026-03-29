@@ -21,6 +21,7 @@ public class GAS_Project : ModuleRules
 			// Input
 			"InputCore",
 			"EnhancedInput",
+			"CommonInput",
 			"AnimGraphRuntime",
 			// GAS
 			"GameplayAbilities",
@@ -47,7 +48,8 @@ public class GAS_Project : ModuleRules
 			"CommonGame",
 			//UIExtension
 			"UIExtension",
-			//SoulsCore
+			//CommonUI
+			"CommonUI",
 			
 			"DataRegistry",
 			"ReplicationGraph",
@@ -55,16 +57,25 @@ public class GAS_Project : ModuleRules
 			"Hotfix",
 			"GameplayMessageRuntime",
 			"NetCore",
+			"CommonLoadingScreen",
+			"ControlFlows",
 
-
-
+			
 			
 		});
 		
 		//PrivateIncludePaths.Add("GAS_Project");
 
 
-		PrivateDependencyModuleNames.AddRange(new string[] { "AnimGraphRuntime", "AnimGraphRuntime", "CommonGame", "GameplayMessageRuntime" });
+		PrivateDependencyModuleNames.AddRange(new string[]
+		{
+			"AnimGraphRuntime",
+			"AnimGraphRuntime",
+			"CommonGame", 
+			"GameplayMessageRuntime",
+			"CommonLoadingScreen", "ControlFlows",
+			
+		});
 
 		// Uncomment if you are using Slate UI
 		// PrivateDependencyModuleNames.AddRange(new string[] { "Slate", "SlateCore" });
