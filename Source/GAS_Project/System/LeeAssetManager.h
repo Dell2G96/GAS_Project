@@ -6,11 +6,19 @@
 #include "LeeGameData.h"
 #include "Engine/AssetManager.h"
 #include "GAS_Project/ACharacter/LeePawnData.h"
+
+#include "Engine/AssetManager.h"
+#include "Templates/SubclassOf.h"
+
+
 #include "LeeAssetManager.generated.h"
 
-/**
- * 
- */
+
+struct FLeeBundles
+{
+	static const FName Equipped;
+};
+
 UCLASS(Config = Game)
 class GAS_PROJECT_API ULeeAssetManager : public UAssetManager
 {
@@ -22,7 +30,7 @@ public:
 	static ULeeAssetManager& Get();
 
 	template <typename AssetType>
-static AssetType* GetAsset(const TSoftObjectPtr<AssetType>& AssetPointer, bool bKeepInMemory = true);
+	static AssetType* GetAsset(const TSoftObjectPtr<AssetType>& AssetPointer, bool bKeepInMemory = true);
 
 	template <typename AssetType>
 	static TSubclassOf<AssetType> GetSubclass(const TSoftClassPtr<AssetType>& AssetPointer, bool bKeepInMemory = true);

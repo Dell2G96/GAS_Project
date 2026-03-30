@@ -21,7 +21,7 @@ namespace FrontendTags
 
 
 ULeeFrontendStateComponent::ULeeFrontendStateComponent(const FObjectInitializer& ObjectInitializer)
-	:Super(ObjectInitializer)
+	:Super(ObjectInitializer) 
 {
 }
 
@@ -66,6 +66,8 @@ bool ULeeFrontendStateComponent::ShouldShowLoadingScreen(FString& OutReason) con
 
 void ULeeFrontendStateComponent::OnExperienceLoaded(const class ULeeExperienceDefinition* Experience)
 {
+	UE_LOG(LogTemp, Error, TEXT("*** FrontendState: Experience LOADED! ***"));
+	
 	FControlFlow& Flow = FControlFlowStatics::Create(this, TEXT("FrontendFlow"))
 	  .QueueStep(TEXT("Wait For User Initialization"), this, &ThisClass::FlowStep_WaitForUserInitialization)
 	  .QueueStep(TEXT("Try Show Press Start Screen"), this, &ThisClass::FlowStep_TryShowPressStartScreen)
@@ -79,17 +81,36 @@ void ULeeFrontendStateComponent::OnExperienceLoaded(const class ULeeExperienceDe
 
 void ULeeFrontendStateComponent::FlowStep_WaitForUserInitialization(FControlFlowNodeRef SubFlow)
 {
+	UE_LOG(LogTemp, Warning, TEXT("*** FlowStepWaitForUserInitialization START ***"));
+
+	
 	// 강제 연결 종료였다면, 모든 사용자 및 세션 상태를 명시적으로 초기화
 	bool bWasHardDisconnect = false;
 	AGameModeBase* GameMode = GetWorld()->GetAuthGameMode<AGameModeBase>();
 	UGameInstance* GameInstance = UGameplayStatics::GetGameInstance(this);
+
+	// 디버깅 추가
+	if (!GameInstance)
+	{
+		UE_LOG(LogTemp, Error, TEXT("No GameInstance!"));
+		SubFlow->ContinueFlow();
+		return;
+	}
+
+	UCommonUserSubsystem* UserSubsystem = GameInstance->GetSubsystem<UCommonUserSubsystem>();
+	if (!UserSubsystem) {
+		UE_LOG(LogTemp, Error, TEXT("No UserSubsystem!"));
+		SubFlow->ContinueFlow();  // 강제 진행
+		return;
+	}
+	// 디버깅 추가
 
 	if (ensure(GameMode) && UGameplayStatics::HasOption(GameMode->OptionsString, TEXT("closed")))
 	{
 		bWasHardDisconnect = true;
 	}
 	// 강제 연결 종료일 때만 사용자 상태 초기화
-	UCommonUserSubsystem* UserSubsystem = GameInstance->GetSubsystem<UCommonUserSubsystem>();
+	/*UCommonUserSubsystem* */UserSubsystem = GameInstance->GetSubsystem<UCommonUserSubsystem>();
 	if (ensure(UserSubsystem) && bWasHardDisconnect)
 	{
 		UserSubsystem->ResetUserState();
@@ -102,60 +123,65 @@ void ULeeFrontendStateComponent::FlowStep_WaitForUserInitialization(FControlFlow
 		SessionSubsystem->CleanUpSessions();
 	}
 
+	// Reset 시도 (실패해도 무시)
+	UserSubsystem->ResetUserState();
+    
+	UE_LOG(LogTemp, Warning, TEXT("*** FlowStepWaitForUserInitialization END ***"));
+
 	SubFlow->ContinueFlow();
 }
 
 void ULeeFrontendStateComponent::FlowStep_TryShowPressStartScreen(FControlFlowNodeRef SubFlow)
 {
-	const UGameInstance* GameInstance = UGameplayStatics::GetGameInstance(this);
-	UCommonUserSubsystem* UserSubsystem = GameInstance->GetSubsystem<UCommonUserSubsystem>();
+	 const UGameInstance* GameInstance = UGameplayStatics::GetGameInstance(this);
+    UCommonUserSubsystem* UserSubsystem = GameInstance->GetSubsystem<UCommonUserSubsystem>();
 
-	// 첫번째 플레이어가 이미 로그인 되어 있는지 확인
-	// 로그인 되어 있다면 Press Start 화면을 건너뛸 수 있다
-	if (const UCommonUserInfo* FirstUser = UserSubsystem->GetUserInfoForLocalPlayerIndex(0))
-	{
-		if (FirstUser->InitializationState == ECommonUserInitializationState::LoggedInLocalOnly || FirstUser->InitializationState == ECommonUserInitializationState::LoggedInOnline)
-		{
-			SubFlow->ContinueFlow();
-			return;
-		}
-	}
+    // 첫 번째 플레이어가 이미 로그인되어 있는지 확인합니다.  
+    // 로그인되어 있다면 Press Start 화면을 건너뛸 수 있습니다.
+    if (const UCommonUserInfo* FirstUser = UserSubsystem->GetUserInfoForLocalPlayerIndex(0))
+    {
+       if (FirstUser->InitializationState == ECommonUserInitializationState::LoggedInLocalOnly ||
+          FirstUser->InitializationState == ECommonUserInitializationState::LoggedInOnline)
+       {
+          SubFlow->ContinueFlow();
+          return;
+       }
+    }
 
-	// 플랫폼이 Press Start 화면을 필요한지 확인
-	// 이 화면은 온라인 사용자가 있을 수 있고 , 어떤 플레이어의 컨트롤러가 Start 를 누르냐에 따라 게임에 로그인할 플레이어가 결정되는 플랫폼에서만 필요
-	if (!UserSubsystem->ShouldWaitForStartInput())
-	{
-		// 자동 로그인 과정을 시작합니다. 이 과정은 빠르게 끝나며 기본 입력 장치 ID를 사용합니다
-		InProgressPressStartScreen = SubFlow;
-		UserSubsystem->OnUserInitializeComplete.AddDynamic(this, &ULeeFrontendStateComponent::OnUserInitialized);
-		UserSubsystem->TryToInitializeForLocalPlay(0, FInputDeviceId(), false);
+    // 플랫폼이 실제로 'Press Start' 화면을 필요로 하는지 확인합니다.  
+    // 이 화면은 여러 온라인 사용자가 있을 수 있고, 어떤 플레이어의 
+    // 컨트롤러가 'Start'를 누르느냐에 따라 게임에 로그인할 플레이어가 결정되는 플랫폼에서만 필요합니다.
+    if (!UserSubsystem->ShouldWaitForStartInput())
+    {
+       // 자동 로그인 과정을 시작합니다. 이 과정은 빠르게 끝나며 기본 입력 장치 ID를 사용합니다
+       InProgressPressStartScreen = SubFlow;
+       UserSubsystem->OnUserInitializeComplete.AddDynamic(this, &ULeeFrontendStateComponent::OnUserInitialized);
+       UserSubsystem->TryToInitializeForLocalPlay(0, FInputDeviceId(), false);
 
-		return;
-	}
+       return;
+    }
 
-	// Press Start 화면을 추가하고 , 비활성화 되면 다음 화면으로 이동
-	if (UPrimaryGameLayout* RootLayOut = UPrimaryGameLayout::GetPrimaryGameLayoutForPrimaryPlayer(this))
-	{
-		constexpr bool bSuspendInputUntilComplete = true;
-		RootLayOut->PushWidgetToLayerStackAsync<UCommonActivatableWidget>(FrontendTags::TAG_UI_LAYER_MENU, bSuspendInputUntilComplete, PressStartScreenClass,[this,SubFlow](EAsyncWidgetLayerState State, UCommonActivatableWidget* Screen)
-		{
-			switch (State)
-			{
-			case EAsyncWidgetLayerState::AfterPush:
-				bShouldShowLoadingScreen = false;
-				Screen->OnDeactivated().AddWeakLambda(this, [this, SubFlow]
-					{
-					SubFlow->ContinueFlow();
-
-					});
-				break;
-			case EAsyncWidgetLayerState::Canceled:
-			bShouldShowLoadingScreen = false;
-			SubFlow->ContinueFlow();
-			return;
-			}
-		});
-	}
+    // Press Start 화면을 추가하고, 비활성화되면 다음 흐름으로 이동합니다.
+    if (UPrimaryGameLayout* RootLayout = UPrimaryGameLayout::GetPrimaryGameLayoutForPrimaryPlayer(this))
+    {
+       constexpr bool bSuspendInputUntilComplete = true;
+       RootLayout->PushWidgetToLayerStackAsync<UCommonActivatableWidget>(FrontendTags::TAG_UI_LAYER_MENU, bSuspendInputUntilComplete, PressStartScreenClass,
+          [this, SubFlow](EAsyncWidgetLayerState State, UCommonActivatableWidget* Screen) {
+          switch (State)
+          {
+          case EAsyncWidgetLayerState::AfterPush:
+             bShouldShowLoadingScreen = false;
+             Screen->OnDeactivated().AddWeakLambda(this, [this, SubFlow]() {
+                SubFlow->ContinueFlow();
+             });
+             break;
+          case EAsyncWidgetLayerState::Canceled:
+             bShouldShowLoadingScreen = false;
+             SubFlow->ContinueFlow();
+             return;
+          }
+       });
+    }
 }
 
 

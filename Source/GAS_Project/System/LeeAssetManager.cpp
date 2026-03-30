@@ -4,6 +4,8 @@
 #include "LeeAssetManager.h"
 
 #include "GAS_Project/LeeLogChannels.h"
+const FName FLeeBundles::Equipped("Equipped");
+
 
 ULeeAssetManager::ULeeAssetManager()
 {

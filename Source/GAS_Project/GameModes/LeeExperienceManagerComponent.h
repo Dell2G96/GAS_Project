@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "LoadingProcessInterface.h"
 #include "Components/GameStateComponent.h"
 #include "LeeExperienceManagerComponent.generated.h"
 
@@ -16,6 +17,7 @@ enum  class ELeeExperienceLoadState
 	Unloaded,
 	Loading,
 	LoadingGameFeatures,
+	LoadingChaosTestingDelay,
 	ExecutingActions,
 	Loaded,
 	Deactivating,
@@ -24,16 +26,22 @@ enum  class ELeeExperienceLoadState
 
 
 UCLASS()
-class GAS_PROJECT_API ULeeExperienceManagerComponent : public UGameStateComponent
+class GAS_PROJECT_API ULeeExperienceManagerComponent : public UGameStateComponent,
+ public  ILoadingProcessInterface
 {
 	GENERATED_BODY()
 
 public:
 	ULeeExperienceManagerComponent(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
+
+	//~ILoadingProcessInterface interface
+	virtual bool ShouldShowLoadingScreen(FString& OutReason) const override;
+	//~End of ILoadingProcessInterface
 
 	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
 	// 새로 추가 //
-	 virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	 void SetCurrentExperience(FPrimaryAssetId ExperienceId);
 
 	 bool IsExperienceLoaded() const;
@@ -71,5 +79,8 @@ public:
 
 	int32 NumGameFeaturePluginsloading = 0;
 	TArray<FString> GameFeaturePluginURLs;
+	
+	int32 NumObservedPausers = 0;
+	int32 NumExpectedPausers = 0;
 	
 };

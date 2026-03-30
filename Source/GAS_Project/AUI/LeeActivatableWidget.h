@@ -23,8 +23,15 @@ class GAS_PROJECT_API ULeeActivatableWidget : public UCommonActivatableWidget
 public:
 	ULeeActivatableWidget(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
+	
 	virtual TOptional<FUIInputConfig> GetDesiredInputConfig() const override;
 
+
+#if WITH_EDITOR
+	virtual void ValidateCompiledWidgetTree(const UWidgetTree& BlueprintWidgetTree, class IWidgetCompilerLog& CompileLog) const override;
+#endif
+
+	
 	UPROPERTY(EditDefaultsOnly, Category=Input)
 	ELeeWidgetInputMode InputConfig = ELeeWidgetInputMode::Default;
 

@@ -43,7 +43,7 @@ void ULeeGameplayAbility_Death::ActivateAbility(const FGameplayAbilitySpecHandle
 
 	if (!ChangeActivationGroup(ELeeAbilityActivationGroup::Exclusive_Blocking))
 	{
-		UE_LOG(LogLee, Error, TEXT("ULyraGameplayAbility_Death::ActivateAbility: Ability [%s] failed to change activation group to blocking."), *GetName());
+		UE_LOG(LogLee, Error, TEXT("ULeeGameplayAbility_Death::ActivateAbility: Ability [%s] failed to change activation group to blocking."), *GetName());
 	}
 
 	if (bAutoStartDeath)

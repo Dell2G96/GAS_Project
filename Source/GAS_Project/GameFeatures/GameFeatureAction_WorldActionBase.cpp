@@ -22,10 +22,11 @@ void UGameFeatureAction_WorldActionBase::OnGameFeatureActivating(FGameFeatureAct
 void UGameFeatureAction_WorldActionBase::OnGameFeatureDeactivating(FGameFeatureDeactivatingContext& Context)
 {
 	FDelegateHandle* FoundHandle = GameInstanceStartHandles.Find(Context);
-	if (ensure(FoundHandle))
+	if (FoundHandle)
 	{
 		FWorldDelegates::OnStartGameInstance.Remove(*FoundHandle);
-	}}
+	}
+}
 
 void UGameFeatureAction_WorldActionBase::HandleGameInstanceStart(UGameInstance* GameInstance,
 	FGameFeatureStateChangeContext ChangeContext)
