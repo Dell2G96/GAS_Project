@@ -10,6 +10,7 @@
 ULeeAbilitySystemComponent::ULeeAbilitySystemComponent(const FObjectInitializer& ObjectInitializer)
 	:Super(ObjectInitializer)
 {
+	FMemory::Memzero(ActivationGroupCounts, sizeof(ActivationGroupCounts));
 }
 
 void ULeeAbilitySystemComponent::InitAbilityActorInfo(AActor* InOwnerActor, AActor* InAvatarActor)
@@ -254,9 +255,16 @@ void ULeeAbilitySystemComponent::RemoveAbilityFromActivationGroup(ELeeAbilityAct
 	ULeeGameplayAbility* LeeAbility)
 {
 	check(LeeAbility);
-	check(ActivationGroupCounts[(uint8)Group] > 0);
 
-	ActivationGroupCounts[(uint8)Group]--;
+	if (ActivationGroupCounts[(uint8)Group] > 0)
+	{
+		ActivationGroupCounts[(uint8)Group]--;
+	}
+	else
+	{
+		UE_LOG(LogLee, Warning, TEXT("RemoveAbilityFromActivationGroup: ActivationGroupCount is already 0 for Group [%d], Ability [%s]"),
+			(uint8)Group, *LeeAbility->GetName());
+	}
 }
 
 void ULeeAbilitySystemComponent::TryActivateAbilitiesOnSpawn()

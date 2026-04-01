@@ -41,6 +41,9 @@ void ULeeGameplayAbility_Death::ActivateAbility(const FGameplayAbilitySpecHandle
 
 	SetCanBeCanceled(false);
 
+	// Super를 먼저 호출하여 ActivationGroup 카운트를 증가시킨 후 ChangeActivationGroup 호출
+	Super::ActivateAbility(Handle, ActorInfo, ActivationInfo, TriggerEventData);
+
 	if (!ChangeActivationGroup(ELeeAbilityActivationGroup::Exclusive_Blocking))
 	{
 		UE_LOG(LogLee, Error, TEXT("ULeeGameplayAbility_Death::ActivateAbility: Ability [%s] failed to change activation group to blocking."), *GetName());
@@ -50,8 +53,6 @@ void ULeeGameplayAbility_Death::ActivateAbility(const FGameplayAbilitySpecHandle
 	{
 		StartDeath();
 	}
-
-	Super::ActivateAbility(Handle, ActorInfo, ActivationInfo, TriggerEventData);
 }
 
 void ULeeGameplayAbility_Death::EndAbility(const FGameplayAbilitySpecHandle Handle,

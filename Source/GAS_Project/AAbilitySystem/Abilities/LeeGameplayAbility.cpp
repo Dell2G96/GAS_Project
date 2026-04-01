@@ -38,6 +38,36 @@ void ULeeGameplayAbility::OnGiveAbility(const FGameplayAbilityActorInfo* ActorIn
 	TryActivateAbilityOnSpawn(ActorInfo, Spec);
 }
 
+bool ULeeGameplayAbility::CanActivateAbility(const FGameplayAbilitySpecHandle Handle,
+	const FGameplayAbilityActorInfo* ActorInfo, const FGameplayTagContainer* SourceTags,
+	const FGameplayTagContainer* TargetTags, FGameplayTagContainer* OptionalRelevantTags) const
+{
+	if (!ActorInfo || !ActorInfo->AbilitySystemComponent.IsValid())
+	{
+		return false;
+	}
+
+	if (!Super::CanActivateAbility(Handle, ActorInfo, SourceTags, TargetTags, OptionalRelevantTags))
+	{
+		return false;
+	}
+
+	ULeeAbilitySystemComponent* LeeASC = Cast<ULeeAbilitySystemComponent>(ActorInfo->AbilitySystemComponent.Get());
+	if (LeeASC && LeeASC->IsActivationGroupBlocked(ActivationGroup))
+	{
+		// Activation group is blocked
+		return false;
+	}
+
+	return true;
+}
+
+void ULeeGameplayAbility::SetCanBeCanceled(bool bCanBeCanceled)
+{
+	Super::SetCanBeCanceled(bCanBeCanceled);
+}
+
+
 class ULeeAbilitySystemComponent* ULeeGameplayAbility::GetLeeAbilitySystemComponentFromActorInfo() const
 {
 	return (CurrentActorInfo ? Cast<ULeeAbilitySystemComponent>(CurrentActorInfo->AbilitySystemComponent.Get()) : nullptr);
@@ -200,4 +230,33 @@ void ULeeGameplayAbility::ApplyCost(const FGameplayAbilitySpecHandle Handle, con
 			AdditionalCost->ApplyCost(this, Handle, ActorInfo, ActivationInfo);;
 		}
 	}
+}
+
+void ULeeGameplayAbility::ActivateAbility(const FGameplayAbilitySpecHandle Handle,
+	const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo,
+	const FGameplayEventData* TriggerEventData)
+{
+	// 어빌리티가 활성화될 때 ActivationGroup 카운트를 증가시킨다
+	if (ULeeAbilitySystemComponent* LeeASC = GetLeeAbilitySystemComponentFromActorInfo())
+	{
+		LeeASC->AddAbilityToActivationGroup(ActivationGroup, this);
+	}
+
+	Super::ActivateAbility(Handle, ActorInfo, ActivationInfo, TriggerEventData);
+}
+
+void ULeeGameplayAbility::EndAbility(const FGameplayAbilitySpecHandle Handle,
+	const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo,
+	bool bReplicateEndAbility, bool bWasCancelled)
+{
+	// 어빌리티가 종료될 때 ActivationGroup 카운트를 감소시킨다
+	if (IsEndAbilityValid(Handle, ActorInfo))
+	{
+		if (ULeeAbilitySystemComponent* LeeASC = GetLeeAbilitySystemComponentFromActorInfo())
+		{
+			LeeASC->RemoveAbilityFromActivationGroup(ActivationGroup, this);
+		}
+	}
+
+	Super::EndAbility(Handle, ActorInfo, ActivationInfo, bReplicateEndAbility, bWasCancelled);
 }
