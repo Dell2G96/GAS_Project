@@ -51,6 +51,9 @@ public class GAS_Project : ModuleRules
 			//CommonUI
 			"CommonUI",
 			
+			//AsyncMixin
+			"AsyncMixin",
+			
 			"DataRegistry",
 			"ReplicationGraph",
 			"SignificanceManager",

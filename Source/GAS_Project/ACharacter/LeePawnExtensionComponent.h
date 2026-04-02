@@ -21,6 +21,7 @@ public:
 
 	static const FName NAME_ActorFeatureName;
 
+	UFUNCTION(BlueprintPure, Category= "Lee|Pawn")
 	static ULeePawnExtensionComponent* FindPawnExtensionComponent(const class AActor* Actor) { return (Actor ? Actor->FindComponentByClass<ULeePawnExtensionComponent>() : nullptr); }
 
 	template<class T>
