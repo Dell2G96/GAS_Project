@@ -38,6 +38,9 @@ public:
 
 	static void ResumeInputForPlayer(ULocalPlayer* LocalPlayer, FName SuspendToken);
 
+	UFUNCTION(BlueprintCallable, BlueprintCosmetic, Category = "Global UI Extensions")
+	static void PopContentFromLayer(UCommonActivatableWidget* ActivatableWidget);
+
 private:
 	static int32 InputSuspensions;
 };

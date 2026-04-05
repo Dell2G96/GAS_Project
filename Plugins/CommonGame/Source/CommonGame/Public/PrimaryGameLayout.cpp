@@ -49,6 +49,15 @@ UPrimaryGameLayout* UPrimaryGameLayout::GetPrimaryGameLayout(ULocalPlayer* Local
 	return nullptr;
 }
 
+void UPrimaryGameLayout::FindAndRemoveWidgetFromLayer(UCommonActivatableWidget* ActivatableWidget)
+{
+	for (const auto& LayerKVP : Layers)
+	{
+
+		LayerKVP.Value->RemoveWidget(*ActivatableWidget);
+	}
+}
+
 UCommonActivatableWidgetContainerBase* UPrimaryGameLayout::GetLayerWidget(FGameplayTag LayerName)
 {
 	return Layers.FindRef(LayerName);

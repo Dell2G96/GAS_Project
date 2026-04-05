@@ -37,10 +37,7 @@ public:
 	static UPrimaryGameLayout* GetPrimaryGameLayoutForPrimaryPlayer(const UObject* WorldContextObject);
 	static UPrimaryGameLayout* GetPrimaryGameLayout(APlayerController* PlayerController);
 	static UPrimaryGameLayout* GetPrimaryGameLayout(ULocalPlayer* LocalPlayer);
-
 	
-	UCommonActivatableWidgetContainerBase* GetLayerWidget(FGameplayTag LayerName);
-
 	template<typename ActivatableWidgetT = UCommonActivatableWidget>
 	ActivatableWidgetT* PushWidgetToLayerStack(FGameplayTag LayerName, UClass* ActivatableWidgetClass)
 	{
@@ -99,6 +96,16 @@ public:
 		}
 		return nullptr;
 	}
+
+	// 모든 레이어에서 위젯을 찾아 레이어에서 제거
+	void FindAndRemoveWidgetFromLayer(UCommonActivatableWidget* ActivatableWidget);
+
+	// 주어진 레이어 태그에 대한 레이어 위젯을 가져옴
+	UCommonActivatableWidgetContainerBase* GetLayerWidget(FGameplayTag LayerName);
+
+
+
+	
 
 	UFUNCTION(BlueprintCallable, Category="Layer")
 	void RegisterLayer(FGameplayTag LayerTag, UCommonActivatableWidgetContainerBase* LayerWidget);

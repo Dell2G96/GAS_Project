@@ -81,3 +81,25 @@ void UCommonUIExtensions::ResumeInputForPlayer(ULocalPlayer* LocalPlayer, FName 
 		CommonInputSubsystem->SetInputTypeFilter(ECommonInputType::Touch, SuspendToken, false);
 	}
 }
+
+void UCommonUIExtensions::PopContentFromLayer(UCommonActivatableWidget* ActivatableWidget)
+{
+	if (!ActivatableWidget)
+	{
+		return;
+	}
+
+	if (const ULocalPlayer* LocalPlayer = ActivatableWidget->GetOwningLocalPlayer())
+	{
+		if (const UGameUIManagerSubsystem* UIManager = LocalPlayer->GetGameInstance()->GetSubsystem<UGameUIManagerSubsystem>())
+		{
+			if (const UGameUIPolicy* Policy = UIManager->GetCurrentUIPolicy())
+			{
+				if (UPrimaryGameLayout* RootLayout = Policy->GetRootLayout(CastChecked<UCommonLocalPlayer>(LocalPlayer)))
+				{
+					RootLayout->FindAndRemoveWidgetFromLayer(ActivatableWidget);
+				}
+			}
+		}
+	}
+}
