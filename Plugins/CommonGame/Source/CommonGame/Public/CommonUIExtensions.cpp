@@ -103,3 +103,24 @@ void UCommonUIExtensions::PopContentFromLayer(UCommonActivatableWidget* Activata
 		}
 	}
 }
+
+void UCommonUIExtensions::PushStreamedContentToLayer_ForPlayer(const ULocalPlayer* LocalPlayer, FGameplayTag LayerName,
+	TSoftClassPtr<UCommonActivatableWidget> WidgetClass)
+{
+	if (!ensure(LocalPlayer) || !ensure(!WidgetClass.IsNull()))
+	{
+		return;
+	}
+
+	if (UGameUIManagerSubsystem* UIManager = LocalPlayer->GetGameInstance()->GetSubsystem<UGameUIManagerSubsystem>())
+	{
+		if (UGameUIPolicy* Policy = UIManager->GetCurrentUIPolicy())
+		{
+			if (UPrimaryGameLayout* RootLayout = Policy->GetRootLayout(CastChecked<UCommonLocalPlayer>(LocalPlayer)))
+			{
+				const bool bSuspendInputUntilComplete = true;
+				RootLayout->PushWidgetToLayerStackAsync(LayerName, bSuspendInputUntilComplete, WidgetClass);
+			}
+		}
+	}
+}
