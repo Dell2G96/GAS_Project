@@ -51,6 +51,7 @@ namespace MyTags
 		//UE_DEFINE_GAMEPLAY_TAG(InputTag_Look_Mouse,"InputTag.Look.Mouse")
 
 
+		// UI
 		UE_DEFINE_GAMEPLAY_TAG(UI_Layer_Game,"UI.Layer.Game")
 		UE_DEFINE_GAMEPLAY_TAG(UI_Layer_GameMenu,"UI.Layer.GameMenu")
 		UE_DEFINE_GAMEPLAY_TAG(UI_Layer_Menu,"UI.Layer.Menu")
@@ -58,6 +59,12 @@ namespace MyTags
 		UE_DEFINE_GAMEPLAY_TAG(UI_LAYER_MENU,"UI.Layer.Modal")
 		UE_DEFINE_GAMEPLAY_TAG(UI_ACTION_ESCAPE,"UI.Action.Escape")
 		UE_DEFINE_GAMEPLAY_TAG(Platform_Trait_Input_PrimarlyController,"Platform.Trait.Input.PrimarlyController")
+
+		// Ability
+		UE_DEFINE_GAMEPLAY_TAG(Ability_Interaction_Activate, "Ability.Interaction.Activate");
+		UE_DEFINE_GAMEPLAY_TAG(Ability_Interaction_Duraction_Message, "Ability.Interaction.Duration.Message");
+		
+	
 
 		UE_DEFINE_GAMEPLAY_TAG(Lyra_QickBar_Message_SlotsChanged, "Lyra.QuickBar.Message.SlotsChanged")
 		UE_DEFINE_GAMEPLAY_TAG(Lyra_QickBar_Message_ActiveIndexChanged, "Lyra.QuickBar.Message.ActiveIndexChanged")

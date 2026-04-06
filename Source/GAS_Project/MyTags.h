@@ -20,6 +20,7 @@ namespace MyTags
 	
 	namespace Lyra
 	{
+		// InputTag
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(InputTag_Move)
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(InputTag_Look_Mouse)
 
@@ -27,7 +28,7 @@ namespace MyTags
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(InputTag_BowAim)
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(InputTag_BowFire)
 
-		
+		// UI
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(UI_Layer_Game)
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(UI_Layer_GameMenu)
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(UI_Layer_Menu)
@@ -35,9 +36,17 @@ namespace MyTags
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(UI_LAYER_MENU)
 		
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(UI_ACTION_ESCAPE)
-		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Platform_Trait_Input_PrimarlyController)
-
 		
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Platform_Trait_Input_PrimarlyController)
+		
+		//Ability
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Ability_Interaction_Activate);
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Ability_Interaction_Duraction_Message);
+		
+		
+	
+		
+		// QUickBar
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Lyra_QickBar_Message_SlotsChanged)
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Lyra_QickBar_Message_ActiveIndexChanged)
 
