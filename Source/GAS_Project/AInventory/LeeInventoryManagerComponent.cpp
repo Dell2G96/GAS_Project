@@ -63,9 +63,10 @@ TArray<ULeeInventoryItemInstance*> FLeeInventoryList::GetAllItem() const
 
 
 
-ULeeInventoryItemInstance* FLeeInventoryList::AddEntry(TSubclassOf<class ULeeInventoryItemDefinition> ItemDef)
+ULeeInventoryItemInstance* FLeeInventoryList::AddEntry(TSubclassOf<class ULeeInventoryItemDefinition> ItemDef, int32 StackCount)
 {
 	ULeeInventoryItemInstance* Result = nullptr;
+	
 	check(ItemDef);
 	check(OwnerComponent);
 
@@ -73,8 +74,11 @@ ULeeInventoryItemInstance* FLeeInventoryList::AddEntry(TSubclassOf<class ULeeInv
 	check(OwningActor->HasAuthority());
 
 	FLeeInventoryEntry& NewEntry = Entries.AddDefaulted_GetRef();
-	NewEntry.Instance = NewObject<ULeeInventoryItemInstance>(OwningActor);
-	NewEntry.Instance->ItemDef = ItemDef;
+	
+	//NewEntry.Instance = NewObject<ULeeInventoryItemInstance>(OwningActor);
+	NewEntry.Instance = NewObject<ULeeInventoryItemInstance>(OwnerComponent->GetOwner());
+	//NewEntry.Instance->ItemDef = ItemDef;
+	NewEntry.Instance->SetItemDef(ItemDef);
 
 	for (const ULeeInventoryItemFragment* Fragment : GetDefault<ULeeInventoryItemDefinition>(ItemDef)->Fragments)
 	{
@@ -83,8 +87,10 @@ ULeeInventoryItemInstance* FLeeInventoryList::AddEntry(TSubclassOf<class ULeeInv
 			Fragment->OnInstanceCreated(NewEntry.Instance);
 		}
 	}
-
+	NewEntry.StackCount = StackCount;
 	Result = NewEntry.Instance;
+	
+	
 	return Result;
 	
 }
@@ -108,12 +114,17 @@ void ULeeInventoryManagerComponent::GetLifetimeReplicatedProps(TArray< FLifetime
 
 
 ULeeInventoryItemInstance* ULeeInventoryManagerComponent::AddItemDefinition(
-	TSubclassOf<class ULeeInventoryItemDefinition> ItemDef)
+	TSubclassOf<class ULeeInventoryItemDefinition> ItemDef, int32 StackCount)
 {
 	ULeeInventoryItemInstance* Result = nullptr;
 	if (ItemDef)
 	{
-		Result = InventoryList.AddEntry(ItemDef);
+		Result = InventoryList.AddEntry(ItemDef, StackCount);
+
+		if (IsUsingRegisteredSubObjectList() && IsReadyForReplication() && Result)
+		{
+			AddReplicatedSubObject(Result);	
+		}
 	}
 	return Result;
 }

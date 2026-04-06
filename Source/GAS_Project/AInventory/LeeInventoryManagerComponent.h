@@ -63,7 +63,7 @@ struct FLeeInventoryList
 	}
 	TArray<ULeeInventoryItemInstance*> GetAllItem() const ;
 
-	ULeeInventoryItemInstance* AddEntry(TSubclassOf<class ULeeInventoryItemDefinition> ItemDef);
+	ULeeInventoryItemInstance* AddEntry(TSubclassOf<class ULeeInventoryItemDefinition> ItemDef, int32 StackCount);
 	void AddEntry(ULeeInventoryItemInstance* Instance);
 
 	void RemoveEntry(ULeeInventoryItemInstance* Instance);
@@ -88,7 +88,7 @@ public:
 	ULeeInventoryManagerComponent(const FObjectInitializer& InObjectInitializer = FObjectInitializer::Get());
 
 	UFUNCTION(BlueprintCallable, Category="Inventory")
-	ULeeInventoryItemInstance* AddItemDefinition(TSubclassOf<class ULeeInventoryItemDefinition> ItemDef);
+	ULeeInventoryItemInstance* AddItemDefinition(TSubclassOf<class ULeeInventoryItemDefinition> ItemDef,int32 StackCount = 1);
 
 	// UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category=Inventory)
 	// bool CanAddItemDefinition(TSubclassOf<ULeeInventoryItemDefinition> ItemDef, int32 StackCount = 1);

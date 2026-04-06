@@ -38,6 +38,11 @@ bool ULeeInventoryItemInstance::HasStatTag(FGameplayTag Tag) const
 	return StatTags.ContainsTag(Tag);
 }
 
+void ULeeInventoryItemInstance::SetItemDef(TSubclassOf<ULeeInventoryItemDefinition> InDef)
+{
+	ItemDef = InDef;
+}
+
 int32 ULeeInventoryItemInstance::GetStatTagStackCount(FGameplayTag Tag) const
 {
 	return StatTags.GetStackCount(Tag);

@@ -38,7 +38,13 @@ public:
 	void RemoveStatTagstack(FGameplayTag Tag, int32 StackCount);
 
 	bool HasStatTag(FGameplayTag Tag) const;
+	
+	void SetItemDef(TSubclassOf<ULeeInventoryItemDefinition> InDef);
 
+	
+	
+	
+	
 	UFUNCTION(BlueprintCallable, Category= Inventory)
 	int32 GetStatTagStackCount(FGameplayTag Tag) const;
 
