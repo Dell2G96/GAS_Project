@@ -95,7 +95,7 @@ class GAS_PROJECT_API ULeeAbilitySet : public UPrimaryDataAsset
 public:
 	ULeeAbilitySet(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
-	void GiveToAbilitySystem(ULeeAbilitySystemComponent* LeeASC, FLeeAbilitySet_GrantedHandles* OutGrantedHandles, UObject* SourceObject = nullptr);
+	void GiveToAbilitySystem(ULeeAbilitySystemComponent* LeeASC, FLeeAbilitySet_GrantedHandles* OutGrantedHandles, UObject* SourceObject = nullptr) const; 
 	
 	UPROPERTY(EditDefaultsOnly, Category="Gameplay Abilities")
 	TArray<FLeeAbilitySet_GameplayAbility> GrantedGameplayAbilities;

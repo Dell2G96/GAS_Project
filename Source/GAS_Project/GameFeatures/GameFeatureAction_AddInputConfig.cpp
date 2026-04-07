@@ -8,6 +8,7 @@
 #include "PlayerMappableInputConfig.h"
 #include "Components/GameFrameworkComponentManager.h"
 #include "GAS_Project/ACharacter/LeeHeroComponent.h"
+#include "GAS_Project/AInput/LeeMappableConfigPair.h"
 
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(GameFeatureAction_AddInputConfig)

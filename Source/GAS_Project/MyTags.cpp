@@ -57,7 +57,8 @@ namespace MyTags
 		UE_DEFINE_GAMEPLAY_TAG(UI_Layer_Menu,"UI.Layer.Menu")
 		UE_DEFINE_GAMEPLAY_TAG(UI_Layer_Modal,"UI.Layer.Modal")
 		UE_DEFINE_GAMEPLAY_TAG(UI_LAYER_MENU,"UI.Layer.Modal")
-		UE_DEFINE_GAMEPLAY_TAG(UI_ACTION_ESCAPE,"UI.Action.Escape")
+		
+//		UE_DEFINE_GAMEPLAY_TAG(UI_ACTION_ESCAPE,"UI.Action.Escape")
 		UE_DEFINE_GAMEPLAY_TAG(Platform_Trait_Input_PrimarlyController,"Platform.Trait.Input.PrimarlyController")
 
 		// Ability

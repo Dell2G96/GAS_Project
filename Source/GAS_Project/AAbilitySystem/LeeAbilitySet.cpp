@@ -5,6 +5,7 @@
 
 #include "LeeAbilitySystemComponent.h"
 #include "Abilities/LeeGameplayAbility.h"
+#include "GAS_Project/LeeLogChannels.h"
 
 void FLeeAbilitySet_GrantedHandles::AddAbilitySpecHandle(const FGameplayAbilitySpecHandle& Handle)
 {
@@ -50,14 +51,33 @@ ULeeAbilitySet::ULeeAbilitySet(const FObjectInitializer& ObjectInitializer)
 }
 
 void ULeeAbilitySet::GiveToAbilitySystem(ULeeAbilitySystemComponent* LeeASC,
-	FLeeAbilitySet_GrantedHandles* OutGrantedHandles, UObject* SourceObject)
+	FLeeAbilitySet_GrantedHandles* OutGrantedHandles, UObject* SourceObject) const
 {
 	check(LeeASC);
 	if (!LeeASC->IsOwnerActorAuthoritative())
 	{
 		return;	
 	}
-
+	
+	//Grant The Attibute Sets
+	for (int32 SetIndex = 0; SetIndex < GrantedAttributes.Num(); ++SetIndex)
+	{
+		const FLeeAbilitySet_AttributeSet& SetToGrant = GrantedAttributes[SetIndex];
+		if (!IsValid(SetToGrant.AttributeSet))
+		{
+			UE_LOG(LogLee, Error, TEXT("GrantedAttributes[%d] on ability set [%s] is not valid"), SetIndex, *GetNameSafe(this));
+			continue;
+		}
+		
+		UAttributeSet* NewSet = NewObject<UAttributeSet>(LeeASC->GetOwner(), SetToGrant.AttributeSet);
+		LeeASC->AddAttributeSetSubobject(NewSet);
+		if (OutGrantedHandles)
+		{
+			OutGrantedHandles->AddAttributeSet(NewSet);
+		}
+	}
+	
+	// 게임어빌리티 부여 
 	for (int32 AbilityIndex = 0; AbilityIndex < GrantedGameplayAbilities.Num(); ++AbilityIndex)
 	{
 		const FLeeAbilitySet_GameplayAbility& AbilityToGrant = GrantedGameplayAbilities[AbilityIndex];
@@ -77,6 +97,25 @@ void ULeeAbilitySet::GiveToAbilitySystem(ULeeAbilitySystemComponent* LeeASC,
 		if (OutGrantedHandles)
 		{
 			OutGrantedHandles->AddAbilitySpecHandle(AbilitySpecHandle);
+		}
+	}
+	
+	for (int32 EffectIndex = 0; EffectIndex < GrantedGameplayEffects.Num(); ++EffectIndex)
+	{
+		const FLeeAbilitySet_GameplayEffect& EffectToGrant = GrantedGameplayEffects[EffectIndex];
+
+		if (!IsValid(EffectToGrant.GameplayEffect))
+		{
+			UE_LOG(LogLee, Error, TEXT("GrantedGameplayEffects[%d] on ability set [%s] is not valid"), EffectIndex, *GetNameSafe(this));
+			continue;
+		}
+
+		const UGameplayEffect* GameplayEffect = EffectToGrant.GameplayEffect->GetDefaultObject<UGameplayEffect>();
+		const FActiveGameplayEffectHandle GameplayEffectHandle = LeeASC->ApplyGameplayEffectToSelf(GameplayEffect, EffectToGrant.EffectLevel, LeeASC->MakeEffectContext());
+
+		if (OutGrantedHandles)
+		{
+			OutGrantedHandles->AddGameplayeEffectHandle(GameplayEffectHandle);
 		}
 	}
 }

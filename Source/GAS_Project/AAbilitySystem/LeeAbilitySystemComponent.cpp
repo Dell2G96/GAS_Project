@@ -10,7 +10,22 @@
 ULeeAbilitySystemComponent::ULeeAbilitySystemComponent(const FObjectInitializer& ObjectInitializer)
 	:Super(ObjectInitializer)
 {
-	FMemory::Memzero(ActivationGroupCounts, sizeof(ActivationGroupCounts));
+	InputPressedSpecHandles.Reset();
+	InputReleasedSpecHandles.Reset();
+	InputHeldSpecHandles.Reset();
+	
+	FMemory::Memset(ActivationGroupCounts, 0, sizeof(ActivationGroupCounts));
+}
+
+void ULeeAbilitySystemComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	//Temp Dell2g
+	// if (ULeeGlobalAbilitySystem* GlobalAbilitySystem = UWorld::GetSubsystem<ULeeGlobalAbilitySystem>(GetWorld()))
+	// {
+	// 	GlobalAbilitySystem->UnregisterASC(this);
+	// }
+
+	Super::EndPlay(EndPlayReason);	
 }
 
 void ULeeAbilitySystemComponent::InitAbilityActorInfo(AActor* InOwnerActor, AActor* InAvatarActor)
@@ -149,12 +164,17 @@ void ULeeAbilitySystemComponent::CancelAbilitiesByFunc(TShouldCancelAbilityFunc 
 
 void ULeeAbilitySystemComponent::AbilityInputTagPressed(const FGameplayTag& InputTag)
 {
+	UE_LOG(LogTemp, Warning, TEXT("AbilityInputTagPressed: %s"), *InputTag.ToString());
+	
 	if (InputTag.IsValid())
 	{
 		for (const FGameplayAbilitySpec& AbilitySpec : ActivatableAbilities.Items)
 		{
 			if (AbilitySpec.Ability && (AbilitySpec.GetDynamicSpecSourceTags().HasTagExact(InputTag)))
 			{
+				UE_LOG(LogTemp, Warning, TEXT("  Found matching ability: %s, IsActive: %d"), 
+		  *AbilitySpec.Ability->GetName(), AbilitySpec.IsActive());
+				
 				InputPressedSpecHandles.AddUnique(AbilitySpec.Handle);
 				InputHeldSpecHandles.AddUnique(AbilitySpec.Handle);
 			}
@@ -180,16 +200,21 @@ void ULeeAbilitySystemComponent::AbilityInputTagReleased(const FGameplayTag& Inp
 
 void ULeeAbilitySystemComponent::ProcessAbilityInput(float DeltaTime, bool bGamePaused)
 {
-	TArray<FGameplayAbilitySpecHandle> AbilitiesToActivate;
+	
+	static TArray<FGameplayAbilitySpecHandle> AbilitiesToActivate;
+	AbilitiesToActivate.Reset();
+	
 	for (const FGameplayAbilitySpecHandle& SpecHandle : InputHeldSpecHandles)
 	{
 		if (const FGameplayAbilitySpec* AbilitySpec = FindAbilitySpecFromHandle(SpecHandle))
 		{
 			if (AbilitySpec->Ability && !AbilitySpec->IsActive())
 			{
+				UE_LOG(LogTemp, Warning, TEXT("ProcessInput - Ability: %s, IsActive: %d"), 
+			  *AbilitySpec->Ability->GetName(), AbilitySpec->IsActive());
+				
 				const ULeeGameplayAbility* LeeAbilityCDO = CastChecked<ULeeGameplayAbility>(AbilitySpec->Ability);
 
-				// Todo
 				if (LeeAbilityCDO->GetActivationPolicy() == ELeeAbilityActivationPolicy::WhileInputActive)
 				{
 					AbilitiesToActivate.AddUnique(AbilitySpec->Handle);
@@ -197,12 +222,16 @@ void ULeeAbilitySystemComponent::ProcessAbilityInput(float DeltaTime, bool bGame
 			}
 		}
 	}
+	
 	for (const FGameplayAbilitySpecHandle& SpecHandle : InputPressedSpecHandles)
 	{
 		if (FGameplayAbilitySpec* AbilitySpec = FindAbilitySpecFromHandle(SpecHandle))
 		{
 			if (AbilitySpec->Ability)
 			{
+				UE_LOG(LogTemp, Warning, TEXT("ProcessInput - Ability: %s, IsActive: %d"), 
+			  *AbilitySpec->Ability->GetName(), AbilitySpec->IsActive());
+				
 				AbilitySpec->InputPressed = true;
 
 				if (AbilitySpec->IsActive())
@@ -279,3 +308,35 @@ void ULeeAbilitySystemComponent::TryActivateAbilitiesOnSpawn()
 	}
 }
 
+void ULeeAbilitySystemComponent::AbilitySpecInputPressed(FGameplayAbilitySpec& Spec)
+{
+	Super::AbilitySpecInputPressed(Spec);
+	if (Spec.IsActive())
+	{
+		const UGameplayAbility* Instance = Spec.GetPrimaryInstance();
+		FPredictionKey OriginalPredictionKey = Instance ? Instance->GetCurrentActivationInfo().GetActivationPredictionKey() : Spec.ActivationInfo.GetActivationPredictionKey();
+		
+		InvokeReplicatedEvent(EAbilityGenericReplicatedEvent::InputPressed, Spec.Handle, OriginalPredictionKey);
+		
+	}
+	
+}
+
+void ULeeAbilitySystemComponent::AbilitySpecInputReleased(FGameplayAbilitySpec& Spec)
+{
+	Super::AbilitySpecInputReleased(Spec);
+
+	// UGameplayAbility::bReplicateInputDirectly는 지원하지 않는다
+	// WaitInputRelease 능력 태스크가 작동하도록 복제된 이벤트를 사용
+	if (Spec.IsActive())
+	{
+		PRAGMA_DISABLE_DEPRECATION_WARNINGS
+			   const UGameplayAbility* Instance = Spec.GetPrimaryInstance();
+		FPredictionKey OriginalPredictionKey = Instance ? Instance->GetCurrentActivationInfo().GetActivationPredictionKey() : Spec.ActivationInfo.GetActivationPredictionKey();
+		PRAGMA_ENABLE_DEPRECATION_WARNINGS
+
+			   // InputReleased 이벤트를 호출합니다. 여기서는 복제되지 않습니다. 누군가 듣고 있다면 서버로 InputReleased 이벤트를 복제할 수 있습니다.
+			   InvokeReplicatedEvent(EAbilityGenericReplicatedEvent::InputReleased, Spec.Handle, OriginalPredictionKey);
+	}
+
+}

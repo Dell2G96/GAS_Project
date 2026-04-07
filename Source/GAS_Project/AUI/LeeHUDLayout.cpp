@@ -18,7 +18,7 @@
 #endif  // WITH_EDITOR
 
 
-
+UE_DEFINE_GAMEPLAY_TAG_STATIC(TAG_UI_ACTION_ESCAPE, "UI.Action.Escape");
 
 ULeeHUDLayout::ULeeHUDLayout(const FObjectInitializer& ObjectInitializer)
 	:Super(ObjectInitializer)
@@ -33,7 +33,7 @@ void ULeeHUDLayout::NativeOnInitialized()
 	Super::NativeOnInitialized();
 
 
-	RegisterUIActionBinding(FBindUIActionArgs(FUIActionTag::ConvertChecked(MyTags::Lyra::UI_ACTION_ESCAPE), false, FSimpleDelegate::CreateUObject(this, &ThisClass::HandleEscapeAction)));
+	RegisterUIActionBinding(FBindUIActionArgs(FUIActionTag::ConvertChecked(TAG_UI_ACTION_ESCAPE), false, FSimpleDelegate::CreateUObject(this, &ThisClass::HandleEscapeAction)));
 
 	// 컨트롤러 연결 해제 화면을 표시할 수 있다면, 컨트롤러 상태 변경 델리게이트를 구독합니다.
 	if (ShouldPlatformDisplayControllerDisconnectScreen())

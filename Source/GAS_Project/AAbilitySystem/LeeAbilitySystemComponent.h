@@ -15,6 +15,10 @@ class GAS_PROJECT_API ULeeAbilitySystemComponent : public UAbilitySystemComponen
 
 public:
 	ULeeAbilitySystemComponent(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	
+	//~UActorComponent interface
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
+	//~End of UActorComponent interface
 
 	virtual void InitAbilityActorInfo(AActor* InOwnerActor, AActor* InAvatarActor) override;
 
@@ -32,11 +36,18 @@ public:
 
 	void RemoveAbilityFromActivationGroup(ELeeAbilityActivationGroup Group, ULeeGameplayAbility* LeeAbility);
 
-	
-
 	void TryActivateAbilitiesOnSpawn();
+	
+protected:
+	virtual void AbilitySpecInputPressed(FGameplayAbilitySpec& Spec) override;
+	virtual void AbilitySpecInputReleased(FGameplayAbilitySpec& Spec) override;
+	
+protected:
+
 	TArray<FGameplayAbilitySpecHandle> InputPressedSpecHandles;
+	
 	TArray<FGameplayAbilitySpecHandle> InputReleasedSpecHandles;
+	
 	TArray<FGameplayAbilitySpecHandle> InputHeldSpecHandles;
 
 	int32 ActivationGroupCounts[(uint8)ELeeAbilityActivationGroup::MAX];

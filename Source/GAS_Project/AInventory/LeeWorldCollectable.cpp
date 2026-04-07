@@ -3,6 +3,12 @@
 
 #include "LeeWorldCollectable.h"
 
+#include "Async/TaskGraphInterfaces.h"
+
+
+struct FInteractionQuery;
+
+
 ALeeWorldCollectable::ALeeWorldCollectable()
 {
 
