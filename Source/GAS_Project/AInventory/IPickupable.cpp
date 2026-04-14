@@ -6,7 +6,7 @@
 UPickupableStatics::UPickupableStatics()
 	:Super(FObjectInitializer::Get())
 {
-	
+
 }
 
 TScriptInterface<IPickupable> UPickupableStatics::GetFirstPickupableFromActor(AActor* Actor)
@@ -16,7 +16,7 @@ TScriptInterface<IPickupable> UPickupableStatics::GetFirstPickupableFromActor(AA
 	{
 		return PickupableActor;
 	}
-	
+
 	TArray<UActorComponent*> PickupableComponents = Actor ? Actor->GetComponentsByInterface(UPickupable::StaticClass()) : TArray<UActorComponent*>();
 	if (PickupableComponents.Num() > 0)
 	{
@@ -43,4 +43,5 @@ void UPickupableStatics::AddPickupToInventory(ULeeInventoryManagerComponent* Inv
 		}
 	}
 }
+
 

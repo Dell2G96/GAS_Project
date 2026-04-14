@@ -339,6 +339,18 @@ static AActor* GetInstigatorFromAttributeChangeData(const FOnAttributeChangeData
 void ULeeHealthComponent::HandleHealthChanged(const FOnAttributeChangeData& ChangeData)
 {
 	OnHealthChanged.Broadcast(this,ChangeData.OldValue, ChangeData.NewValue, GetInstigatorFromAttributeChangeData(ChangeData));
+
+	// HP가 10% 이하로 떨어지면 처형 가능 상태 부여
+	if (ChangeData.NewValue > 0.0f && GetMaxHealth() > 0.0f)
+	{
+		if ((ChangeData.NewValue / GetMaxHealth()) <= 0.1f)
+		{
+			if (AbilitySystemComponent && !AbilitySystemComponent->HasMatchingGameplayTag(MyTags::Status::Vulnerable_Execution))
+			{
+				AbilitySystemComponent->AddLooseGameplayTag(MyTags::Status::Vulnerable_Execution);
+			}
+		}
+	}
 }
 
 

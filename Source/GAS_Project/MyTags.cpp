@@ -58,7 +58,6 @@ namespace MyTags
 		UE_DEFINE_GAMEPLAY_TAG(UI_Layer_Modal,"UI.Layer.Modal")
 		UE_DEFINE_GAMEPLAY_TAG(UI_LAYER_MENU,"UI.Layer.Modal")
 		
-//		UE_DEFINE_GAMEPLAY_TAG(UI_ACTION_ESCAPE,"UI.Action.Escape")
 		UE_DEFINE_GAMEPLAY_TAG(Platform_Trait_Input_PrimarlyController,"Platform.Trait.Input.PrimarlyController")
 
 		// Ability
@@ -273,6 +272,8 @@ namespace MyTags
 		UE_DEFINE_GAMEPLAY_TAG(Groggy, "MyTags.Status.Groggy")
 		UE_DEFINE_GAMEPLAY_TAG(Executing, "MyTags.Status.Executing")
 		UE_DEFINE_GAMEPLAY_TAG(Executed, "MyTags.Status.Executed")
+		UE_DEFINE_GAMEPLAY_TAG(Vulnerable_Execution, "MyTags.Status.Vulnerable.Execution")
+		UE_DEFINE_GAMEPLAY_TAG(Invincible, "MyTags.Status.Invincible")
 		
 		
 		UE_DEFINE_GAMEPLAY_TAG(BattleMode, "MyTags.Status.Battle")
