@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "GameplayTagContainer.h"
 #include "LeeGameplayAbility.h"
 #include "LeeGameplayAbility_BeExecuted.generated.h"
 
@@ -24,8 +25,14 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Execution")
 	TSubclassOf<class UGameplayEffect> InvincibleGE;
 
+	UPROPERTY(EditDefaultsOnly, Category = "Execution")
+	FGameplayTag ExecutionStartEventTag;
+
 	UFUNCTION()
 	void OnMontageCompleted();
+
+	UFUNCTION()
+	void OnMontageInterrupted();
 
 	FActiveGameplayEffectHandle ActiveInvincibleGEHandle;
 };

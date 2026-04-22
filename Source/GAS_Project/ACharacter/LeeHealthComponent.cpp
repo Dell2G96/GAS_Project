@@ -345,9 +345,9 @@ void ULeeHealthComponent::HandleHealthChanged(const FOnAttributeChangeData& Chan
 	{
 		if ((ChangeData.NewValue / GetMaxHealth()) <= 0.1f)
 		{
-			if (AbilitySystemComponent && !AbilitySystemComponent->HasMatchingGameplayTag(MyTags::Souls::Souls_Vulnerable_Execution))
+			if (AbilitySystemComponent && !AbilitySystemComponent->HasMatchingGameplayTag(MyTags::Souls::Status_Vulnerable_Execution))
 			{
-				AbilitySystemComponent->AddLooseGameplayTag(MyTags::Souls::Souls_Vulnerable_Execution);
+				AbilitySystemComponent->AddLooseGameplayTag(MyTags::Souls::Status_Vulnerable_Execution);
 			}
 		}
 	}

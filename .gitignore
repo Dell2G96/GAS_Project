@@ -3,9 +3,11 @@ DerivedDataCache
 Intermediate
 Saved
 Content
+Docs
 _AssetFiles
 .vscode
 .vs
+.antigravityrules
 *.VC.db
 *.opensdf
 *.opendb

@@ -43,9 +43,7 @@ namespace MyTags
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Ability_Interaction_Duraction_Message);
 		
 		
-	
-		
-		// QUickBar
+		// QuickBar
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Lyra_QickBar_Message_SlotsChanged)
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Lyra_QickBar_Message_ActiveIndexChanged)
 
@@ -74,9 +72,13 @@ namespace MyTags
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Gameplay_Damage_Message)
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Gameplay_MovementStopped)
 
-		//Aility
+		//AilityType
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Ability_Type_Action_BowAim)
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Ability_Type_Action_BowFire)
+		
+		//Ability
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Ability_Assassination);
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Ability_AssassinationVictim);
 
 		//Cooldown
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Cooldown_BowFire)
@@ -94,6 +96,22 @@ namespace MyTags
 
 		//Event
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Event_Movement_BowAnim)
+		
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Event_Assassination_Start);
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Event_Assassination_End);
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Event_Execution_Start);
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Event_Execution_End);
+		
+		
+		//Execution
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Status_Groggy);
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Status_Executing);
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Status_Executied);
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Status_Assassinating);
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Status_Assassinated);
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Status_Unaware);
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Status_Vulnerable_Execution);
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Status_Invincible);
 
 		
 	}
@@ -149,6 +167,7 @@ namespace MyTags
 		
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Execution);
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Victim);
+
 
 		
 
@@ -213,12 +232,7 @@ namespace MyTags
 		{
 			UE_DECLARE_GAMEPLAY_TAG_EXTERN(Knife);
 		}
-
-		namespace Execution
-		{
-			UE_DECLARE_GAMEPLAY_TAG_EXTERN(Start);
-			UE_DECLARE_GAMEPLAY_TAG_EXTERN(End);
-		}
+		
 		
 		namespace Player
 		{
@@ -257,8 +271,7 @@ namespace MyTags
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Groggy);
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Executing);
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Executied);
-		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Vulnerable_Execution);
-		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Invincible);
+	
 
 		//Rolling
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Rolling);

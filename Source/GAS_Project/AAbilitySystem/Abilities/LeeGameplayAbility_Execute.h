@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "GameplayTagContainer.h"
 #include "LeeGameplayAbility.h"
 #include "LeeGameplayAbility_Execute.generated.h"
 
@@ -23,9 +24,41 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, Category = "Execution")
 	TSubclassOf<class UGameplayEffect> InvincibleGE;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Execution")
+	TSubclassOf<class UGameplayEffect> ExecutingStateGE;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Execution")
+	TSubclassOf<class UGameplayEffect> ExecutionDamageGE;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Execution")
+	FName WarpTargetName = TEXT("ExecutionTarget");
+
+	UPROPERTY(EditDefaultsOnly, Category = "Execution")
+	FGameplayTag ExecutionEventTag;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Execution")
+	FGameplayTag DeathEventTag;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Execution", meta = (ClampMin = "0.0", ClampMax = "1.0"))
+	float ExecutionDamageRatio = 0.8f;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Execution", meta = (ClampMin = "0.0"))
+	float ValidationRange = 400.0f;
 	
 	UFUNCTION()
 	void OnMontageCompleted();
+
+	UFUNCTION()
+	void OnMontageInterrupted();
+
+	bool ValidateTarget(const FGameplayAbilityActorInfo* ActorInfo, AActor* TargetActor) const;
+	void TryApplyExecutionOutcomeToTarget();
 	
 	FActiveGameplayEffectHandle ActiveInvincibleGEHandle;
+	FActiveGameplayEffectHandle ActiveExecutingGEHandle;
+
+	TWeakObjectPtr<AActor> CurrentExecutionTarget;
+	bool bSentDeathEvent = false;
+	bool bAddedExecutingTag = false;
 };

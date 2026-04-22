@@ -100,6 +100,9 @@ namespace MyTags
 		//Ability
 		UE_DEFINE_GAMEPLAY_TAG(Ability_Type_Action_BowAim, "Souls.Ability.Type.Action.BowAim")
 		UE_DEFINE_GAMEPLAY_TAG(Ability_Type_Action_BowFire, "Souls.Ability.Type_Action.BowFire")
+		
+		UE_DEFINE_GAMEPLAY_TAG(Ability_Assassination, "Souls.Abilities.Assassination")
+		UE_DEFINE_GAMEPLAY_TAG(Ability_AssassinationVictim, "Souls.Abilities.AssassinationVictim")
 
 		// CoolDown
 		UE_DEFINE_GAMEPLAY_TAG(Cooldown_BowFire, "Souls.Cooldown.BowFire")
@@ -121,6 +124,22 @@ namespace MyTags
 
 		//Event
 		UE_DEFINE_GAMEPLAY_TAG(Event_Movement_BowAnim, "Souls.Event.Movement.BowAnim")
+		UE_DEFINE_GAMEPLAY_TAG(Event_Assassination_Start, "Souls.Events.Assassination.Start")
+		UE_DEFINE_GAMEPLAY_TAG(Event_Assassination_End, "Souls.Events.Assassination.End")
+		UE_DEFINE_GAMEPLAY_TAG(Event_Execution_Start, "Souls.Events.Execution.Start")
+		UE_DEFINE_GAMEPLAY_TAG(Event_Execution_End, "Souls.Events.Execution.End")
+		
+		
+		//Execution
+		UE_DEFINE_GAMEPLAY_TAG(Status_Groggy, "Souls.Status.Groggy")
+		UE_DEFINE_GAMEPLAY_TAG(Status_Executing, "Souls.Status.Executing")
+		UE_DEFINE_GAMEPLAY_TAG(Status_Executed, "Souls.Status.Executed")
+		UE_DEFINE_GAMEPLAY_TAG(Status_Assassinating, "Souls.Status.Assassinating")
+		UE_DEFINE_GAMEPLAY_TAG(Status_Assassinated, "Souls.Status.Assassinated")
+		UE_DEFINE_GAMEPLAY_TAG(Status_Unaware, "Souls.Status.Unaware")
+		UE_DEFINE_GAMEPLAY_TAG(Status_Vulnerable_Execution, "Souls.Status.Vulnerable.Execution")
+		UE_DEFINE_GAMEPLAY_TAG(Status_Invincible, "Souls.Status.Invincible")	
+			
 
 		
 		
@@ -171,6 +190,7 @@ namespace MyTags
 		
 		UE_DEFINE_GAMEPLAY_TAG(Execution, "MyTags.Abilities.Execution")
 		UE_DEFINE_GAMEPLAY_TAG(Victim, "MyTags.Abilities.Victim")
+
 		
 
 		
@@ -234,12 +254,8 @@ namespace MyTags
 		{
 			UE_DEFINE_GAMEPLAY_TAG(Knife,"MyTags.Events.UnEquip.Knife")
 		}
-
-		namespace Execution
-		{
-			UE_DEFINE_GAMEPLAY_TAG(Start,"MyTags.Events.Execution.Start")
-			UE_DEFINE_GAMEPLAY_TAG(End,"MyTags.Events.Execution.End")
-		}
+		
+		
 		
 		namespace Player
 		{
@@ -272,8 +288,6 @@ namespace MyTags
 		UE_DEFINE_GAMEPLAY_TAG(Groggy, "MyTags.Status.Groggy")
 		UE_DEFINE_GAMEPLAY_TAG(Executing, "MyTags.Status.Executing")
 		UE_DEFINE_GAMEPLAY_TAG(Executed, "MyTags.Status.Executed")
-		UE_DEFINE_GAMEPLAY_TAG(Vulnerable_Execution, "MyTags.Status.Vulnerable.Execution")
-		UE_DEFINE_GAMEPLAY_TAG(Invincible, "MyTags.Status.Invincible")
 		
 		
 		UE_DEFINE_GAMEPLAY_TAG(BattleMode, "MyTags.Status.Battle")
