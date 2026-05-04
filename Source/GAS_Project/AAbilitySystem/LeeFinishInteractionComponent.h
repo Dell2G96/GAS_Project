@@ -32,7 +32,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(
  * Player 측 ULeeFinishTargetComponent가 구독할 수 있도록
  * 후보 등록/해제 이벤트만 발생시킨다.
  */
-UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
+UCLASS(ClassGroup=(Custom),Blueprintable, meta=(BlueprintSpawnableComponent))
 class GAS_PROJECT_API ULeeFinishInteractionComponent : public UActorComponent
 {
 	GENERATED_BODY()
@@ -43,6 +43,7 @@ public:
 	virtual void InitializeComponent() override;
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
+	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
 	// Player 측이 구독하는 후보 등록/해제 이벤트
 	UPROPERTY(BlueprintAssignable, Category = "Lee|Finish")
@@ -88,6 +89,10 @@ protected:
 	// Indicator가 부착될 Enemy Mesh 소켓(기본: 가슴)
 	UPROPERTY(EditDefaultsOnly, Category = "Lee|Finish|Indicator")
 	FName IndicatorSocketName = TEXT("spine_03");
+
+	// 에디터에서 박스 범위를 시각적으로 확인하는 디버그 옵션 (Shipping 빌드 제외)
+	UPROPERTY(EditAnywhere, Category = "Lee|Finish|Debug")
+	bool bDrawDebugBoxes = false;
 
 private:
 	UFUNCTION()

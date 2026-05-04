@@ -37,7 +37,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(
  *  3) 최종 타겟에 대한 Indicator 부착/해제 (spine_03, 가슴)
  *  4) IA_Finish 입력 시 GameplayEvent 전송 (어빌리티 트리거)
  */
-UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
+UCLASS(ClassGroup=(Custom),Blueprintable, meta=(BlueprintSpawnableComponent))
 class GAS_PROJECT_API ULeeFinishTargetComponent : public UActorComponent
 {
 	GENERATED_BODY()
@@ -111,6 +111,9 @@ private:
 	};
 
 	TArray<FFinishCandidate> Candidates;
+
+	// Candidates에 없더라도 구독 해제가 누락되지 않도록 등록된 컴포넌트를 별도 추적
+	TSet<TWeakObjectPtr<ULeeFinishInteractionComponent>> SubscribedEnemyComponents;
 
 	TWeakObjectPtr<AActor> CurrentTarget;
 	ELeeFinishType CurrentType = ELeeFinishType::None;

@@ -6,15 +6,19 @@
 #include "AbilitySystemComponent.h"
 #include "AIController.h"
 #include "Components/BoxComponent.h"
+#include "DrawDebugHelpers.h"
+#include "EngineUtils.h"
 #include "GameFramework/Pawn.h"
+#include "LeeFinishTargetComponent.h"
 #include "GAS_Project/MyTags.h"
 #include "Perception/AIPerceptionComponent.h"
 #include "Perception/AIPerceptionTypes.h"
 
 ULeeFinishInteractionComponent::ULeeFinishInteractionComponent()
 {
-	// 이벤트 기반이므로 틱 불필요
-	PrimaryComponentTick.bCanEverTick = false;
+	// Debug 시각화를 위해 틱 활성화 (Shipping 빌드에서는 자동 비활성화 가능)
+	PrimaryComponentTick.bCanEverTick = true;
+	PrimaryComponentTick.TickInterval = 0.1f;
 	bWantsInitializeComponent = true;
 }
 
@@ -77,6 +81,38 @@ void ULeeFinishInteractionComponent::BeginPlay()
 	}
 
 	BindToOwnerAbilitySystem();
+
+	// 동적 스폰된 Enemy도 등록되도록 — 이 컴포넌트의 BeginPlay에서 직접 Player를 찾아 구독 요청
+	for (TActorIterator<APawn> It(GetWorld()); It; ++It)
+	{
+		if (ULeeFinishTargetComponent* TargetComp = It->FindComponentByClass<ULeeFinishTargetComponent>())
+		{
+			TargetComp->RegisterEnemyComponent(this);
+		}
+	}
+}
+
+void ULeeFinishInteractionComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
+{
+	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
+
+#if !UE_BUILD_SHIPPING
+	if (bDrawDebugBoxes)
+	{
+		if (Box_Execution)
+		{
+			DrawDebugBox(GetWorld(), Box_Execution->GetComponentLocation(),
+				Box_Execution->GetScaledBoxExtent(), Box_Execution->GetComponentQuat(),
+				FColor::Green, false, 0.15f);
+		}
+		if (Box_Assassination)
+		{
+			DrawDebugBox(GetWorld(), Box_Assassination->GetComponentLocation(),
+				Box_Assassination->GetScaledBoxExtent(), Box_Assassination->GetComponentQuat(),
+				FColor::Blue, false, 0.15f);
+		}
+	}
+#endif
 }
 
 void ULeeFinishInteractionComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
@@ -145,6 +181,8 @@ void ULeeFinishInteractionComponent::OnAssassinationBoxEndOverlap(UPrimitiveComp
 
 void ULeeFinishInteractionComponent::HandleBeginOverlap(AActor* OtherActor, ELeeFinishType Type)
 {
+	UE_LOG(LogTemp, Warning, TEXT("[FinishInteraction] HandleBeginOverlap: %s / Type=%d"),*GetNameSafe(OtherActor), (int32)Type);  //  추가
+	
 	if (!IsPlayerActor(OtherActor) || OtherActor == GetOwner())
 	{
 		return;
@@ -233,7 +271,7 @@ bool ULeeFinishInteractionComponent::CanBeExecutedBy(AActor* /*Player*/) const
 	}
 
 	return ASC->HasMatchingGameplayTag(MyTags::Souls::Status_Groggy) ||
-		ASC->HasMatchingGameplayTag(MyTags::Status::Groggy);
+		ASC->HasMatchingGameplayTag(MyTags::Status::Groggy); // 레거시 태그 — Souls::Status_Groggy가 정규 태그이며 향후 제거 예정
 }
 
 bool ULeeFinishInteractionComponent::CanBeAssassinatedBy(AActor* Player) const
@@ -241,6 +279,7 @@ bool ULeeFinishInteractionComponent::CanBeAssassinatedBy(AActor* Player) const
 	UAbilitySystemComponent* ASC = GetOwnerAbilitySystem();
 	if (!ASC)
 	{
+		UE_LOG(LogTemp, Warning, TEXT("[CanBeAssassinated] FAIL:  ASC 없음"));
 		return false;
 	}
 
@@ -248,12 +287,14 @@ bool ULeeFinishInteractionComponent::CanBeAssassinatedBy(AActor* Player) const
 		ASC->HasMatchingGameplayTag(MyTags::Status::Executing) ||
 		ASC->HasMatchingGameplayTag(MyTags::Souls::Status_Assassinating))
 	{
+		UE_LOG(LogTemp, Warning, TEXT("[CanBeAssassinated] FAIL:  Dead/Executing/Assassinating 태그"));
 		return false;
 	}
 
 	// Unaware 태그가 직접 부여되어 있으면 통과
 	if (ASC->HasMatchingGameplayTag(MyTags::Souls::Status_Unaware))
 	{
+		UE_LOG(LogTemp, Warning, TEXT("[CanBeAssassinated] PASS:  Unaware 태그 있음"));
 		return true;
 	}
 
@@ -268,8 +309,9 @@ bool ULeeFinishInteractionComponent::CanBeAssassinatedBy(AActor* Player) const
 	UAIPerceptionComponent* PerceptionComp = AIController ? AIController->GetPerceptionComponent() : nullptr;
 	if (!PerceptionComp)
 	{
-		// AI가 없는 더미라면 일단 허용
-		return true;
+		// Perception이 없으면 암살 불가 — Unaware 태그로만 허용
+		UE_LOG(LogTemp, Warning, TEXT("[CanBeAssassinated] FAIL:  Perception 없음 + Unaware 태그 없음"));
+		return false;
 	}
 
 	FActorPerceptionBlueprintInfo PerceptionInfo;
@@ -278,9 +320,11 @@ bool ULeeFinishInteractionComponent::CanBeAssassinatedBy(AActor* Player) const
 	{
 		if (Stimulus.WasSuccessfullySensed())
 		{
+			UE_LOG(LogTemp, Warning, TEXT("[CanBeAssassinated]    FAIL: AI가 플레이어 인지 중"));
 			return false;
 		}
 	}
+	UE_LOG(LogTemp, Warning, TEXT("[CanBeAssassinated] PASS: AI가 플레이어 미인지"));
 	return true;
 }
 

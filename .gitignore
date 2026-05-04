@@ -8,6 +8,7 @@ _AssetFiles
 .vscode
 .vs
 .antigravityrules
+*.md
 *.VC.db
 *.opensdf
 *.opendb

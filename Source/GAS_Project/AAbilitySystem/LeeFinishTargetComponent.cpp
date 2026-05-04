@@ -51,15 +51,16 @@ void ULeeFinishTargetComponent::BeginPlay()
 
 void ULeeFinishTargetComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
-	// 모든 구독 해제
-	for (const FFinishCandidate& Candidate : Candidates)
+	// SubscribedEnemyComponents 전체 순회 — Candidates에 없는 컴포넌트도 빠짐없이 해제
+	for (const TWeakObjectPtr<ULeeFinishInteractionComponent>& Weak : SubscribedEnemyComponents)
 	{
-		if (ULeeFinishInteractionComponent* EnemyComp = Candidate.SourceComp.Get())
+		if (ULeeFinishInteractionComponent* EnemyComp = Weak.Get())
 		{
 			EnemyComp->OnFinishCandidateEntered.RemoveDynamic(this, &ULeeFinishTargetComponent::OnEnemyCandidateEntered);
 			EnemyComp->OnFinishCandidateLeft.RemoveDynamic(this, &ULeeFinishTargetComponent::OnEnemyCandidateLeft);
 		}
 	}
+	SubscribedEnemyComponents.Reset();
 	Candidates.Reset();
 
 	DetachIndicator();
@@ -92,6 +93,8 @@ void ULeeFinishTargetComponent::RegisterEnemyComponent(ULeeFinishInteractionComp
 	{
 		return;
 	}
+	
+	UE_LOG(LogTemp, Warning, TEXT("[FinishTargetRegisterEnemyComponent: %s"),*GetNameSafe(EnemyComp->GetOwner()));  // 여기 추가
 
 	if (!EnemyComp->OnFinishCandidateEntered.IsAlreadyBound(this, &ULeeFinishTargetComponent::OnEnemyCandidateEntered))
 	{
@@ -101,6 +104,8 @@ void ULeeFinishTargetComponent::RegisterEnemyComponent(ULeeFinishInteractionComp
 	{
 		EnemyComp->OnFinishCandidateLeft.AddDynamic(this, &ULeeFinishTargetComponent::OnEnemyCandidateLeft);
 	}
+
+	SubscribedEnemyComponents.Add(EnemyComp);
 }
 
 void ULeeFinishTargetComponent::UnregisterEnemyComponent(ULeeFinishInteractionComponent* EnemyComp)
@@ -112,6 +117,7 @@ void ULeeFinishTargetComponent::UnregisterEnemyComponent(ULeeFinishInteractionCo
 	EnemyComp->OnFinishCandidateEntered.RemoveDynamic(this, &ULeeFinishTargetComponent::OnEnemyCandidateEntered);
 	EnemyComp->OnFinishCandidateLeft.RemoveDynamic(this, &ULeeFinishTargetComponent::OnEnemyCandidateLeft);
 
+	SubscribedEnemyComponents.Remove(EnemyComp);
 	Candidates.RemoveAll([EnemyComp](const FFinishCandidate& C) { return C.SourceComp.Get() == EnemyComp; });
 	RecomputeTarget();
 }
@@ -311,9 +317,13 @@ void ULeeFinishTargetComponent::DetachIndicator()
 
 bool ULeeFinishTargetComponent::TryActivateFinish()
 {
+	
+	UE_LOG(LogTemp, Warning,TEXT("[TryActivateFinish] Target=%s / Type=%d / Tag=%s"),*GetNameSafe(CurrentTarget.Get()),  (int32)CurrentType,*AssassinationTriggerTag.ToString());       
+	
 	AActor* Target = CurrentTarget.Get();
 	if (!Target || CurrentType == ELeeFinishType::None)
 	{
+		UE_LOG(LogTemp, Warning,TEXT("[TryActivateFinish] FAIL: Target 또는Type 없음"));
 		return false;
 	}
 
