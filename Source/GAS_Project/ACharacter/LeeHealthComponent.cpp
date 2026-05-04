@@ -248,6 +248,7 @@ void ULeeHealthComponent::StartDeath()
 	Owner->ForceNetUpdate();
 }
 
+
 void ULeeHealthComponent::FinishDeath()
 {
 	if (DeathState != ELeeDeathState::DeathStarted)

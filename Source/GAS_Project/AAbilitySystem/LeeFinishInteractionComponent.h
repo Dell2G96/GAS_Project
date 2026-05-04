@@ -131,11 +131,10 @@ private:
 	void BroadcastEnteredIfNew(AActor* Player, ELeeFinishType Type);
 	void BroadcastLeftIfActive(AActor* Player, ELeeFinishType Type);
 
-	// 박스별로 오버랩 중인 Player와, "현재 유효 후보"로 브로드캐스트된 상태를 따로 추적한다.
+	// 박스별로 오버랩 중인 Player를 추적한다.
+	// 유효 후보 상태는 ULeeFinishTargetComponent::HasCandidate()로 확인한다 (Phase 4).
 	TSet<TWeakObjectPtr<AActor>> PlayersInExecutionBox;
 	TSet<TWeakObjectPtr<AActor>> PlayersInAssassinationBox;
-	TSet<TWeakObjectPtr<AActor>> ActiveExecutionCandidates;
-	TSet<TWeakObjectPtr<AActor>> ActiveAssassinationCandidates;
 
 	FDelegateHandle GroggyTagChangedHandle;
 	FDelegateHandle UnawareTagChangedHandle;

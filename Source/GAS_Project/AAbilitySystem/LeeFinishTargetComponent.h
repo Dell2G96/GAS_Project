@@ -71,6 +71,15 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Lee|Finish")
 	void UnregisterEnemyComponent(ULeeFinishInteractionComponent* EnemyComp);
 
+	// Phase 3: Overlap 기반 직접 후보 등록/해제 API.
+	// InteractionComponent의 Box Overlap 콜백에서 호출한다.
+	void AddCandidate(ULeeFinishInteractionComponent* SourceComp, ELeeFinishType Type);
+	void RemoveCandidate(ULeeFinishInteractionComponent* SourceComp, ELeeFinishType Type);
+
+	// Phase 4: SourceComp+Type 조합이 현재 Candidates에 등록되어 있는지 확인.
+	// ReevaluateAllCandidates에서 ActiveSet(stale 가능) 대신 사용한다.
+	bool HasCandidate(ULeeFinishInteractionComponent* SourceComp, ELeeFinishType Type) const;
+
 protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Lee|Finish|Priority")
 	ELeeFinishPriorityRule PriorityRule = ELeeFinishPriorityRule::AssassinationFirstThenDistance;

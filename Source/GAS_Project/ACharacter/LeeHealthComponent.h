@@ -18,8 +18,7 @@ enum class ELeeDeathState : uint8
 {
 	NotDead = 0,
 	DeathStarted,
-	DeathFinished
-	
+	DeathFinished,
 };
 
 
@@ -134,7 +133,6 @@ protected:
 
 	UPROPERTY()
 	ELeeDeathState DeathState;
-
 
 	
 };

@@ -7,7 +7,6 @@
 #include "AIController.h"
 #include "Components/BoxComponent.h"
 #include "DrawDebugHelpers.h"
-#include "EngineUtils.h"
 #include "GameFramework/Pawn.h"
 #include "LeeFinishTargetComponent.h"
 #include "GAS_Project/MyTags.h"
@@ -80,16 +79,10 @@ void ULeeFinishInteractionComponent::BeginPlay()
 		Box_Assassination->OnComponentEndOverlap.AddDynamic(this, &ULeeFinishInteractionComponent::OnAssassinationBoxEndOverlap);
 	}
 
-	BindToOwnerAbilitySystem();
-
-	// 동적 스폰된 Enemy도 등록되도록 — 이 컴포넌트의 BeginPlay에서 직접 Player를 찾아 구독 요청
-	for (TActorIterator<APawn> It(GetWorld()); It; ++It)
-	{
-		if (ULeeFinishTargetComponent* TargetComp = It->FindComponentByClass<ULeeFinishTargetComponent>())
-		{
-			TargetComp->RegisterEnemyComponent(this);
-		}
-	}
+	// Phase 4: ASC 태그 구독을 BeginPlay에서 하지 않는다.
+	// 플레이어가 박스에 진입할 때 BindToOwnerAbilitySystem을 호출하고,
+	// 마지막 플레이어가 박스를 떠날 때 UnbindFromOwnerAbilitySystem을 호출한다.
+	// 이로써 박스 밖에 플레이어가 없을 때는 불필요한 태그 이벤트를 수신하지 않는다.
 }
 
 void ULeeFinishInteractionComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
@@ -131,26 +124,30 @@ void ULeeFinishInteractionComponent::EndPlay(const EEndPlayReason::Type EndPlayR
 	}
 
 	// 남아있는 후보 정리 (Player 측 UI가 깨끗이 닫히도록)
-	AActor* Owner = GetOwner();
-	for (const TWeakObjectPtr<AActor>& WeakPlayer : ActiveExecutionCandidates)
+	// PlayersInBox 기준으로 정리한다. RemoveCandidate는 후보가 없어도 no-op이므로 안전하다.
+	for (const TWeakObjectPtr<AActor>& WeakPlayer : PlayersInExecutionBox)
 	{
 		if (AActor* Player = WeakPlayer.Get())
 		{
-			OnFinishCandidateLeft.Broadcast(Owner, Player, ELeeFinishType::Execution);
+			if (ULeeFinishTargetComponent* TargetComp = Player->FindComponentByClass<ULeeFinishTargetComponent>())
+			{
+				TargetComp->RemoveCandidate(this, ELeeFinishType::Execution);
+			}
 		}
 	}
-	for (const TWeakObjectPtr<AActor>& WeakPlayer : ActiveAssassinationCandidates)
+	for (const TWeakObjectPtr<AActor>& WeakPlayer : PlayersInAssassinationBox)
 	{
 		if (AActor* Player = WeakPlayer.Get())
 		{
-			OnFinishCandidateLeft.Broadcast(Owner, Player, ELeeFinishType::Assassination);
+			if (ULeeFinishTargetComponent* TargetComp = Player->FindComponentByClass<ULeeFinishTargetComponent>())
+			{
+				TargetComp->RemoveCandidate(this, ELeeFinishType::Assassination);
+			}
 		}
 	}
 
 	PlayersInExecutionBox.Reset();
 	PlayersInAssassinationBox.Reset();
-	ActiveExecutionCandidates.Reset();
-	ActiveAssassinationCandidates.Reset();
 
 	Super::EndPlay(EndPlayReason);
 }
@@ -181,8 +178,8 @@ void ULeeFinishInteractionComponent::OnAssassinationBoxEndOverlap(UPrimitiveComp
 
 void ULeeFinishInteractionComponent::HandleBeginOverlap(AActor* OtherActor, ELeeFinishType Type)
 {
-	UE_LOG(LogTemp, Warning, TEXT("[FinishInteraction] HandleBeginOverlap: %s / Type=%d"),*GetNameSafe(OtherActor), (int32)Type);  //  추가
-	
+	UE_LOG(LogTemp, Verbose, TEXT("[FinishInteraction] HandleBeginOverlap: %s / Type=%d"), *GetNameSafe(OtherActor), (int32)Type);
+
 	if (!IsPlayerActor(OtherActor) || OtherActor == GetOwner())
 	{
 		return;
@@ -191,15 +188,27 @@ void ULeeFinishInteractionComponent::HandleBeginOverlap(AActor* OtherActor, ELee
 	TSet<TWeakObjectPtr<AActor>>& InBoxSet = (Type == ELeeFinishType::Execution)
 		? PlayersInExecutionBox : PlayersInAssassinationBox;
 
+	const bool bWasEmpty = PlayersInExecutionBox.IsEmpty() && PlayersInAssassinationBox.IsEmpty();
 	InBoxSet.Add(OtherActor);
 
-	// 진입 직후 조건 판단. Groggy/Unaware가 아직 아니면 등록하지 않고,
-	// 나중에 태그가 붙으면 OnRelevantTagChanged → ReevaluateAllCandidates에서 뒤늦게 브로드캐스트.
-	if ((Type == ELeeFinishType::Execution && CanBeExecutedBy(OtherActor)) ||
-		(Type == ELeeFinishType::Assassination && CanBeAssassinatedBy(OtherActor)))
+	// Phase 4: 첫 플레이어 진입 시 ASC 태그 구독 시작
+	if (bWasEmpty)
 	{
-		BroadcastEnteredIfNew(OtherActor, Type);
+		BindToOwnerAbilitySystem();
 	}
+
+	// [Bug 1 수정] 인라인 CanBeExecutedBy 체크 대신 ReevaluateAllCandidates를 직접 호출한다.
+	//
+	// 기존 인라인 체크의 문제:
+	//   Groggy 태그가 이미 붙어있는 상태에서 CanBeExecutedBy()가 일시적으로 false를 반환하면
+	//   (예: GE 커밋 타이밍, Dead 태그 순간 중복 등) AddCandidate가 호출되지 않는다.
+	//   이후 Groggy 태그가 변하지 않으면 OnRelevantTagChanged가 발생하지 않아
+	//   ReevaluateAllCandidates가 영원히 호출되지 않고 UI가 나타나지 않는다.
+	//
+	// ReevaluateAllCandidates 호출로 통일하면:
+	//   - 중복 AddCandidate는 TargetComp 내부에서 처리됨
+	//   - Bind 이후 즉시 현재 상태를 정확하게 반영함
+	ReevaluateAllCandidates();
 }
 
 void ULeeFinishInteractionComponent::HandleEndOverlap(AActor* OtherActor, ELeeFinishType Type)
@@ -212,36 +221,41 @@ void ULeeFinishInteractionComponent::HandleEndOverlap(AActor* OtherActor, ELeeFi
 	TSet<TWeakObjectPtr<AActor>>& InBoxSet = (Type == ELeeFinishType::Execution)
 		? PlayersInExecutionBox : PlayersInAssassinationBox;
 
-	InBoxSet.Remove(OtherActor);
+	// [Bug 2 수정] TSet<TWeakObjectPtr<AActor>>::Remove(AActor*)는 암시적 변환 시
+	// TWeakObjectPtr의 내부 SerialNumber 불일치로 Remove가 실패할 수 있다.
+	// 람다 기반 RemoveAll로 raw pointer 직접 비교하여 안전하게 제거한다.
+	InBoxSet.RemoveAll([OtherActor](const TWeakObjectPtr<AActor>& Weak)
+	{
+		return Weak.Get() == OtherActor;
+	});
+
 	BroadcastLeftIfActive(OtherActor, Type);
+
+	// Phase 4: 마지막 플레이어가 박스를 떠나면 ASC 태그 구독 해제
+	if (PlayersInExecutionBox.IsEmpty() && PlayersInAssassinationBox.IsEmpty())
+	{
+		UnbindFromOwnerAbilitySystem();
+	}
 }
 
 void ULeeFinishInteractionComponent::BroadcastEnteredIfNew(AActor* Player, ELeeFinishType Type)
 {
-	TSet<TWeakObjectPtr<AActor>>& ActiveSet = (Type == ELeeFinishType::Execution)
-		? ActiveExecutionCandidates : ActiveAssassinationCandidates;
-
-	if (ActiveSet.Contains(Player))
+	// ActiveExecutionCandidates 가드 제거: AddCandidate가 내부적으로 중복 체크를 수행하므로
+	// 이 함수를 여러 번 호출해도 안전하다. EndOverlap 누락 등으로 가드가 stale 상태가 되면
+	// 재진입 시 AddCandidate가 호출되지 않는 버그가 발생했었다.
+	if (ULeeFinishTargetComponent* TargetComp = Player->FindComponentByClass<ULeeFinishTargetComponent>())
 	{
-		return;
+		TargetComp->AddCandidate(this, Type);
 	}
-
-	ActiveSet.Add(Player);
-	OnFinishCandidateEntered.Broadcast(GetOwner(), Player, Type);
 }
 
 void ULeeFinishInteractionComponent::BroadcastLeftIfActive(AActor* Player, ELeeFinishType Type)
 {
-	TSet<TWeakObjectPtr<AActor>>& ActiveSet = (Type == ELeeFinishType::Execution)
-		? ActiveExecutionCandidates : ActiveAssassinationCandidates;
-
-	if (!ActiveSet.Contains(Player))
+	// RemoveCandidate는 후보가 없으면 no-op이므로 가드 없이 직접 호출해도 안전하다.
+	if (ULeeFinishTargetComponent* TargetComp = Player->FindComponentByClass<ULeeFinishTargetComponent>())
 	{
-		return;
+		TargetComp->RemoveCandidate(this, Type);
 	}
-
-	ActiveSet.Remove(Player);
-	OnFinishCandidateLeft.Broadcast(GetOwner(), Player, Type);
 }
 
 bool ULeeFinishInteractionComponent::IsPlayerActor(const AActor* Actor) const
@@ -414,19 +428,24 @@ void ULeeFinishInteractionComponent::OnRelevantTagChanged(const FGameplayTag /*T
 
 void ULeeFinishInteractionComponent::ReevaluateAllCandidates()
 {
-	// Execution: 박스 안에 있지만 아직 유효 후보로 브로드캐스트되지 않았던 Player를 확인
+	// Phase 4: bActive 판단을 ActiveSet(stale 가능) 대신 LeeFinishTargetComponent::HasCandidate로 교체.
+	// AddCandidate/RemoveCandidate가 내부에서 중복을 처리하므로 조건이 맞으면 무조건 호출해도 안전하다.
+
+	// Execution: 박스 안에 있지만 아직 유효 후보로 등록되지 않았거나, 더 이상 유효하지 않은 경우 갱신
 	TArray<TWeakObjectPtr<AActor>> InBoxCopy = PlayersInExecutionBox.Array();
 	for (const TWeakObjectPtr<AActor>& Weak : InBoxCopy)
 	{
 		AActor* Player = Weak.Get();
 		if (!Player)
 		{
-			PlayersInExecutionBox.Remove(Weak);
+			// stale TWeakObjectPtr 제거: RemoveAll로 raw pointer null 비교
+			PlayersInExecutionBox.RemoveAll([](const TWeakObjectPtr<AActor>& W) { return !W.IsValid(); });
 			continue;
 		}
 
 		const bool bCan = CanBeExecutedBy(Player);
-		const bool bActive = ActiveExecutionCandidates.Contains(Player);
+		ULeeFinishTargetComponent* TargetComp = Player->FindComponentByClass<ULeeFinishTargetComponent>();
+		const bool bActive = TargetComp && TargetComp->HasCandidate(this, ELeeFinishType::Execution);
 
 		if (bCan && !bActive)
 		{
@@ -445,12 +464,14 @@ void ULeeFinishInteractionComponent::ReevaluateAllCandidates()
 		AActor* Player = Weak.Get();
 		if (!Player)
 		{
-			PlayersInAssassinationBox.Remove(Weak);
+			// stale TWeakObjectPtr 제거: RemoveAll로 raw pointer null 비교
+			PlayersInAssassinationBox.RemoveAll([](const TWeakObjectPtr<AActor>& W) { return !W.IsValid(); });
 			continue;
 		}
 
 		const bool bCan = CanBeAssassinatedBy(Player);
-		const bool bActive = ActiveAssassinationCandidates.Contains(Player);
+		ULeeFinishTargetComponent* TargetComp = Player->FindComponentByClass<ULeeFinishTargetComponent>();
+		const bool bActive = TargetComp && TargetComp->HasCandidate(this, ELeeFinishType::Assassination);
 
 		if (bCan && !bActive)
 		{

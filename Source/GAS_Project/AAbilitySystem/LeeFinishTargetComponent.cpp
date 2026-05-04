@@ -3,7 +3,6 @@
 #include "LeeFinishTargetComponent.h"
 
 #include "AbilitySystemBlueprintLibrary.h"
-#include "EngineUtils.h"
 #include "GameFramework/Character.h"
 #include "GameFramework/Pawn.h"
 #include "GameFramework/PlayerController.h"
@@ -26,27 +25,8 @@ void ULeeFinishTargetComponent::BeginPlay()
 {
 	Super::BeginPlay();
 
-	UWorld* World = GetWorld();
-	if (!World)
-	{
-		return;
-	}
-
-	// 레벨에 이미 있는 Enemy들의 컴포넌트를 자동 구독
-	for (TActorIterator<AActor> It(World); It; ++It)
-	{
-		AActor* Actor = *It;
-		if (!Actor || Actor == GetOwner())
-		{
-			continue;
-		}
-
-		if (ULeeFinishInteractionComponent* EnemyComp =
-			Actor->FindComponentByClass<ULeeFinishInteractionComponent>())
-		{
-			RegisterEnemyComponent(EnemyComp);
-		}
-	}
+	// Phase 1 리팩토링: TActorIterator 기반 사전 등록 제거.
+	// 이후 Enemy 측 Box Overlap 콜백에서 RegisterEnemyComponent를 직접 호출하도록 전환 예정.
 }
 
 void ULeeFinishTargetComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
@@ -313,6 +293,72 @@ void ULeeFinishTargetComponent::DetachIndicator()
 	}
 
 	ActiveIndicator = nullptr;
+}
+
+void ULeeFinishTargetComponent::AddCandidate(ULeeFinishInteractionComponent* SourceComp, ELeeFinishType Type)
+{
+	if (!SourceComp)
+	{
+		return;
+	}
+
+	AActor* Enemy = SourceComp->GetOwner();
+	if (!Enemy)
+	{
+		return;
+	}
+
+	for (const FFinishCandidate& Existing : Candidates)
+	{
+		if (Existing.Enemy.Get() == Enemy && Existing.Type == Type)
+		{
+			return;
+		}
+	}
+
+	FFinishCandidate Candidate;
+	Candidate.SourceComp = SourceComp;
+	Candidate.Enemy = Enemy;
+	Candidate.Type = Type;
+	Candidate.EnterTimeSeconds = FPlatformTime::Seconds();
+	Candidates.Add(Candidate);
+	RecomputeTarget();
+}
+
+void ULeeFinishTargetComponent::RemoveCandidate(ULeeFinishInteractionComponent* SourceComp, ELeeFinishType Type)
+{
+	if (!SourceComp)
+	{
+		return;
+	}
+
+	const int32 Before = Candidates.Num();
+	Candidates.RemoveAll([SourceComp, Type](const FFinishCandidate& C)
+	{
+		return C.SourceComp.Get() == SourceComp && C.Type == Type;
+	});
+
+	if (Before != Candidates.Num())
+	{
+		RecomputeTarget();
+	}
+}
+
+bool ULeeFinishTargetComponent::HasCandidate(ULeeFinishInteractionComponent* SourceComp, ELeeFinishType Type) const
+{
+	if (!SourceComp)
+	{
+		return false;
+	}
+
+	for (const FFinishCandidate& C : Candidates)
+	{
+		if (C.SourceComp.Get() == SourceComp && C.Type == Type)
+		{
+			return true;
+		}
+	}
+	return false;
 }
 
 bool ULeeFinishTargetComponent::TryActivateFinish()
