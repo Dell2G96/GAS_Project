@@ -58,6 +58,26 @@ public:
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Lee|Finish")
 	ELeeFinishType GetCurrentType() const { return CurrentType; }
 
+	/**
+	 * 현재 타겟의 Finish 타이머 진행률(0.0~1.0)을 반환한다.
+	 *
+	 * - 처형(Execution) : 타겟 ASC의 Groggy GE 잔여시간 / 전체Duration 비율.
+	 *                    잔여시간이 줄수록 0에 수렴 → 라디알 링이 닳아없어짐.
+	 * - 암살(Assassination): 시간제한이 없으므로 항상 1.0 반환 → 풀 링 유지.
+	 * - 타겟 없음 / GE 없음: 0.0 반환.
+	 *
+	 * 위젯 BP에서는 이 값 하나만 Material ScalarParam 'Progress'에 넘기면 됨.
+	 */
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Lee|Finish|UI")
+	float GetFinishTimerProgress() const;
+
+	/**
+	 * 현재 Finish 타입이 처형(Execution)인지 반환.
+	 * 위젯 BP에서 경고색(붉은색) 전환 여부를 결정할 때 사용.
+	 */
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Lee|Finish|UI")
+	bool IsExecutionType() const { return CurrentType == ELeeFinishType::Execution; }
+
 	// Player의 IA_Finish 입력에서 호출. 서버까지 GameplayEvent를 전달하고,
 	// 어빌리티가 TriggerTag로 활성화되도록 한다.
 	UFUNCTION(BlueprintCallable, Category = "Lee|Finish")

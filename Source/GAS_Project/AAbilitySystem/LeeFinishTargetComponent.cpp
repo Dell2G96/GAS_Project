@@ -3,6 +3,7 @@
 #include "LeeFinishTargetComponent.h"
 
 #include "AbilitySystemBlueprintLibrary.h"
+#include "AbilitySystemComponent.h"
 #include "GameFramework/Character.h"
 #include "GameFramework/Pawn.h"
 #include "GameFramework/PlayerController.h"
@@ -391,4 +392,76 @@ bool ULeeFinishTargetComponent::TryActivateFinish()
 
 	UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(Owner, TriggerTag, Payload);
 	return true;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// UI 헬퍼: 위젯 BP에서 라디알 타이머 Progress를 가져오는 함수
+// ─────────────────────────────────────────────────────────────────────────────
+
+float ULeeFinishTargetComponent::GetFinishTimerProgress() const
+{
+	// ① 암살 타입이면 시간제한 없음 → 항상 꽉 찬 링(1.0)
+	if (CurrentType == ELeeFinishType::Assassination)
+	{
+		return 1.0f;
+	}
+
+	// ② 타겟이 없으면 0.0
+	AActor* Target = CurrentTarget.Get();
+	if (!Target)
+	{
+		return 0.0f;
+	}
+
+	// ③ 타겟 ASC 획득
+	UAbilitySystemComponent* ASC =
+		UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(Target);
+	if (!ASC)
+	{
+		return 0.0f;
+	}
+
+	// ④ Groggy GE를 태그 기반으로 쿼리
+	//    Souls::Status_Groggy 또는 레거시 Status::Groggy 모두 포함
+	FGameplayEffectQuery GroggyQuery;
+	GroggyQuery.EffectTagQuery = FGameplayTagQuery::MakeQuery_MatchTag(
+		MyTags::Souls::Status_Groggy);
+
+	TArray<FActiveGameplayEffectHandle> Handles = ASC->GetActiveEffects(GroggyQuery);
+
+	// 레거시 태그로도 재시도 (Souls::Status_Groggy로 찾지 못한 경우)
+	if (Handles.Num() == 0)
+	{
+		FGameplayEffectQuery LegacyQuery;
+		LegacyQuery.EffectTagQuery = FGameplayTagQuery::MakeQuery_MatchTag(
+			MyTags::Status::Groggy);
+		Handles = ASC->GetActiveEffects(LegacyQuery);
+	}
+
+	if (Handles.Num() == 0)
+	{
+		// Groggy GE가 없으면 이미 만료됐거나 처형 중 — 0.0 반환
+		return 0.0f;
+	}
+
+	// ⑤ 잔여시간 / 전체Duration 비율 계산
+	//    FActiveGameplayEffectHandle → FActiveGameplayEffect → StartWorldTime & Duration
+	const FActiveGameplayEffect* ActiveGE = ASC->GetActiveGameplayEffect(Handles[0]);
+	if (!ActiveGE)
+	{
+		return 0.0f;
+	}
+
+	const float Duration  = ActiveGE->GetDuration();
+	if (Duration <= 0.0f)
+	{
+		// Duration 이 -1 (Infinite) 이면 풀 링 유지
+		return 1.0f;
+	}
+
+	const float WorldTime = ASC->GetWorld() ? ASC->GetWorld()->GetTimeSeconds() : 0.0f;
+	const float Elapsed   = WorldTime - ActiveGE->StartWorldTime;
+	const float Remaining = FMath::Max(0.0f, Duration - Elapsed);
+
+	return FMath::Clamp(Remaining / Duration, 0.0f, 1.0f);
 }

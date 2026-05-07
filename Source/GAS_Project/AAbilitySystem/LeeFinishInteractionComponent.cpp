@@ -223,11 +223,14 @@ void ULeeFinishInteractionComponent::HandleEndOverlap(AActor* OtherActor, ELeeFi
 
 	// [Bug 2 수정] TSet<TWeakObjectPtr<AActor>>::Remove(AActor*)는 암시적 변환 시
 	// TWeakObjectPtr의 내부 SerialNumber 불일치로 Remove가 실패할 수 있다.
-	// 람다 기반 RemoveAll로 raw pointer 직접 비교하여 안전하게 제거한다.
-	InBoxSet.RemoveAll([OtherActor](const TWeakObjectPtr<AActor>& Weak)
+	// TSet iterator에서 raw pointer를 직접 비교하여 안전하게 제거한다.
+	for (auto It = InBoxSet.CreateIterator(); It; ++It)
 	{
-		return Weak.Get() == OtherActor;
-	});
+		if (It->Get() == OtherActor)
+		{
+			It.RemoveCurrent();
+		}
+	}
 
 	BroadcastLeftIfActive(OtherActor, Type);
 
@@ -438,8 +441,14 @@ void ULeeFinishInteractionComponent::ReevaluateAllCandidates()
 		AActor* Player = Weak.Get();
 		if (!Player)
 		{
-			// stale TWeakObjectPtr 제거: RemoveAll로 raw pointer null 비교
-			PlayersInExecutionBox.RemoveAll([](const TWeakObjectPtr<AActor>& W) { return !W.IsValid(); });
+			// stale TWeakObjectPtr 제거
+			for (auto It = PlayersInExecutionBox.CreateIterator(); It; ++It)
+			{
+				if (!It->IsValid())
+				{
+					It.RemoveCurrent();
+				}
+			}
 			continue;
 		}
 
@@ -464,8 +473,14 @@ void ULeeFinishInteractionComponent::ReevaluateAllCandidates()
 		AActor* Player = Weak.Get();
 		if (!Player)
 		{
-			// stale TWeakObjectPtr 제거: RemoveAll로 raw pointer null 비교
-			PlayersInAssassinationBox.RemoveAll([](const TWeakObjectPtr<AActor>& W) { return !W.IsValid(); });
+			// stale TWeakObjectPtr 제거
+			for (auto It = PlayersInAssassinationBox.CreateIterator(); It; ++It)
+			{
+				if (!It->IsValid())
+				{
+					It.RemoveCurrent();
+				}
+			}
 			continue;
 		}
 
