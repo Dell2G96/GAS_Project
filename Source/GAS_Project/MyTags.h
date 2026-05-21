@@ -77,6 +77,7 @@ namespace MyTags
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Ability_Type_Action_BowFire)
 		
 		//Ability
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Ability_Execution);
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Ability_Assassination);
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Ability_AssassinationVictim);
 
@@ -101,6 +102,10 @@ namespace MyTags
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Event_Assassination_End);
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Event_Execution_Start);
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Event_Execution_End);
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Event_BeFinished);
+
+		// GameplayCue
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(GameplayCue_FinishIndicator);
 		
 		
 		//Execution

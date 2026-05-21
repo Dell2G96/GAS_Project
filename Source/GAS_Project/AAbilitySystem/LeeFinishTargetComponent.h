@@ -8,10 +8,6 @@
 #include "LeeFinishInteractionComponent.h"
 #include "LeeFinishTargetComponent.generated.h"
 
-class UIndicatorDescriptor;
-class ULeeIndicatorManagerComponent;
-class UUserWidget;
-
 /** Player가 다수의 Enemy 후보 중 어떤 것을 최종 타겟으로 삼을지 결정하는 규칙 */
 UENUM(BlueprintType)
 enum class ELeeFinishPriorityRule : uint8
@@ -32,10 +28,9 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(
  * Player Pawn에 부착되는 처형/암살 후보 관리 컴포넌트.
  *
  * 역할:
- *  1) Enemy의 ULeeFinishInteractionComponent로부터 후보 등록/해제 이벤트 수신
- *  2) 우선순위 규칙에 따라 최종 타겟 1개 선정
- *  3) 최종 타겟에 대한 Indicator 부착/해제 (spine_03, 가슴)
- *  4) IA_Finish 입력 시 GameplayEvent 전송 (어빌리티 트리거)
+ *  1) Enemy의 ULeeFinishInteractionComponent overlap 등록/해제 수신
+ *  2) Tick에서 현재 유효한 후보를 즉석 평가하여 최종 타겟 1개 선정
+ *  3) IA_Finish 입력 시 GameplayEvent 전송 (어빌리티 트리거)
  */
 UCLASS(ClassGroup=(Custom),Blueprintable, meta=(BlueprintSpawnableComponent))
 class GAS_PROJECT_API ULeeFinishTargetComponent : public UActorComponent
@@ -83,32 +78,26 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Lee|Finish")
 	bool TryActivateFinish();
 
-	// Enemy에 컴포넌트가 스폰/등록되었을 때 호출해 구독을 건다.
-	// BeginPlay 시점에 레벨에 이미 존재하는 Enemy들은 자동 탐색/구독.
-	UFUNCTION(BlueprintCallable, Category = "Lee|Finish")
+	UFUNCTION(BlueprintCallable, Category = "Lee|Finish", meta = (DeprecatedFunction, DeprecationMessage = "Overlap boxes now call RegisterOverlap directly."))
 	void RegisterEnemyComponent(ULeeFinishInteractionComponent* EnemyComp);
 
-	UFUNCTION(BlueprintCallable, Category = "Lee|Finish")
+	UFUNCTION(BlueprintCallable, Category = "Lee|Finish", meta = (DeprecatedFunction, DeprecationMessage = "Overlap boxes now call UnregisterOverlap directly."))
 	void UnregisterEnemyComponent(ULeeFinishInteractionComponent* EnemyComp);
 
-	// Phase 3: Overlap 기반 직접 후보 등록/해제 API.
-	// InteractionComponent의 Box Overlap 콜백에서 호출한다.
+	UFUNCTION(BlueprintCallable, Category = "Lee|Finish")
+	void RegisterOverlap(ULeeFinishInteractionComponent* SourceComp, ELeeFinishType Type);
+
+	UFUNCTION(BlueprintCallable, Category = "Lee|Finish")
+	void UnregisterOverlap(ULeeFinishInteractionComponent* SourceComp, ELeeFinishType Type);
+
 	void AddCandidate(ULeeFinishInteractionComponent* SourceComp, ELeeFinishType Type);
 	void RemoveCandidate(ULeeFinishInteractionComponent* SourceComp, ELeeFinishType Type);
 
-	// Phase 4: SourceComp+Type 조합이 현재 Candidates에 등록되어 있는지 확인.
-	// ReevaluateAllCandidates에서 ActiveSet(stale 가능) 대신 사용한다.
 	bool HasCandidate(ULeeFinishInteractionComponent* SourceComp, ELeeFinishType Type) const;
 
 protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Lee|Finish|Priority")
 	ELeeFinishPriorityRule PriorityRule = ELeeFinishPriorityRule::AssassinationFirstThenDistance;
-
-	UPROPERTY(EditDefaultsOnly, Category = "Lee|Finish|Indicator")
-	TSoftClassPtr<UUserWidget> FinishPromptWidgetClass;
-
-	UPROPERTY(EditDefaultsOnly, Category = "Lee|Finish|Indicator")
-	FVector IndicatorWorldOffset = FVector::ZeroVector;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Lee|Finish|Input")
 	FGameplayTag ExecutionTriggerTag;
@@ -117,36 +106,14 @@ protected:
 	FGameplayTag AssassinationTriggerTag;
 
 private:
-	UFUNCTION()
-	void OnEnemyCandidateEntered(AActor* EnemyActor, AActor* PlayerActor, ELeeFinishType Type);
-
-	UFUNCTION()
-	void OnEnemyCandidateLeft(AActor* EnemyActor, AActor* PlayerActor, ELeeFinishType Type);
-
-	void RecomputeTarget();
+	void EvaluateCurrentTarget();
 	void SetCurrentTarget(AActor* NewTarget, ELeeFinishType NewType);
+	float ScoreCandidate(const ULeeFinishInteractionComponent* SourceComp, ELeeFinishType Type) const;
+	ELeeFinishType ResolveFallbackTypeAfterUnregister(ULeeFinishInteractionComponent* SourceComp, ELeeFinishType RemovedType) const;
 
-	void AttachIndicatorTo(AActor* Target);
-	void DetachIndicator();
-
-	bool IsOwningPlayer(AActor* PlayerActor) const;
-
-	struct FFinishCandidate
-	{
-		TWeakObjectPtr<ULeeFinishInteractionComponent> SourceComp;
-		TWeakObjectPtr<AActor> Enemy;
-		ELeeFinishType Type = ELeeFinishType::None;
-		double EnterTimeSeconds = 0.0;
-	};
-
-	TArray<FFinishCandidate> Candidates;
-
-	// Candidates에 없더라도 구독 해제가 누락되지 않도록 등록된 컴포넌트를 별도 추적
-	TSet<TWeakObjectPtr<ULeeFinishInteractionComponent>> SubscribedEnemyComponents;
+	TMap<TWeakObjectPtr<ULeeFinishInteractionComponent>, ELeeFinishType> ActiveOverlaps;
+	TMap<TWeakObjectPtr<ULeeFinishInteractionComponent>, double> EnterTimeSecondsByComp;
 
 	TWeakObjectPtr<AActor> CurrentTarget;
 	ELeeFinishType CurrentType = ELeeFinishType::None;
-
-	UPROPERTY(Transient)
-	TObjectPtr<UIndicatorDescriptor> ActiveIndicator;
 };

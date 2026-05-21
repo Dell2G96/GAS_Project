@@ -9,6 +9,7 @@ _AssetFiles
 .vs
 .antigravityrules
 *.md
+*.txt
 *.VC.db
 *.opensdf
 *.opendb

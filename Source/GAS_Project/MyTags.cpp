@@ -101,6 +101,7 @@ namespace MyTags
 		UE_DEFINE_GAMEPLAY_TAG(Ability_Type_Action_BowAim, "Souls.Ability.Type.Action.BowAim")
 		UE_DEFINE_GAMEPLAY_TAG(Ability_Type_Action_BowFire, "Souls.Ability.Type_Action.BowFire")
 		
+		UE_DEFINE_GAMEPLAY_TAG(Ability_Execution, "Souls.Abilities.Execution")
 		UE_DEFINE_GAMEPLAY_TAG(Ability_Assassination, "Souls.Abilities.Assassination")
 		UE_DEFINE_GAMEPLAY_TAG(Ability_AssassinationVictim, "Souls.Abilities.AssassinationVictim")
 
@@ -128,6 +129,10 @@ namespace MyTags
 		UE_DEFINE_GAMEPLAY_TAG(Event_Assassination_End, "Souls.Events.Assassination.End")
 		UE_DEFINE_GAMEPLAY_TAG(Event_Execution_Start, "Souls.Events.Execution.Start")
 		UE_DEFINE_GAMEPLAY_TAG(Event_Execution_End, "Souls.Events.Execution.End")
+		UE_DEFINE_GAMEPLAY_TAG(Event_BeFinished, "Souls.Events.Finish.BeFinished")
+
+		// GameplayCue
+		UE_DEFINE_GAMEPLAY_TAG(GameplayCue_FinishIndicator, "GameplayCue.Souls.FinishIndicator")
 		
 		
 		//Execution
