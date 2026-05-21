@@ -108,7 +108,7 @@ namespace MyTags
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(GameplayCue_FinishIndicator);
 		
 		
-		//Execution
+		//Status
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Status_Groggy);
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Status_Executing);
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Status_Executied);
@@ -117,7 +117,10 @@ namespace MyTags
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Status_Unaware);
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Status_Vulnerable_Execution);
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Status_Invincible);
-
+		// [신규] 근접 공격 어빌리티 식별 태그 — TryActivateAbilityByTag에서 사용
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Status_Attack_Melee);
+		// [신규] 공격 중 상태 태그 — 어빌리티 활성 동안 ActivationOwnedTags로 자동 부여/제거
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Status_Attack_Attacking);
 		
 	}
 	

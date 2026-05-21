@@ -144,7 +144,14 @@ namespace MyTags
 		UE_DEFINE_GAMEPLAY_TAG(Status_Unaware, "Souls.Status.Unaware")
 		UE_DEFINE_GAMEPLAY_TAG(Status_Vulnerable_Execution, "Souls.Status.Vulnerable.Execution")
 		UE_DEFINE_GAMEPLAY_TAG(Status_Invincible, "Souls.Status.Invincible")	
-			
+
+		
+		// [신규] 근접 공격 어빌리티 식별 태그 (TryActivateAbilityByTag 사용)
+		UE_DEFINE_GAMEPLAY_TAG(Status_Attack_Melee, "Souls.Status.Attack.Melee")
+		// [신규] 공격 중 상태 태그 (ActivationOwnedTags로 자동 부여/제거)
+		UE_DEFINE_GAMEPLAY_TAG(Status_Attack_Attacking, "Souls.Status.Attack.Attacking")
+		
+		
 
 		
 		
