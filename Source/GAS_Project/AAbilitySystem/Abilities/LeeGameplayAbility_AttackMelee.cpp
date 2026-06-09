@@ -109,7 +109,7 @@ void ULeeGameplayAbility_AttackMelee::OnTraceEventReceived(FGameplayEventData Pa
 	AActor* AttackerActor = const_cast<AActor*>(Payload.Instigator.Get());
 	if (!AttackerActor)
 	{
-		return;w
+		return;
 	}
 
 	// TargetData에 HitResult가 없으면 처리하지 않음

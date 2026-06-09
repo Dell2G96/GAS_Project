@@ -4,7 +4,6 @@
 
 #include "CoreMinimal.h"
 #include "GAS_Project/ACosmetic/LeeCosmeticAnimationType.h"
-#include "GAS_Project/AAbilitySystem/LeeFinishMontagePair.h"
 #include "GAS_Project/AEquipment/LeeEquipmentInstance.h"
 #include "UObject/Object.h"
 #include "LeeWeaponInstance.generated.h"
@@ -27,13 +26,4 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Animation")
 	FLeeAnimLayerSelectionSet UnEquippedAnimSet;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Finish|Execution")
-	TArray<FLeeFinishMontagePair> ExecutionPairs;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Finish|Assassination")
-	TArray<FLeeFinishMontagePair> AssassinationPairs;
-
-	UFUNCTION(BlueprintCallable, Category = "Finish")
-	bool SelectRandomPair(ELeeFinishType Type, FLeeFinishMontagePair& OutPair) const;
 };
