@@ -48,8 +48,14 @@ public:
 	// Delegate to broadcast when the health attribute reaches zero
 	mutable FLeeAttributeEvent OnOutOfHealth;
 
+	// [신규] 스태미나가 0에 도달했을 때 브로드캐스트 — LeeFinisherTargetComponent가 수신하여 그로기 GE 적용
+	mutable FLeeAttributeEvent OnOutOfStamina;
+
 	// Used to track when the health reaches 0.
 	bool bOutOfHealth;
+
+	// [신규] 스태미나 0 도달 여부 추적 (중복 브로드캐스트 방지)
+	bool bOutOfStamina;
 
 	// Store the health before any changes 
 	float MaxHealthBeforeAttributeChange;

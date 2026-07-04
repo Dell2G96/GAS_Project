@@ -6,6 +6,7 @@
 #include "LeeGameData.h"
 #include "Engine/AssetManager.h"
 #include "GAS_Project/ACharacter/LeePawnData.h"
+#include "GAS_Project/ACharacter/LeeFinisherVictimRegistry.h"
 
 #include "Engine/AssetManager.h"
 #include "Templates/SubclassOf.h"
@@ -38,6 +39,9 @@ public:
 	// 26.03.19 추가
 	const ULeeGameData& GetGameData();
 	const ULeePawnData* GetDefaultPawnData() const;
+
+	// [신규] 처형/암살 피해자 몽타주 레지스트리 (스켈레톤 태그 → VictimData)
+	const ULeeFinisherVictimRegistry* GetFinisherVictimRegistry() const;
 
 protected:
 	template <typename GameDataClass>
@@ -87,6 +91,10 @@ protected:
 
 	UPROPERTY(Config)
 	TSoftObjectPtr<ULeePawnData> DefaultPawnData;
+
+	// [신규] 처형/암살 피해자 몽타주 레지스트리 경로
+	UPROPERTY(Config)
+	TSoftObjectPtr<ULeeFinisherVictimRegistry> FinisherVictimRegistryPath;
 };
 
 template <typename AssetType>

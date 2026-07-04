@@ -45,9 +45,11 @@ namespace MyTags
 		UE_DEFINE_GAMEPLAY_TAG(InputTag_Move,"InputTag.Move")
 		UE_DEFINE_GAMEPLAY_TAG(InputTag_Look_Mouse,"InputTag.Look.Mouse")
 		
-		UE_DEFINE_GAMEPLAY_TAG(InputTag_Weapon_Fire,"InputTag.Weapon.Fire")			
-		UE_DEFINE_GAMEPLAY_TAG(InputTag_BowAim,"InputTag.BowAim")			
-		UE_DEFINE_GAMEPLAY_TAG(InputTag_BowFire,"InputTag.BowFire")			
+		UE_DEFINE_GAMEPLAY_TAG(InputTag_Weapon_Fire,"InputTag.Weapon.Fire")
+		UE_DEFINE_GAMEPLAY_TAG(InputTag_BowAim,"InputTag.BowAim")
+		UE_DEFINE_GAMEPLAY_TAG(InputTag_BowFire,"InputTag.BowFire")
+		// [신규] 처형/암살 공용 입력 태그
+		UE_DEFINE_GAMEPLAY_TAG(InputTag_Finisher,"InputTag.Finisher")
 		//UE_DEFINE_GAMEPLAY_TAG(InputTag_Look_Mouse,"InputTag.Look.Mouse")
 
 
@@ -130,6 +132,11 @@ namespace MyTags
 		UE_DEFINE_GAMEPLAY_TAG(Event_Execution_Start, "Souls.Events.Execution.Start")
 		UE_DEFINE_GAMEPLAY_TAG(Event_Execution_End, "Souls.Events.Execution.End")
 		UE_DEFINE_GAMEPLAY_TAG(Event_BeFinished, "Souls.Events.Finish.BeFinished")
+		// [신규] 피니셔 데미지 타이밍 이벤트 (AnimNotify → GA_Finisher)
+		UE_DEFINE_GAMEPLAY_TAG(Event_Finisher_Damage, "Souls.Events.Finisher.Damage")
+
+		// [신규] 피니셔 프롬프트 UI 메시지 채널
+		UE_DEFINE_GAMEPLAY_TAG(Message_Finisher_Prompt, "Souls.Message.Finisher.Prompt")
 
 		// GameplayCue
 		UE_DEFINE_GAMEPLAY_TAG(GameplayCue_FinishIndicator, "GameplayCue.Souls.FinishIndicator")
@@ -143,7 +150,9 @@ namespace MyTags
 		UE_DEFINE_GAMEPLAY_TAG(Status_Assassinated, "Souls.Status.Assassinated")
 		UE_DEFINE_GAMEPLAY_TAG(Status_Unaware, "Souls.Status.Unaware")
 		UE_DEFINE_GAMEPLAY_TAG(Status_Vulnerable_Execution, "Souls.Status.Vulnerable.Execution")
-		UE_DEFINE_GAMEPLAY_TAG(Status_Invincible, "Souls.Status.Invincible")	
+		UE_DEFINE_GAMEPLAY_TAG(Status_Invincible, "Souls.Status.Invincible")
+		// [신규] 피해자: 처형/암살 당하는 중
+		UE_DEFINE_GAMEPLAY_TAG(Status_Finisher_Victim, "Souls.Status.Finisher.Victim")
 
 		
 		// [신규] 근접 공격 어빌리티 식별 태그 (TryActivateAbilityByTag 사용)

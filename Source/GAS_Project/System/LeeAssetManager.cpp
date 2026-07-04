@@ -35,6 +35,11 @@ const class ULeePawnData* ULeeAssetManager::GetDefaultPawnData() const
 	return GetAsset(DefaultPawnData);
 }
 
+const class ULeeFinisherVictimRegistry* ULeeAssetManager::GetFinisherVictimRegistry() const
+{
+	return GetAsset(FinisherVictimRegistryPath);
+}
+
 UPrimaryDataAsset* ULeeAssetManager::LoadGameDataOfClass(TSubclassOf<UPrimaryDataAsset> DataClass,
                                                          const TSoftObjectPtr<UPrimaryDataAsset>& DataClassPath, FPrimaryAssetType PrimaryAssetType)
 {

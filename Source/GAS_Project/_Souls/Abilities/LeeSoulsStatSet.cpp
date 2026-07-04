@@ -15,6 +15,7 @@ ULeeSoulsStatSet::ULeeSoulsStatSet()
 	, MaxStamina(100.f)
 {
 	bOutOfHealth = false;
+	bOutOfStamina = false;
 	MaxHealthBeforeAttributeChange = 0.0f;
 	HealthBeforeAttributeChange = 0.0f;
 	MaxStaminaBeforeAttributeChange = 0.0f;
@@ -27,7 +28,17 @@ bool ULeeSoulsStatSet::PreGameplayEffectExecute(FGameplayEffectModCallbackData& 
 	{
 		return false;
 	}
-	
+
+	// [신규] 무적(Status.Invincible) 상태에서는 Health 감소를 이 단일 지점에서 차단한다.
+	// 처형/암살 시퀀스 중 GE_FinisherInvincible이 부여하는 태그 — 모든 데미지 경로가 여기를 거친다.
+	if (Data.EvaluatedData.Attribute == GetHealthAttribute() && Data.EvaluatedData.Magnitude < 0.0f)
+	{
+		if (Data.Target.HasMatchingGameplayTag(MyTags::Souls::Status_Invincible))
+		{
+			return false;
+		}
+	}
+
 	// Save the current health
 	HealthBeforeAttributeChange = GetHealth();
 	MaxHealthBeforeAttributeChange = GetMaxHealth();
@@ -120,5 +131,13 @@ void ULeeSoulsStatSet::PostGameplayEffectExecute(const FGameplayEffectModCallbac
         {
             OnStaminaChanged.Broadcast(Instigator, Causer, &Data.EffectSpec, Data.EvaluatedData.Magnitude, StaminaBeforeAttributeChange, GetStamina());
         }
+
+        // [신규] 스태미나 0 도달 → 그로기 진입 알림 (OnOutOfHealth와 동일 패턴)
+        if ((GetStamina() <= 0.0f) && !bOutOfStamina)
+        {
+            OnOutOfStamina.Broadcast(Instigator, Causer, &Data.EffectSpec, Data.EvaluatedData.Magnitude, StaminaBeforeAttributeChange, GetStamina());
+        }
+
+        bOutOfStamina = (GetStamina() <= 0.0f);
     }
 }

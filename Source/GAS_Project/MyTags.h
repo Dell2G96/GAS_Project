@@ -27,6 +27,8 @@ namespace MyTags
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(InputTag_Weapon_Fire)
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(InputTag_BowAim)
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(InputTag_BowFire)
+		// [신규] 처형/암살 공용 입력 태그 (F키) — InputConfig에서 GA_Finisher와 연결
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(InputTag_Finisher)
 
 		// UI
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(UI_Layer_Game)
@@ -103,6 +105,11 @@ namespace MyTags
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Event_Execution_Start);
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Event_Execution_End);
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Event_BeFinished);
+		// [신규] 피니셔 데미지 타이밍 — 공격자 몽타주의 AnimNotify가 발사, GA_Finisher가 수신
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Event_Finisher_Damage);
+
+		// [신규] 피니셔 프롬프트 UI 메시지 채널 (GameplayMessageSubsystem)
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Message_Finisher_Prompt);
 
 		// GameplayCue
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(GameplayCue_FinishIndicator);
@@ -117,6 +124,8 @@ namespace MyTags
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Status_Unaware);
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Status_Vulnerable_Execution);
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Status_Invincible);
+		// [신규] 피해자: 처형/암살 당하는 중 (GA_FinisherVictim의 ActivationOwnedTags, 중복 피니셔 잠금 겸용)
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Status_Finisher_Victim);
 		// [신규] 근접 공격 어빌리티 식별 태그 — TryActivateAbilityByTag에서 사용
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Status_Attack_Melee);
 		// [신규] 공격 중 상태 태그 — 어빌리티 활성 동안 ActivationOwnedTags로 자동 부여/제거
