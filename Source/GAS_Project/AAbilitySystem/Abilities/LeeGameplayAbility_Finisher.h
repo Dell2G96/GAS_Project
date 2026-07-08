@@ -24,12 +24,15 @@ class UGameplayEffect;
  *  2) 서버에서 타겟 재검증 (UI 판정 결과를 신뢰하지 않음)
  *  3) GetAssociatedEquipment() → LeeMeleeWeaponInstance → FinisherData (무기별 데이터)
  *  4) GE_FinisherInvincible 적용 (핸들 보관, EndAbility에서 반드시 제거)
- *  5) Motion Warping 타겟 설정 (피해자 기준 AttackerOffset 위치로 정렬)
- *  6) SendGameplayEvent(Event.BeFinished) → 피해자의 GA_FinisherVictim 트리거
+ *  5) 공격자/피해자 캡슐 상호 무시 (워프 접근을 캡슐 충돌이 막지 않도록, EndAbility에서 원복)
+ *  6) Motion Warping 타겟 설정 (피해자 기준 AttackerOffset 위치로 정렬, Z 제외.
+ *     AnimSet.bSnapAttackerAtStart면 워프 대신 즉시 스냅)
+ *  7) 카메라 연출 시작 (AnimSet.CameraMode, 로컬 컨트롤에서만. EndAbility에서 해제 → 기본 카메라 복귀)
+ *  8) SendGameplayEvent(Event.BeFinished) → 피해자의 GA_FinisherVictim 트리거
  *     (몽타주는 담지 않는다 — 피해자가 자기 스켈레톤 태그로 직접 조회한다. §GA_FinisherVictim 참고)
- *  7) PlayMontageAndWait(AttackerMontage)
- *  8) WaitGameplayEvent(Event.Finisher.Damage) — 몽타주 AnimNotify 타이밍에 데미지 GE 적용
- *  9) 완료/인터럽트 → EndAbility (무적 해제·워프 타겟 제거의 단일 정리 지점)
+ *  9) PlayMontageAndWait(AttackerMontage)
+ * 10) WaitGameplayEvent(Event.Finisher.Damage) — 몽타주 AnimNotify 타이밍에 데미지 GE 적용
+ * 11) 완료/인터럽트 → EndAbility (무적 해제·워프 타겟 제거·캡슐 무시 원복·카메라 복귀의 단일 정리 지점)
  *
  * 부여 경로: 무기의 EquipmentDefinition.AbilitySetsToGrant → 무기 장착 중에만 사용 가능.
  */

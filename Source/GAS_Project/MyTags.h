@@ -30,12 +30,16 @@ namespace MyTags
 		// [신규] 처형/암살 공용 입력 태그 (F키) — InputConfig에서 GA_Finisher와 연결
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(InputTag_Finisher)
 
+		// [신규] 타겟 락온 입력 태그 — 토글은 AbilityInputActions(GA_TargetLock), 전환은 NativeInputActions
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(InputTag_TargetLock)
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(InputTag_TargetLock_SwitchLeft)
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(InputTag_TargetLock_SwitchRight)
+
 		// UI
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(UI_Layer_Game)
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(UI_Layer_GameMenu)
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(UI_Layer_Menu)
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(UI_Layer_Modal)
-		UE_DECLARE_GAMEPLAY_TAG_EXTERN(UI_LAYER_MENU)
 		
 		
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Platform_Trait_Input_PrimarlyController)
@@ -130,7 +134,12 @@ namespace MyTags
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Status_Attack_Melee);
 		// [신규] 공격 중 상태 태그 — 어빌리티 활성 동안 ActivationOwnedTags로 자동 부여/제거
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Status_Attack_Attacking);
-		
+
+		// [신규] 타겟 락온 — 어빌리티 식별 태그, 상태 태그(레거시 MyTags::Status::TargetLock과 별개 네임스페이스), UI 메시지 채널
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Ability_TargetLock);
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Status_TargetLock);
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Message_TargetLock);
+
 	}
 	
 	UE_DECLARE_GAMEPLAY_TAG_EXTERN(None);

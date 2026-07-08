@@ -50,6 +50,11 @@ namespace MyTags
 		UE_DEFINE_GAMEPLAY_TAG(InputTag_BowFire,"InputTag.BowFire")
 		// [신규] 처형/암살 공용 입력 태그
 		UE_DEFINE_GAMEPLAY_TAG(InputTag_Finisher,"InputTag.Finisher")
+
+		// [신규] 타겟 락온 입력 태그
+		UE_DEFINE_GAMEPLAY_TAG(InputTag_TargetLock,"InputTag.TargetLock")
+		UE_DEFINE_GAMEPLAY_TAG(InputTag_TargetLock_SwitchLeft,"InputTag.TargetLock.SwitchLeft")
+		UE_DEFINE_GAMEPLAY_TAG(InputTag_TargetLock_SwitchRight,"InputTag.TargetLock.SwitchRight")
 		//UE_DEFINE_GAMEPLAY_TAG(InputTag_Look_Mouse,"InputTag.Look.Mouse")
 
 
@@ -58,7 +63,6 @@ namespace MyTags
 		UE_DEFINE_GAMEPLAY_TAG(UI_Layer_GameMenu,"UI.Layer.GameMenu")
 		UE_DEFINE_GAMEPLAY_TAG(UI_Layer_Menu,"UI.Layer.Menu")
 		UE_DEFINE_GAMEPLAY_TAG(UI_Layer_Modal,"UI.Layer.Modal")
-		UE_DEFINE_GAMEPLAY_TAG(UI_LAYER_MENU,"UI.Layer.Modal")
 		
 		UE_DEFINE_GAMEPLAY_TAG(Platform_Trait_Input_PrimarlyController,"Platform.Trait.Input.PrimarlyController")
 
@@ -159,8 +163,13 @@ namespace MyTags
 		UE_DEFINE_GAMEPLAY_TAG(Status_Attack_Melee, "Souls.Status.Attack.Melee")
 		// [신규] 공격 중 상태 태그 (ActivationOwnedTags로 자동 부여/제거)
 		UE_DEFINE_GAMEPLAY_TAG(Status_Attack_Attacking, "Souls.Status.Attack.Attacking")
-		
-		
+
+		// [신규] 타겟 락온
+		UE_DEFINE_GAMEPLAY_TAG(Ability_TargetLock, "Souls.Abilities.TargetLock")
+		UE_DEFINE_GAMEPLAY_TAG(Status_TargetLock, "Souls.Status.TargetLock")
+		UE_DEFINE_GAMEPLAY_TAG(Message_TargetLock, "Souls.Message.TargetLock")
+
+	
 
 		
 		

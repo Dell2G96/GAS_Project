@@ -115,7 +115,7 @@ void ULeeCameraMode::UpdateBlending(float DeltaTime)
 {
 	if (BlendTime > 0.f)
 	{
-		BlendAlpha += DeltaTime / BlendTime;
+		BlendAlpha = FMath::Min(BlendAlpha + (DeltaTime / BlendTime), 1.0f);
 	}
 	else
 	{
@@ -138,6 +138,34 @@ void ULeeCameraMode::UpdateBlending(float DeltaTime)
 		break;
 	default:
 		checkf(false, TEXT("UpdateBlending: Invalid BlendFunction [%d]\n"), (uint8)BlendFunction);
+		break;
+	}
+}
+
+void ULeeCameraMode::SetBlendWeight(float Weight)
+{
+	BlendWeight = FMath::Clamp(Weight, 0.0f, 1.0f);
+
+	// BlendWeight를 직접 지정했으므로, 블렌드 함수의 역함수로 BlendAlpha를 역산한다.
+	// 이걸 하지 않으면 이전 시퀀스에서 1.0까지 차오른 BlendAlpha가 남아
+	// 다음 UpdateBlending()에서 BlendWeight가 즉시 1.0으로 튀어 블렌드가 컷이 된다.
+	const float InvExponent = (BlendExponent > 0.0f) ? (1.0f / BlendExponent) : 1.0f;
+	switch (BlendFunction)
+	{
+	case ELeeCameraModeBlendFunction::Linear:
+		BlendAlpha = BlendWeight;
+		break;
+	case ELeeCameraModeBlendFunction::EaseIn:
+		BlendAlpha = FMath::InterpEaseIn(0.0f, 1.0f, BlendWeight, InvExponent);
+		break;
+	case ELeeCameraModeBlendFunction::EaseOut:
+		BlendAlpha = FMath::InterpEaseOut(0.0f, 1.0f, BlendWeight, InvExponent);
+		break;
+	case ELeeCameraModeBlendFunction::EaseInOut:
+		BlendAlpha = FMath::InterpEaseInOut(0.0f, 1.0f, BlendWeight, InvExponent);
+		break;
+	default:
+		checkf(false, TEXT("SetBlendWeight: Invalid BlendFunction [%d]\n"), (uint8)BlendFunction);
 		break;
 	}
 }
@@ -225,10 +253,13 @@ void ULeeCameraModeStack::PushCameraMode(TSubclassOf<ULeeCameraMode>& CameraMode
 	}
 	const bool bShouldBlend = ((CameraMode->BlendTime > 0.f) && (StackSize > 0));
 	const float BlendWeight = (bShouldBlend ? ExistingStackContribution : 1.f);
-	CameraMode->BlendWeight = BlendWeight;
+	CameraMode->SetBlendWeight(BlendWeight);
+
+	// 최상단 (재)진입 통지 — 시퀀스별 캐시(예: 피니셔 카메라의 앵커) 리셋 지점
+	CameraMode->OnPushed();
 
 	CameraModeStack.Insert(CameraMode, 0);
-	CameraModeStack.Last()->BlendWeight = 1.f;
+	CameraModeStack.Last()->SetBlendWeight(1.f);
 }
 
 void ULeeCameraModeStack::EvaluateStack(float DeltaTime, FLeeCameraModeView& OutCameraModeView)
@@ -259,10 +290,11 @@ void ULeeCameraModeStack::UpdateStack(float DeltaTime)
 
 
 		// 만약 하나라도 카메라모드가 blendweight 가 1.0에 도달했다면
-		// 그 이후 카메라모드를 제거
+		// 그 아래(뒤 인덱스)의 카메라모드들은 더 이상 보이지 않으므로 제거
+		// (기존 RemoveIndex = StackSize + 1은 RemoveCount가 항상 음수가 되어 제거가 전혀 일어나지 않던 버그)
 		if (CameraMode->BlendWeight >= 1.f)
 		{
-			RemoveIndex = (StackSize +1);
+			RemoveIndex = (StackIndex + 1);
 			RemoveCount = (StackSize - RemoveIndex);
 			break;
 		}

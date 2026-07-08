@@ -7,8 +7,12 @@
 #include "MotionWarpingComponent.h"
 #include "Abilities/Tasks/AbilityTask_PlayMontageAndWait.h"
 #include "Abilities/Tasks/AbilityTask_WaitGameplayEvent.h"
+#include "Animation/AnimMontage.h"
 #include "Engine/OverlapResult.h"
+#include "GameFramework/Character.h"
 #include "GAS_Project/MyTags.h"
+#include "GAS_Project/ACamera/LeeCameraMode.h"
+#include "GAS_Project/ACharacter/LeeHeroComponent.h"
 #include "GAS_Project/AEquipment/LeeMeleeWeaponInstance.h"
 
 ULeeGameplayAbility_Finisher::ULeeGameplayAbility_Finisher(const FObjectInitializer& ObjectInitializer)
@@ -116,20 +120,55 @@ void ULeeGameplayAbility_Finisher::ActivateAbility(
 		ASC->AddLooseGameplayTag(AppliedStatusTag);
 	}
 
-	// 5. Motion Warping 타겟 설정 — 피해자의 최종 회전 기준 AttackerOffset 위치로 정렬
+	// 5. 공격자/피해자 캡슐 상호 무시 — EndAbility에서 반드시 원복
+	//    워프 접근을 캡슐 충돌이 막으면 목표 지점에 캡슐 반경만큼 못 미쳐 정렬이 어긋난다 (정렬 오차 1순위 원인).
+	//    전역 콜리전 비활성은 쓰지 않는다 — 바닥/벽 충돌은 유지되어야 함.
+	//    서버/소유 클라이언트 양쪽에서 실행됨 (공격자 이동은 클라이언트 예측이므로 클라이언트에도 필요)
+	if (ACharacter* AvatarCharacter = Cast<ACharacter>(Avatar))
+	{
+		AvatarCharacter->MoveIgnoreActorAdd(Target);
+	}
+	if (ACharacter* TargetCharacter = Cast<ACharacter>(Target))
+	{
+		TargetCharacter->MoveIgnoreActorAdd(Avatar);
+	}
+
+	// 6. Motion Warping 타겟 설정 — 피해자의 최종 회전 기준 AttackerOffset 위치로 정렬
 	const FVector AttackerLocation = Avatar->GetActorLocation();
 	const FVector VictimLocation = Target->GetActorLocation();
 	const float VictimYaw = ComputeVictimYaw(CurrentType, AttackerLocation, VictimLocation);
 	const FTransform VictimTransform(FRotator(0.0f, VictimYaw, 0.0f), VictimLocation);
 	const FTransform WarpTransform = CurrentAnimSet.AttackerOffset * VictimTransform;
 
-	if (UMotionWarpingComponent* MotionWarping = Avatar->FindComponentByClass<UMotionWarpingComponent>())
+	// Z는 워프하지 않는다 — 두 캐릭터 캡슐 높이가 다르면 공격자가 뜨거나 파묻히므로 중력/바닥 충돌에 맡긴다
+	FVector WarpLocation = WarpTransform.GetLocation();
+	WarpLocation.Z = AttackerLocation.Z;
+
+	if (CurrentAnimSet.bSnapAttackerAtStart)
 	{
+		// 첫 프레임부터 완전 정렬이 필요한 연출: 워프 수렴 대신 즉시 스냅
+		Avatar->SetActorLocationAndRotation(WarpLocation, WarpTransform.Rotator(),
+			/*bSweep*/false, /*OutHit*/nullptr, ETeleportType::TeleportPhysics);
+	}
+	else if (UMotionWarpingComponent* MotionWarping = Avatar->FindComponentByClass<UMotionWarpingComponent>())
+	{
+		// 몽타주의 Motion Warping NotifyState(타겟 이름 = WarpTargetName)가 이 타겟을 소비한다
 		MotionWarping->AddOrUpdateWarpTargetFromLocationAndRotation(
-			WarpTargetName, WarpTransform.GetLocation(), WarpTransform.Rotator());
+			WarpTargetName, WarpLocation, WarpTransform.Rotator());
 	}
 
-	// 6. 피해자에게 GameplayEvent 전송 → GA_FinisherVictim 트리거
+	// 7. 카메라 연출 시작 — 로컬 컨트롤 클라이언트에서만 (서버 전용 인스턴스/타 플레이어 화면 불변).
+	//    종료는 EndAbility에서 Clear. 안전망으로 몽타주 길이 + 0.5초 후 자동 해제(MaxDuration).
+	if (ActorInfo->IsLocallyControlled() && CurrentAnimSet.CameraMode)
+	{
+		if (ULeeHeroComponent* Hero = ULeeHeroComponent::FindHeroComponent(Avatar))
+		{
+			const float CameraMaxDuration = CurrentAnimSet.AttackerMontage->GetPlayLength() + 0.5f;
+			Hero->SetAbilityCameraMode(CurrentAnimSet.CameraMode, Handle, Target, CameraMaxDuration);
+		}
+	}
+
+	// 8. 피해자에게 GameplayEvent 전송 → GA_FinisherVictim 트리거
 	//    같은 서버 프레임에 양측 몽타주가 시작되어 타이밍이 동기화된다.
 	//    몽타주는 담지 않는다 — 피해자가 자기 스켈레톤 태그로 VictimData를 직접 조회한다.
 	//
@@ -148,7 +187,7 @@ void ULeeGameplayAbility_Finisher::ActivateAbility(
 	Payload.EventMagnitude = static_cast<float>(CurrentType);
 	UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(Target, Payload.EventTag, Payload);
 
-	// 7. 데미지 타이밍 이벤트 대기 (공격자 몽타주의 AnimNotify가 발사)
+	// 9. 데미지 타이밍 이벤트 대기 (공격자 몽타주의 AnimNotify가 발사)
 	//    OnlyTriggerOnce=false: 다단 히트 몽타주에서 노티파이마다 반복 수신
 	UAbilityTask_WaitGameplayEvent* DamageEventTask =
 		UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(
@@ -160,7 +199,7 @@ void ULeeGameplayAbility_Finisher::ActivateAbility(
 	DamageEventTask->EventReceived.AddDynamic(this, &ThisClass::OnDamageEventReceived);
 	DamageEventTask->ReadyForActivation();
 
-	// 8. 공격자 몽타주 재생 — 모든 종료 경로가 EndAbility로 수렴
+	// 10. 공격자 몽타주 재생 — 모든 종료 경로가 EndAbility로 수렴
 	UAbilityTask_PlayMontageAndWait* MontageTask =
 		UAbilityTask_PlayMontageAndWait::CreatePlayMontageAndWaitProxy(
 			this, NAME_None, CurrentAnimSet.AttackerMontage, /*PlayRate*/1.0f);
@@ -198,6 +237,29 @@ void ULeeGameplayAbility_Finisher::EndAbility(
 		if (UMotionWarpingComponent* MotionWarping = Avatar->FindComponentByClass<UMotionWarpingComponent>())
 		{
 			MotionWarping->RemoveWarpTarget(WarpTargetName);
+		}
+
+		// 캡슐 상호 무시 원복 — 시퀀스가 끝나면 두 캐릭터는 다시 서로 밀어내야 한다
+		if (AActor* Target = CurrentTarget.Get())
+		{
+			if (ACharacter* AvatarCharacter = Cast<ACharacter>(Avatar))
+			{
+				AvatarCharacter->MoveIgnoreActorRemove(Target);
+			}
+			if (ACharacter* TargetCharacter = Cast<ACharacter>(Target))
+			{
+				TargetCharacter->MoveIgnoreActorRemove(Avatar);
+			}
+		}
+
+		// 카메라 복귀 — Clear하면 다음 프레임부터 DefaultCameraMode가 다시 Push되어 블렌딩 복귀.
+		// SpecHandle 일치 검사가 있어 카메라를 설정하지 않았던 경우(None)에도 안전하다
+		if (ActorInfo->IsLocallyControlled())
+		{
+			if (ULeeHeroComponent* Hero = ULeeHeroComponent::FindHeroComponent(Avatar))
+			{
+				Hero->ClearAbilityCameraMode(Handle);
+			}
 		}
 	}
 

@@ -66,7 +66,7 @@ void ULeeHUDLayout::HandleEscapeAction()
 {
 	if (ensure(!EscapeMenuClass.IsNull()))
 	{
-		UCommonUIExtensions::PushStreamedContentToLayer_ForPlayer(GetOwningLocalPlayer(), MyTags::Lyra::UI_LAYER_MENU, EscapeMenuClass);
+		UCommonUIExtensions::PushStreamedContentToLayer_ForPlayer(GetOwningLocalPlayer(), MyTags::Lyra::UI_Layer_Menu, EscapeMenuClass);
 	}
 }
 

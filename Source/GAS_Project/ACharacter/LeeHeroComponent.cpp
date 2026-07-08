@@ -5,6 +5,7 @@
 
 #include "EnhancedInputSubsystems.h"
 #include "LeePawnExtensionComponent.h"
+#include "TimerManager.h"
 #include "GAS_Project/LeeLogChannels.h"
 
 #include "Components/GameFrameworkComponentManager.h"
@@ -13,6 +14,8 @@
 #include "GAS_Project/MyTags.h"
 #include "GAS_Project/AAbilitySystem/LeeAbilitySystemComponent.h"
 #include "GAS_Project/ACamera/LeeCameraComponent.h"
+#include "GAS_Project/ACamera/LeeCameraMode.h"
+#include "GAS_Project/ACharacter/LeeTargetLockComponent.h"
 #include "GAS_Project/AInput/LeeInputComponent.h"
 #include "GAS_Project/AInput/LeeMappableConfigPair.h"
 #include "GAS_Project/APlayer/LeePlayerController.h"
@@ -62,6 +65,15 @@ void ULeeHeroComponent::BeginPlay()
 
 void ULeeHeroComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
+	// Pawn 소멸/UnPossess 시 어빌리티 카메라 모드가 남지 않도록 무조건 정리 (안전망)
+	AbilityCameraMode = nullptr;
+	AbilityCameraModeOwningSpecHandle = FGameplayAbilitySpecHandle();
+	AbilityCameraFocusTarget = nullptr;
+	if (UWorld* World = GetWorld())
+	{
+		World->GetTimerManager().ClearTimer(AbilityCameraModeTimeoutHandle);
+	}
+
 	UnregisterInitStateFeature();
 
 	Super::EndPlay(EndPlayReason);
@@ -212,10 +224,27 @@ void ULeeHeroComponent::CheckDefaultInitialization()
 
 TSubclassOf<class ULeeCameraMode> ULeeHeroComponent::DetermineCameraMode() const
 {
+	// 어빌리티가 임시 카메라 모드를 설정했다면 그것이 최우선 (처형/암살 시네마틱 등).
+	// Clear되면 다음 프레임부터 아래 우선순위로 자연 복귀한다.
+	if (AbilityCameraMode)
+	{
+		return AbilityCameraMode;
+	}
+
 	const APawn* Pawn = GetPawn<APawn>();
 	if (!Pawn)
 	{
 		return nullptr;
+	}
+
+	// 2순위: 타겟 락온 중이면 락온 카메라 (긴 수명 모드 — AbilityCameraMode 슬롯을 쓰지 않으므로
+	// 피니셔 시작/종료와 슬롯 경합 없이, 피니셔 종료 시 자동으로 이 우선순위로 복귀한다)
+	if (const ULeeTargetLockComponent* TargetLock = ULeeTargetLockComponent::FindTargetLockComponent(Pawn))
+	{
+		if (TargetLock->IsLocked() && TargetLock->LockOnCameraMode)
+		{
+			return TargetLock->LockOnCameraMode;
+		}
 	}
 
 	if (ULeePawnExtensionComponent* PawnExtComp = ULeePawnExtensionComponent::FindPawnExtensionComponent(Pawn))
@@ -226,6 +255,50 @@ TSubclassOf<class ULeeCameraMode> ULeeHeroComponent::DetermineCameraMode() const
 		}
 	}
 	return nullptr;
+}
+
+void ULeeHeroComponent::SetAbilityCameraMode(TSubclassOf<ULeeCameraMode> CameraMode, const FGameplayAbilitySpecHandle& OwningSpecHandle, AActor* FocusTarget, float MaxDuration)
+{
+	if (!CameraMode)
+	{
+		return;
+	}
+
+	AbilityCameraMode = CameraMode;
+	AbilityCameraModeOwningSpecHandle = OwningSpecHandle;
+	AbilityCameraFocusTarget = FocusTarget;
+
+	// 안전망: EndAbility 경유 Clear가 어떤 이유로든 누락돼도 시간 만료로 기본 카메라 복귀
+	// (무적 GE의 Duration 안전망과 동일한 사상 — 로직 버그가 있어도 시간이 해결한다)
+	if (MaxDuration > 0.0f)
+	{
+		if (UWorld* World = GetWorld())
+		{
+			World->GetTimerManager().SetTimer(
+				AbilityCameraModeTimeoutHandle,
+				FTimerDelegate::CreateWeakLambda(this, [this]()
+				{
+					ClearAbilityCameraMode(AbilityCameraModeOwningSpecHandle);
+				}),
+				MaxDuration, /*bLoop*/false);
+		}
+	}
+}
+
+void ULeeHeroComponent::ClearAbilityCameraMode(const FGameplayAbilitySpecHandle& OwningSpecHandle)
+{
+	// 설정한 어빌리티만 해제 가능 — 이후 다른 어빌리티가 카메라 모드를 쓰게 되어도 서로 지우지 않는다
+	if (AbilityCameraModeOwningSpecHandle == OwningSpecHandle)
+	{
+		AbilityCameraMode = nullptr;
+		AbilityCameraModeOwningSpecHandle = FGameplayAbilitySpecHandle();
+		AbilityCameraFocusTarget = nullptr;
+
+		if (UWorld* World = GetWorld())
+		{
+			World->GetTimerManager().ClearTimer(AbilityCameraModeTimeoutHandle);
+		}
+	}
 }
 
 void ULeeHeroComponent::InitializePlayerInput(UInputComponent* PlayerInputComponent)
@@ -288,6 +361,8 @@ void ULeeHeroComponent::InitializePlayerInput(UInputComponent* PlayerInputCompon
 					
 						LeeIC->BindNativeAction(InputConfig, MyTags::Lyra::InputTag_Move, ETriggerEvent::Triggered, this, &ThisClass::Input_Move,false);
 						LeeIC->BindNativeAction(InputConfig, MyTags::Lyra::InputTag_Look_Mouse, ETriggerEvent::Triggered, this, &ThisClass::Input_LookMouse,false);
+						LeeIC->BindNativeAction(InputConfig, MyTags::Lyra::InputTag_TargetLock_SwitchLeft, ETriggerEvent::Triggered, this, &ThisClass::Input_TargetLockSwitchLeft,false);
+						LeeIC->BindNativeAction(InputConfig, MyTags::Lyra::InputTag_TargetLock_SwitchRight, ETriggerEvent::Triggered, this, &ThisClass::Input_TargetLockSwitchRight,false);
 					}
 				}
 			}
@@ -332,6 +407,17 @@ void ULeeHeroComponent::Input_LookMouse(const FInputActionValue& InputActionValu
 	{
 		return;
 	}
+
+	// 락온 중에는 락온 카메라가 ControlRotation을 전담 구동하므로 자유 시점 입력을 차단한다
+	// (클래식 소울라이크 방식 — 완전 고정). 전환은 Input_TargetLockSwitchLeft/Right가 별도 처리
+	if (const ULeeTargetLockComponent* TargetLock = ULeeTargetLockComponent::FindTargetLockComponent(Pawn))
+	{
+		if (TargetLock->IsLocked())
+		{
+			return;
+		}
+	}
+
 	const FVector2D Value = InputActionValue.Get<FVector2D>();
 	if (Value.X != 0.f)
 	{
@@ -341,6 +427,22 @@ void ULeeHeroComponent::Input_LookMouse(const FInputActionValue& InputActionValu
 	{
 		double AimInversionValue = -Value.Y;
 		Pawn->AddControllerPitchInput(AimInversionValue);
+	}
+}
+
+void ULeeHeroComponent::Input_TargetLockSwitchLeft(const FInputActionValue& InputActionValue)
+{
+	if (ULeeTargetLockComponent* TargetLock = ULeeTargetLockComponent::FindTargetLockComponent(GetPawn<APawn>()))
+	{
+		TargetLock->SwitchTarget(/*bWantRight*/false);
+	}
+}
+
+void ULeeHeroComponent::Input_TargetLockSwitchRight(const FInputActionValue& InputActionValue)
+{
+	if (ULeeTargetLockComponent* TargetLock = ULeeTargetLockComponent::FindTargetLockComponent(GetPawn<APawn>()))
+	{
+		TargetLock->SwitchTarget(/*bWantRight*/true);
 	}
 }
 

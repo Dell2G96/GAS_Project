@@ -39,6 +39,15 @@ public:
 	virtual void UpdateView(float DeltaTime);
 	void UpdateBlending(float DeltaTime);
 
+	/** 스택 최상단에 (재)Push되는 순간 호출 — 인스턴스가 재사용되므로 시퀀스별 캐시는 여기서 리셋한다 */
+	virtual void OnPushed() {}
+
+	/**
+	 * 블렌드 가중치를 직접 설정. 블렌드 함수의 역함수로 BlendAlpha를 함께 맞춰야
+	 * 다음 UpdateBlending()이 이어서 자연스럽게 블렌드를 진행한다 (Lyra 원본 패턴)
+	 */
+	void SetBlendWeight(float Weight);
+
 	class ULeeCameraComponent* GetLeeCameraComponent() const;
 	AActor* GetTargetActor() const;
 	FVector GetPivotLocation() const;
