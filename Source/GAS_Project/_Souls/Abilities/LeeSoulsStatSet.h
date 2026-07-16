@@ -51,17 +51,23 @@ public:
 	// [신규] 스태미나가 0에 도달했을 때 브로드캐스트 — LeeFinisherTargetComponent가 수신하여 그로기 GE 적용
 	mutable FLeeAttributeEvent OnOutOfStamina;
 
-	// Used to track when the health reaches 0.
+	// [방어 시스템 — 빌드 검증 완료, 학습용 주석 처리] 데미지 판정 완료 브로드캐스트.
+	// ULeeExecCalc_Damage가 Spec DynamicAssetTags에 기록한 판정 결과(Souls.DamageResult.*)를
+	// 어트리뷰트 변경 확정 후 알린다 → ULeeDefenseComponent가 수신해 이벤트 발송/GE 적용 담당.
+	// (ExecCalc 내부에서 이벤트를 직접 쏘지 않기 위한 구조 변경, 리팩토링)
+	mutable FLeeAttributeEvent OnDamageResolved;
+
+	// 체력이 0이 되는 시점을 추적
 	bool bOutOfHealth;
 
-	// [신규] 스태미나 0 도달 여부 추적 (중복 브로드캐스트 방지)
+	// 스태미나 0 도달 여부 추적 (중복 브로드캐스트 방지)
 	bool bOutOfStamina;
 
-	// Store the health before any changes 
+	// 변경 전에 체력을 저장
 	float MaxHealthBeforeAttributeChange;
 	float HealthBeforeAttributeChange;
 
-	// Store the health before any changes 
+	// 변경 전에 스태미나를 저장
 	float MaxStaminaBeforeAttributeChange;
 	float StaminaBeforeAttributeChange;
 

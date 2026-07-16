@@ -25,15 +25,7 @@ namespace MyTags
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(InputTag_Look_Mouse)
 
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(InputTag_Weapon_Fire)
-		UE_DECLARE_GAMEPLAY_TAG_EXTERN(InputTag_BowAim)
-		UE_DECLARE_GAMEPLAY_TAG_EXTERN(InputTag_BowFire)
-		// [신규] 처형/암살 공용 입력 태그 (F키) — InputConfig에서 GA_Finisher와 연결
-		UE_DECLARE_GAMEPLAY_TAG_EXTERN(InputTag_Finisher)
-
-		// [신규] 타겟 락온 입력 태그 — 토글은 AbilityInputActions(GA_TargetLock), 전환은 NativeInputActions
-		UE_DECLARE_GAMEPLAY_TAG_EXTERN(InputTag_TargetLock)
-		UE_DECLARE_GAMEPLAY_TAG_EXTERN(InputTag_TargetLock_SwitchLeft)
-		UE_DECLARE_GAMEPLAY_TAG_EXTERN(InputTag_TargetLock_SwitchRight)
+	
 
 		// UI
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(UI_Layer_Game)
@@ -70,6 +62,22 @@ namespace MyTags
 
 	namespace Souls
 	{
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(InputTag_BowAim)
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(InputTag_BowFire)
+		// [신규] 처형/암살 공용 입력 태그 (F키) — InputConfig에서 GA_Finisher와 연결
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(InputTag_Finisher)
+
+		// [신규] 타겟 락온 입력 태그 — 토글은 AbilityInputActions(GA_TargetLock), 전환은 NativeInputActions
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(InputTag_TargetLock)
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(InputTag_TargetLock_SwitchLeft)
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(InputTag_TargetLock_SwitchRight)
+
+		// ===== [방어 메커니즘 신규 입력 태그] =====
+		// 가드(Hold) / 회피 입력 — LeeInputConfig의 AbilityInputActions에 연결
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(InputTag_Guard)
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(InputTag_Dodge)
+		// ===== [방어 메커니즘 신규 입력 태그 끝] =====
+		
 		// Gameplay
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Gameplay_Damage)
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Gameplay_DamageImmunity)
@@ -139,6 +147,60 @@ namespace MyTags
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Ability_TargetLock);
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Status_TargetLock);
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Message_TargetLock);
+
+		// ===== [방어 메커니즘 신규 태그] 퍼펙트 가드/패리/퍼펙트 회피/가드 브레이크 =====
+
+		// 어빌리티 식별 태그 (AbilityTags / CancelAbilities 매칭용)
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Ability_Guard);
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Ability_Dodge);
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Ability_HitReaction);
+
+		// 상태 태그 — Guard/Dodge 어빌리티가 부여 (Active는 ActivationOwnedTags, Perfect는 Duration GE)
+		// Guard
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Status_Guard_Active);
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Status_Guard_Perfect);
+		
+		// Dodge
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Status_Dodge_Active);
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Status_Dodge_Perfect);
+		
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Status_CounterWindow);
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Status_Stamina_RegenBlocked);
+
+		// 방어 판정 이벤트 — ULeeDefenseComponent가 발신, Guard/Dodge/HitReaction 어빌리티가 수신
+		// Event
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Event_Defense_GuardHit);
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Event_Defense_PerfectGuard);
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Event_Defense_PerfectDodge);
+		
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Event_Combat_GuardBreak);
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Event_Combat_Parried);
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Event_Combat_HitReact);
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Event_Combat_PostureBreak);
+
+		// i-frame 윈도우 이벤트 — ULeeAnimNotifyState_GameplayEvent가 발사 (보조 신호용)
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Event_Window_IFrame_Begin);
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Event_Window_IFrame_End);
+
+		// 데미지 판정 결과 — ULeeExecCalc_Damage가 Spec DynamicAssetTags에 기록,
+		// LeeSoulsStatSet::PostGameplayEffectExecute → ULeeDefenseComponent가 읽어 분기
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(DamageResult_HitReact);
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(DamageResult_GuardHit);
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(DamageResult_PerfectGuard);
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(DamageResult_PerfectDodge);
+
+		// 스태미나 감소 원인 태그 — 스태미나 0 도달 시 GuardBreak/PostureBreak 분기 근거 (리뷰 P0-3)
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(DamageType_ParryCounter);
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(DamageType_DodgeCost);
+
+		// SetByCaller — 스태미나 데미지 값 / Duration GE의 지속시간
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(SetByCaller_StaminaDamage);
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(SetByCaller_Duration);
+
+		// GameplayCue — 퍼펙트 회피 잔상 연출
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(GameplayCue_Dodge_Perfect);
+
+		// ===== [방어 메커니즘 신규 태그 끝] =====
 
 	}
 	
@@ -309,11 +371,7 @@ namespace MyTags
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(StaminaFull);
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(StaminaEmpty);
 	}// Status
-
-	namespace Cooldown
-	{
-				
-	}
+	
 
 }
 

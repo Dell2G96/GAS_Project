@@ -51,7 +51,7 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Lee|Attack|Montage")
 	TArray<TObjectPtr<UAnimMontage>> AttackMontages;
 
-	/** 히트 시 적용할 데미지 GE (SetByCaller 방식). BP에서 GE_MeleeDamage 등 지정. */
+	/** 히트 시 적용할 데미지 GE (SetByCaller 방식). 등 지정. */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Lee|Attack|Damage")
 	TSubclassOf<UGameplayEffect> DamageEffect;
 

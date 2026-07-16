@@ -29,17 +29,18 @@ bool ULeeSoulsStatSet::PreGameplayEffectExecute(FGameplayEffectModCallbackData& 
 		return false;
 	}
 
-	// [신규] 무적(Status.Invincible) 상태에서는 Health 감소를 이 단일 지점에서 차단한다.
+	// 무적(Status.Invincible) 상태에서는 Health 감소를 이 단일 지점에서 차단한다.
 	// 처형/암살 시퀀스 중 GE_FinisherInvincible이 부여하는 태그 — 모든 데미지 경로가 여기를 거친다.
 	if (Data.EvaluatedData.Attribute == GetHealthAttribute() && Data.EvaluatedData.Magnitude < 0.0f)
 	{
+		// 무적 태그가 있으면 넘어감
 		if (Data.Target.HasMatchingGameplayTag(MyTags::Souls::Status_Invincible))
 		{
 			return false;
 		}
 	}
 
-	// Save the current health
+	// 현재 체력을 저장
 	HealthBeforeAttributeChange = GetHealth();
 	MaxHealthBeforeAttributeChange = GetMaxHealth();
 
@@ -53,13 +54,11 @@ void ULeeSoulsStatSet::PostGameplayEffectExecute(const FGameplayEffectModCallbac
 
 	if (Data.EvaluatedData.Attribute == GetHealthAttribute())
 	{
-		// Get current clamped health (from PreAttributeChange)
 		float CurrentHealth = GetHealth();
 
-		// Clamp again (defensive programming)
-		float ClampedHealth = FMath::Clamp(CurrentHealth, 0.0f, 100.0f);
+		// [방어 시스템 —  Clamp 상한을 하드코딩(100) 대신 MaxHealth 기준으로 수정 (버그 수정)
+		float ClampedHealth = FMath::Clamp(CurrentHealth, 0.0f, GetMaxHealth());
 
-		// Only set if different (optimization)
 		if (CurrentHealth != ClampedHealth)
 		{
 			SetHealth(ClampedHealth);
@@ -67,13 +66,11 @@ void ULeeSoulsStatSet::PostGameplayEffectExecute(const FGameplayEffectModCallbac
 	}
 	if (Data.EvaluatedData.Attribute == GetStaminaAttribute())
 	{
-		// Get current clamped health (from PreAttributeChange)
 		float CurrentStamina = GetStamina();
 
-		// Clamp again (defensive programming)
-		float ClampedStamina = FMath::Clamp(CurrentStamina, 0.0f, 100.0f);
-
-		// Only set if different (optimization)
+		// [방어 시스템 —] 
+		float ClampedStamina = FMath::Clamp(CurrentStamina, 0.0f, GetMaxStamina());
+		
 		if (CurrentStamina != ClampedStamina)
 		{
 			SetStamina(ClampedStamina);
@@ -105,8 +102,8 @@ void ULeeSoulsStatSet::PostGameplayEffectExecute(const FGameplayEffectModCallbac
             Message.InstigatorTags = *Data.EffectSpec.CapturedSourceTags.GetAggregatedTags();
             Message.Target = GetOwningActor();
             Message.TargetTags = *Data.EffectSpec.CapturedTargetTags.GetAggregatedTags();
-            //@TODO: Fill out context tags, and any non-ability-system source/instigator tags
-            //@TODO: Determine if it's an opposing team kill, self-own, team kill, etc...
+        	//@TODO: 컨텍스트 태그와 어빌리티 시스템 소속이 아닌 소스(출처)/인스티게이터(유발자) 태그 채워 넣기
+        	//@TODO: 상대팀 처치인지, 자해(자살)인지, 팀킬(아군 처치)인지 등 판별하기...
             Message.Magnitude = Data.EvaluatedData.Magnitude;
 
             UGameplayMessageSubsystem& MessageSystem = UGameplayMessageSubsystem::Get(GetWorld());
@@ -122,8 +119,23 @@ void ULeeSoulsStatSet::PostGameplayEffectExecute(const FGameplayEffectModCallbac
             OnOutOfHealth.Broadcast(Instigator, Causer, &Data.EffectSpec, Data.EvaluatedData.Magnitude, HealthBeforeAttributeChange, GetHealth());
         }
 
-        // Check health again in case an event above changed it.
         bOutOfHealth = (GetHealth() <= 0.0f);
+
+        // [방어 시스템 - 26.07.16]
+        // ExecCalc가 Spec에 기록한 판정 결과(Souls.DamageResult.*)가 있으면 브로드캐스트.
+        // ExecCalc는 Health Modifier를 항상 마지막에 출력하므로(스태미나 감소가 먼저 실행됨),
+        // 이 시점에는 이번 데미지 GE의 모든 어트리뷰트 변경이 확정된 상태다
+        static const FGameplayTagContainer DamageResultTags = FGameplayTagContainer::CreateFromArray(
+            TArray<FGameplayTag>{
+                MyTags::Souls::DamageResult_HitReact,
+                MyTags::Souls::DamageResult_GuardHit,
+                MyTags::Souls::DamageResult_PerfectGuard,
+                MyTags::Souls::DamageResult_PerfectDodge });
+        
+        if (Data.EffectSpec.GetDynamicAssetTags().HasAny(DamageResultTags))
+        {
+            OnDamageResolved.Broadcast(Instigator, Causer, &Data.EffectSpec, Data.EvaluatedData.Magnitude, HealthBeforeAttributeChange, GetHealth());
+        }
     }
     if (Data.EvaluatedData.Attribute == GetStaminaAttribute())
     {

@@ -361,8 +361,8 @@ void ULeeHeroComponent::InitializePlayerInput(UInputComponent* PlayerInputCompon
 					
 						LeeIC->BindNativeAction(InputConfig, MyTags::Lyra::InputTag_Move, ETriggerEvent::Triggered, this, &ThisClass::Input_Move,false);
 						LeeIC->BindNativeAction(InputConfig, MyTags::Lyra::InputTag_Look_Mouse, ETriggerEvent::Triggered, this, &ThisClass::Input_LookMouse,false);
-						LeeIC->BindNativeAction(InputConfig, MyTags::Lyra::InputTag_TargetLock_SwitchLeft, ETriggerEvent::Triggered, this, &ThisClass::Input_TargetLockSwitchLeft,false);
-						LeeIC->BindNativeAction(InputConfig, MyTags::Lyra::InputTag_TargetLock_SwitchRight, ETriggerEvent::Triggered, this, &ThisClass::Input_TargetLockSwitchRight,false);
+						LeeIC->BindNativeAction(InputConfig, MyTags::Souls::InputTag_TargetLock_SwitchLeft, ETriggerEvent::Triggered, this, &ThisClass::Input_TargetLockSwitchLeft,false);
+						LeeIC->BindNativeAction(InputConfig, MyTags::Souls::InputTag_TargetLock_SwitchRight, ETriggerEvent::Triggered, this, &ThisClass::Input_TargetLockSwitchRight,false);
 					}
 				}
 			}

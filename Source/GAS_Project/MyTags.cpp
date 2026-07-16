@@ -46,17 +46,7 @@ namespace MyTags
 		UE_DEFINE_GAMEPLAY_TAG(InputTag_Look_Mouse,"InputTag.Look.Mouse")
 		
 		UE_DEFINE_GAMEPLAY_TAG(InputTag_Weapon_Fire,"InputTag.Weapon.Fire")
-		UE_DEFINE_GAMEPLAY_TAG(InputTag_BowAim,"InputTag.BowAim")
-		UE_DEFINE_GAMEPLAY_TAG(InputTag_BowFire,"InputTag.BowFire")
-		// [신규] 처형/암살 공용 입력 태그
-		UE_DEFINE_GAMEPLAY_TAG(InputTag_Finisher,"InputTag.Finisher")
-
-		// [신규] 타겟 락온 입력 태그
-		UE_DEFINE_GAMEPLAY_TAG(InputTag_TargetLock,"InputTag.TargetLock")
-		UE_DEFINE_GAMEPLAY_TAG(InputTag_TargetLock_SwitchLeft,"InputTag.TargetLock.SwitchLeft")
-		UE_DEFINE_GAMEPLAY_TAG(InputTag_TargetLock_SwitchRight,"InputTag.TargetLock.SwitchRight")
-		//UE_DEFINE_GAMEPLAY_TAG(InputTag_Look_Mouse,"InputTag.Look.Mouse")
-
+		
 
 		// UI
 		UE_DEFINE_GAMEPLAY_TAG(UI_Layer_Game,"UI.Layer.Game")
@@ -92,6 +82,24 @@ namespace MyTags
 
 	namespace Souls
 	{
+		// InputTag
+		UE_DEFINE_GAMEPLAY_TAG(InputTag_BowAim,"InputTag.BowAim")
+		UE_DEFINE_GAMEPLAY_TAG(InputTag_BowFire,"InputTag.BowFire")
+		// 처형/암살 공용 입력 태그
+		UE_DEFINE_GAMEPLAY_TAG(InputTag_Finisher,"InputTag.Finisher")
+
+		// [신규] 타겟 락온 입력 태그
+		UE_DEFINE_GAMEPLAY_TAG(InputTag_TargetLock,"InputTag.TargetLock")
+		UE_DEFINE_GAMEPLAY_TAG(InputTag_TargetLock_SwitchLeft,"InputTag.TargetLock.SwitchLeft")
+		UE_DEFINE_GAMEPLAY_TAG(InputTag_TargetLock_SwitchRight,"InputTag.TargetLock.SwitchRight")
+
+		// ===== [방어 메커니즘 신규 입력 태그] =====
+		// 26.07.16
+		UE_DEFINE_GAMEPLAY_TAG(InputTag_Guard,"InputTag.Guard")
+		UE_DEFINE_GAMEPLAY_TAG(InputTag_Dodge,"InputTag.Dodge")
+		//UE_DEFINE_GAMEPLAY_TAG(InputTag_Look_Mouse,"InputTag.Look.Mouse")
+		//
+		
 		//Gameplay
 		UE_DEFINE_GAMEPLAY_TAG(Gameplay_Damage, "Souls.Gameplay.Damage")             
 		UE_DEFINE_GAMEPLAY_TAG(Gameplay_DamageImmunity, "Souls.Gameplay.DamageImmunity")     
@@ -99,9 +107,7 @@ namespace MyTags
 		UE_DEFINE_GAMEPLAY_TAG(Gameplay_FellOutOfWorld, "Souls.Gameplay.FellOutOfWorld")    
 		UE_DEFINE_GAMEPLAY_TAG(Gameplay_Damage_Message, "Souls.Gameplay.Message")
 		UE_DEFINE_GAMEPLAY_TAG(Gameplay_MovementStopped, "Souls.Gameplay.MovementStopped")
-
-
-
+		
 
 		//Ability
 		UE_DEFINE_GAMEPLAY_TAG(Ability_Type_Action_BowAim, "Souls.Ability.Type.Action.BowAim")
@@ -123,10 +129,7 @@ namespace MyTags
 		//SetByCaller
 		UE_DEFINE_GAMEPLAY_TAG(SetByCaller_Damage, "Souls.SetByCaller.Damage")
 
-
 		
-
-
 		UE_DEFINE_GAMEPLAY_TAG(Ability_Behavior_SurvivesDeath, "Souls.Ability.Behavior.SurvivesDeath")
 
 		//Event
@@ -136,16 +139,18 @@ namespace MyTags
 		UE_DEFINE_GAMEPLAY_TAG(Event_Execution_Start, "Souls.Events.Execution.Start")
 		UE_DEFINE_GAMEPLAY_TAG(Event_Execution_End, "Souls.Events.Execution.End")
 		UE_DEFINE_GAMEPLAY_TAG(Event_BeFinished, "Souls.Events.Finish.BeFinished")
-		// [신규] 피니셔 데미지 타이밍 이벤트 (AnimNotify → GA_Finisher)
+		
+		// 피니셔 데미지 타이밍 이벤트 (AnimNotify → GA_Finisher)
 		UE_DEFINE_GAMEPLAY_TAG(Event_Finisher_Damage, "Souls.Events.Finisher.Damage")
 
-		// [신규] 피니셔 프롬프트 UI 메시지 채널
+		// 피니셔 프롬프트 UI 메시지 채널
 		UE_DEFINE_GAMEPLAY_TAG(Message_Finisher_Prompt, "Souls.Message.Finisher.Prompt")
 
 		// GameplayCue
 		UE_DEFINE_GAMEPLAY_TAG(GameplayCue_FinishIndicator, "GameplayCue.Souls.FinishIndicator")
 		
 		
+		// Status
 		//Execution
 		UE_DEFINE_GAMEPLAY_TAG(Status_Groggy, "Souls.Status.Groggy")
 		UE_DEFINE_GAMEPLAY_TAG(Status_Executing, "Souls.Status.Executing")
@@ -155,24 +160,69 @@ namespace MyTags
 		UE_DEFINE_GAMEPLAY_TAG(Status_Unaware, "Souls.Status.Unaware")
 		UE_DEFINE_GAMEPLAY_TAG(Status_Vulnerable_Execution, "Souls.Status.Vulnerable.Execution")
 		UE_DEFINE_GAMEPLAY_TAG(Status_Invincible, "Souls.Status.Invincible")
-		// [신규] 피해자: 처형/암살 당하는 중
+		// 피해자: 처형/암살 당하는 중
 		UE_DEFINE_GAMEPLAY_TAG(Status_Finisher_Victim, "Souls.Status.Finisher.Victim")
 
 		
-		// [신규] 근접 공격 어빌리티 식별 태그 (TryActivateAbilityByTag 사용)
+		//  근접 공격 어빌리티 식별 태그 (TryActivateAbilityByTag 사용)
 		UE_DEFINE_GAMEPLAY_TAG(Status_Attack_Melee, "Souls.Status.Attack.Melee")
-		// [신규] 공격 중 상태 태그 (ActivationOwnedTags로 자동 부여/제거)
+		// 공격 중 상태 태그 (ActivationOwnedTags로 자동 부여/제거)
 		UE_DEFINE_GAMEPLAY_TAG(Status_Attack_Attacking, "Souls.Status.Attack.Attacking")
 
-		// [신규] 타겟 락온
+		// 타겟 락온
 		UE_DEFINE_GAMEPLAY_TAG(Ability_TargetLock, "Souls.Abilities.TargetLock")
 		UE_DEFINE_GAMEPLAY_TAG(Status_TargetLock, "Souls.Status.TargetLock")
 		UE_DEFINE_GAMEPLAY_TAG(Message_TargetLock, "Souls.Message.TargetLock")
 
-	
+		// ===== [방어 메커니즘 신규 태그] 퍼펙트 가드/패리/퍼펙트 회피/가드 브레이크 =====
 
+		// 어빌리티 식별 태그
+		UE_DEFINE_GAMEPLAY_TAG(Ability_Guard, "Souls.Abilities.Guard")
+		UE_DEFINE_GAMEPLAY_TAG(Ability_Dodge, "Souls.Abilities.Dodge")
+		UE_DEFINE_GAMEPLAY_TAG(Ability_HitReaction, "Souls.Abilities.HitReaction")
+
+		// 상태 태그
+		// Guard
+		UE_DEFINE_GAMEPLAY_TAG(Status_Guard_Active, "Souls.Status.Guard.Active")
+		UE_DEFINE_GAMEPLAY_TAG(Status_Guard_Perfect, "Souls.Status.Guard.Perfect")
 		
+		// Dodge
+		UE_DEFINE_GAMEPLAY_TAG(Status_Dodge_Active, "Souls.Status.Dodge.Active")
+		UE_DEFINE_GAMEPLAY_TAG(Status_Dodge_Perfect, "Souls.Status.Dodge.Perfect")
 		
+		UE_DEFINE_GAMEPLAY_TAG(Status_CounterWindow, "Souls.Status.CounterWindow")
+		UE_DEFINE_GAMEPLAY_TAG(Status_Stamina_RegenBlocked, "Souls.Status.Stamina.RegenBlocked")
+
+		// 방어 판정 이벤트
+		UE_DEFINE_GAMEPLAY_TAG(Event_Defense_GuardHit, "Souls.Events.Defense.GuardHit")
+		UE_DEFINE_GAMEPLAY_TAG(Event_Defense_PerfectGuard, "Souls.Events.Defense.PerfectGuard")
+		UE_DEFINE_GAMEPLAY_TAG(Event_Defense_PerfectDodge, "Souls.Events.Defense.PerfectDodge")
+		
+		UE_DEFINE_GAMEPLAY_TAG(Event_Combat_Parried, "Souls.Events.Combat.Parried")
+		UE_DEFINE_GAMEPLAY_TAG(Event_Combat_HitReact, "Souls.Events.Combat.HitReact")
+		UE_DEFINE_GAMEPLAY_TAG(Event_Combat_GuardBreak, "Souls.Events.Combat.GuardBreak")
+		UE_DEFINE_GAMEPLAY_TAG(Event_Combat_PostureBreak, "Souls.Events.Combat.PostureBreak")
+
+		// i-frame 윈도우 이벤트 (AnimNotifyState 보조 신호)
+		UE_DEFINE_GAMEPLAY_TAG(Event_Window_IFrame_Begin, "Souls.Events.Window.IFrame.Begin")
+		UE_DEFINE_GAMEPLAY_TAG(Event_Window_IFrame_End, "Souls.Events.Window.IFrame.End")
+
+		// 데미지 판정 결과 (ExecCalc → Spec DynamicAssetTags)
+		UE_DEFINE_GAMEPLAY_TAG(DamageResult_HitReact, "Souls.DamageResult.HitReact")
+		UE_DEFINE_GAMEPLAY_TAG(DamageResult_GuardHit, "Souls.DamageResult.GuardHit")
+		UE_DEFINE_GAMEPLAY_TAG(DamageResult_PerfectGuard, "Souls.DamageResult.PerfectGuard")
+		UE_DEFINE_GAMEPLAY_TAG(DamageResult_PerfectDodge, "Souls.DamageResult.PerfectDodge")
+
+		// 스태미나 감소 원인 태그 (GuardBreak/PostureBreak 분기 근거)
+		UE_DEFINE_GAMEPLAY_TAG(DamageType_ParryCounter, "Souls.DamageType.ParryCounter")
+		UE_DEFINE_GAMEPLAY_TAG(DamageType_DodgeCost, "Souls.DamageType.DodgeCost")
+
+		// SetByCaller
+		UE_DEFINE_GAMEPLAY_TAG(SetByCaller_StaminaDamage, "Souls.SetByCaller.StaminaDamage")
+		UE_DEFINE_GAMEPLAY_TAG(SetByCaller_Duration, "Souls.SetByCaller.Duration")
+
+		// GameplayCue
+		UE_DEFINE_GAMEPLAY_TAG(GameplayCue_Dodge_Perfect, "GameplayCue.Souls.Dodge.Perfect")
 		
 	}
 
@@ -187,7 +237,8 @@ namespace MyTags
 	{
 		UE_DEFINE_GAMEPLAY_TAG_COMMENT(Projectile, "MyTags.SetByCaller.Projectile", "Tag for Set by Caller Magnitude for Projectiles")
 	
-	}	
+	}
+	
 	namespace Abilities
 	{
 		UE_DEFINE_GAMEPLAY_TAG(ActivateOnGiven, "MyTags.Abilities.ActivateOnGiven")
