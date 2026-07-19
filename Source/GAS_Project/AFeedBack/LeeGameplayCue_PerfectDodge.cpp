@@ -8,6 +8,7 @@
 #include "Materials/MaterialInstanceDynamic.h"
 #include "TimerManager.h"
 #include "GAS_Project/MyTags.h"
+#include "GAS_Project/LeeLogChannels.h"
 
 // 생성자 — Cue 태그 설정 (Execute형 버스트 연출)
 ALeeGameplayCue_PerfectDodge::ALeeGameplayCue_PerfectDodge()
@@ -19,9 +20,14 @@ ALeeGameplayCue_PerfectDodge::ALeeGameplayCue_PerfectDodge()
 // Cue 실행 — 클라이언트에서만 잔상 샘플링 시작 (데디 서버는 연출 스킵)
 bool ALeeGameplayCue_PerfectDodge::OnExecute_Implementation(AActor* MyTarget, const FGameplayCueParameters& /*Parameters*/)
 {
+	// [임시 디버그] Cue 실행 진입 확인 — Target/NetMode
+	UE_LOG(LogLee, Warning, TEXT("[Afterimage] OnExecute 진입: Target=%s NetMode=%d"),
+		*GetNameSafe(MyTarget), (int32)GetNetMode());
+
 	// 데디 서버에서는 로직 없음 — 연출은 클라이언트 전용
 	if (GetNetMode() == NM_DedicatedServer)
 	{
+		UE_LOG(LogLee, Warning, TEXT("[Afterimage] 데디서버 → 연출 스킵"));
 		return false;
 	}
 
@@ -29,8 +35,13 @@ bool ALeeGameplayCue_PerfectDodge::OnExecute_Implementation(AActor* MyTarget, co
 	USkeletalMeshComponent* TargetMesh = TargetCharacter ? TargetCharacter->GetMesh() : nullptr;
 	if (!TargetMesh)
 	{
+		UE_LOG(LogLee, Warning, TEXT("[Afterimage] TargetMesh 없음(Target이 ACharacter가 아니거나 Mesh 없음) → 스킵"));
 		return false;
 	}
+
+	// [임시 디버그] 슬롯/폴백/맵 구성 확인
+	UE_LOG(LogLee, Warning, TEXT("[Afterimage] TargetMesh=%s NumMaterials=%d 폴백AfterimageMaterial=%s MapNum=%d"),
+		*GetNameSafe(TargetMesh), TargetMesh->GetNumMaterials(), *GetNameSafe(AfterimageMaterial), AfterimageMaterialMap.Num());
 
 	// 연속 실행 대비: 이전 잔상/타이머 정리 후 새로 시작
 	ClearAfterimages();
@@ -79,21 +90,37 @@ void ALeeGameplayCue_PerfectDodge::SpawnAfterimageSample()
 	Sample->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	Sample->SetCastShadow(false);
 
-	// 잔상 머티리얼로 교체 (미지정이면 원본 머티리얼 그대로 — 페이드 없이 수명만 적용)
-	UMaterialInstanceDynamic* SampleMID = nullptr;
-	if (AfterimageMaterial)
+	// 슬롯별 잔상 머티리얼로 교체 — 원본 슬롯 머티리얼을 키로 AfterimageMaterialMap에서 반투명 버전을 찾고,
+	// 매핑에 없으면 AfterimageMaterial(폴백)을 사용. 슬롯마다 별도의 MID를 만들어 원본 텍스처를 유지한다.
+	// 생성된 MID는 Sample(UMeshComponent)의 OverrideMaterials에 보관되어 GC로부터 안전하다 —
+	// 별도 배열에 담지 않고 UpdateAfterimageFade에서 Sample->GetMaterial()로 다시 조회한다.
+	for (int32 MaterialIndex = 0; MaterialIndex < Sample->GetNumMaterials(); ++MaterialIndex)
 	{
-		SampleMID = UMaterialInstanceDynamic::Create(AfterimageMaterial, this);
-		SampleMID->SetVectorParameterValue(TintParamName, AfterimageTint);
-		SampleMID->SetScalarParameterValue(OpacityParamName, 1.0f);
-		for (int32 MaterialIndex = 0; MaterialIndex < Sample->GetNumMaterials(); ++MaterialIndex)
+		UMaterialInterface* OriginalSlotMaterial = Mesh->GetMaterial(MaterialIndex);
+
+		UMaterialInterface* AfterimageSlotMaterial = AfterimageMaterial;
+		if (OriginalSlotMaterial)
 		{
-			Sample->SetMaterial(MaterialIndex, SampleMID);
+			if (const TObjectPtr<UMaterialInterface>* MappedMaterial = AfterimageMaterialMap.Find(OriginalSlotMaterial))
+			{
+				AfterimageSlotMaterial = *MappedMaterial;
+			}
+		}
+
+		// [임시 디버그] 각 슬롯이 어떤 머티리얼을 고르는지
+		UE_LOG(LogLee, Warning, TEXT("[Afterimage] Slot %d: Orig=%s → Chosen=%s"),
+			MaterialIndex, *GetNameSafe(OriginalSlotMaterial), *GetNameSafe(AfterimageSlotMaterial));
+
+		if (AfterimageSlotMaterial)
+		{
+			UMaterialInstanceDynamic* SlotMID = UMaterialInstanceDynamic::Create(AfterimageSlotMaterial, this);
+			SlotMID->SetVectorParameterValue(TintParamName, AfterimageTint);
+			SlotMID->SetScalarParameterValue(OpacityParamName, 1.0f);
+			Sample->SetMaterial(MaterialIndex, SlotMID);
 		}
 	}
 
 	AfterimageSamples.Add(Sample);
-	AfterimageMaterials.Add(SampleMID);
 	AfterimageSpawnTimes.Add(GetWorld()->GetTimeSeconds());
 	++SpawnedSampleCount;
 }
@@ -107,21 +134,29 @@ void ALeeGameplayCue_PerfectDodge::UpdateAfterimageFade()
 	{
 		const float Alpha = 1.0f - static_cast<float>((Now - AfterimageSpawnTimes[Index]) / AfterimageLifetime);
 
+		UPoseableMeshComponent* Sample = AfterimageSamples[Index];
+
 		if (Alpha <= 0.0f)
 		{
-			if (UPoseableMeshComponent* Sample = AfterimageSamples[Index])
+			if (Sample)
 			{
 				Sample->DestroyComponent();
 			}
 			AfterimageSamples.RemoveAt(Index);
-			AfterimageMaterials.RemoveAt(Index);
 			AfterimageSpawnTimes.RemoveAt(Index);
 			continue;
 		}
 
-		if (UMaterialInstanceDynamic* SampleMID = AfterimageMaterials[Index])
+		// 슬롯별로 배정된 MID를 다시 조회해 불투명도만 갱신 (미지정 슬롯은 원본 머티리얼이라 캐스트 실패 → 스킵)
+		if (Sample)
 		{
-			SampleMID->SetScalarParameterValue(OpacityParamName, Alpha);
+			for (int32 MaterialIndex = 0; MaterialIndex < Sample->GetNumMaterials(); ++MaterialIndex)
+			{
+				if (UMaterialInstanceDynamic* SlotMID = Cast<UMaterialInstanceDynamic>(Sample->GetMaterial(MaterialIndex)))
+				{
+					SlotMID->SetScalarParameterValue(OpacityParamName, Alpha);
+				}
+			}
 		}
 	}
 
@@ -150,7 +185,6 @@ void ALeeGameplayCue_PerfectDodge::ClearAfterimages()
 		}
 	}
 	AfterimageSamples.Reset();
-	AfterimageMaterials.Reset();
 	AfterimageSpawnTimes.Reset();
 	SpawnedSampleCount = 0;
 }

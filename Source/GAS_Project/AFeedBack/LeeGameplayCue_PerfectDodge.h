@@ -39,12 +39,9 @@ private:
 	/** 잔상/타이머 전부 정리 (재실행/EndPlay 대비) */
 	void ClearAfterimages();
 
-	/** 스폰된 잔상 컴포넌트와 스폰 시각/머티리얼 (인덱스 병렬 배열) */
+	/** 스폰된 잔상 컴포넌트와 스폰 시각 (인덱스 병렬 배열). 슬롯별 MID는 Sample->GetMaterial()로 필요 시 다시 조회 */
 	UPROPERTY(Transient)
 	TArray<TObjectPtr<UPoseableMeshComponent>> AfterimageSamples;
-
-	UPROPERTY(Transient)
-	TArray<TObjectPtr<UMaterialInstanceDynamic>> AfterimageMaterials;
 
 	TArray<double> AfterimageSpawnTimes;
 
@@ -72,9 +69,13 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Lee|Afterimage")
 	FLinearColor AfterimageTint = FLinearColor(0.8f, 0.8f, 0.85f, 1.0f);
 
-	/** 잔상에 씌울 반투명 머티리얼. 스칼라(OpacityParamName)/벡터(TintParamName) 파라미터 필요 */
+	/** 잔상에 씌울 반투명 머티리얼(폴백). AfterimageMaterialMap에 없는 슬롯에 사용. 스칼라(OpacityParamName)/벡터(TintParamName) 파라미터 필요 */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Lee|Afterimage")
 	TObjectPtr<UMaterialInterface> AfterimageMaterial;
+
+	/** 원본 슬롯 머티리얼 → 반투명 잔상 머티리얼 매핑. 슬롯별로 다른 반투명 버전을 쓸 때 사용(멀티 슬롯 캐릭터용) */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Lee|Afterimage")
+	TMap<TObjectPtr<UMaterialInterface>, TObjectPtr<UMaterialInterface>> AfterimageMaterialMap;
 
 	/** 머티리얼의 불투명도 스칼라 파라미터 이름 */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Lee|Afterimage")
