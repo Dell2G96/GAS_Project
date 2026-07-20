@@ -77,8 +77,8 @@
 			"Name": "GameplayStateTree",
 			"Enabled": true
 		},
-		{ 
-			"Name": "DataRegistry",        
+		{
+			"Name": "DataRegistry",
 			"Enabled": true
 		},
 		{
@@ -89,8 +89,21 @@
 			"Name": "ControlFlows",
 			"Enabled": true
 		},
-		{ "Name": "ReplicationGraph",    "Enabled": true },
-		{ "Name": "SignificanceManager", "Enabled": true },
-		{ "Name": "OnlineFramework",     "Enabled": true }
+		{
+			"Name": "ReplicationGraph",
+			"Enabled": true
+		},
+		{
+			"Name": "SignificanceManager",
+			"Enabled": true
+		},
+		{
+			"Name": "OnlineFramework",
+			"Enabled": true
+		},
+		{
+			"Name": "UnrealAgent",
+			"Enabled": false
+		}
 	]
 }

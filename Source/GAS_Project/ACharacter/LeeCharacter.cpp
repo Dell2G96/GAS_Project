@@ -15,6 +15,8 @@
 #include "GAS_Project/AInput/LeeInputComponent.h"
 #include "GAS_Project/APlayer/LeePlayerController.h"
 #include "GAS_Project/APlayer/LeePlayerState.h"
+#include "GAS_Project/ATeam/LeeTeamCreationComponent.h"
+#include "GameFramework/GameStateBase.h"
 #include "Net/UnrealNetwork.h"
 
 
@@ -149,14 +151,11 @@ void ALeeCharacter::NotifyControllerChanged()
 
 	Super::NotifyControllerChanged();
 
-	// Update our team ID based on the controller
+	// Update our team ID based on the controller (Controller → PlayerState → GameState의 EnemyTeamId 순으로 조회)
 	if (HasAuthority() && (GetController() != nullptr))
 	{
-		if (ILeeTeamAgentInterface* ControllerWithTeam = Cast<ILeeTeamAgentInterface>(GetController()))
-		{
-			MyTeamID = ControllerWithTeam->GetGenericTeamId();
-			ConditionalBroadcastTeamChanged(this, OldTeamId, MyTeamID);
-		}
+		MyTeamID = ResolveTeamID();
+		ConditionalBroadcastTeamChanged(this, OldTeamId, MyTeamID);
 	}
 }
 
@@ -187,6 +186,38 @@ void ALeeCharacter::OnAbilitySystemUnInitialized()
 }
 
 
+// Controller → 내 PlayerState → GameState의 EnemyTeamId 매핑 순서로 유효한(NoTeam 아닌) 팀 ID를 찾는다
+FGenericTeamId ALeeCharacter::ResolveTeamID() const
+{
+	// 1순위: Controller가 유효한 팀 정보를 제공하면 사용
+	if (const ILeeTeamAgentInterface* ControllerAsTeamProvider = Cast<ILeeTeamAgentInterface>(GetController()))
+	{
+		const FGenericTeamId ControllerTeamID = ControllerAsTeamProvider->GetGenericTeamId();
+		if (ControllerTeamID != FGenericTeamId::NoTeam)
+		{
+			return ControllerTeamID;
+		}
+	}
+
+	// 2순위: Controller가 팀을 안 주면(인터페이스가 없거나 NoTeam), 내 PlayerState(ALeePlayerState 등)에서 조회
+	if (const ILeeTeamAgentInterface* PlayerStateAsTeamProvider = Cast<ILeeTeamAgentInterface>(GetPlayerState()))
+	{
+		const FGenericTeamId PlayerStateTeamID = PlayerStateAsTeamProvider->GetGenericTeamId();
+		if (PlayerStateTeamID != FGenericTeamId::NoTeam)
+		{
+			return PlayerStateTeamID;
+		}
+	}
+
+	// 3순위: 그래도 없으면(PlayerState 없이 일반 AI가 조종하는 Enemy) GameState의 LeeTeamCreationComponent에서 Enemy 클래스별 팀 ID를 조회
+	if (HasAuthority())
+	{
+		return IntegerToGenericTeamId(ResolveEnemyTeamIdFromGameState());
+	}
+
+	return FGenericTeamId::NoTeam;
+}
+
 void ALeeCharacter::PossessedBy(AController* NewController)
 {
 	const FGenericTeamId OldTeamID = MyTeamID;
@@ -195,13 +226,32 @@ void ALeeCharacter::PossessedBy(AController* NewController)
 
 	PawnExtComponent->HandleControllerChanged();
 
-	// Grab the current team ID and listen for future changes
+	// 이후 Controller의 팀이 바뀌는 것도 계속 수신 대기
 	if (ILeeTeamAgentInterface* ControllerAsTeamProvider = Cast<ILeeTeamAgentInterface>(NewController))
 	{
-		MyTeamID = ControllerAsTeamProvider->GetGenericTeamId();
 		ControllerAsTeamProvider->GetTeamChangedDelegateChecked().AddDynamic(this, &ThisClass::OnControllerChangedTeam);
 	}
+
+	MyTeamID = ResolveTeamID();
+
+	// [임시 디버그] Possess 시점에 최종적으로 어떤 TeamID가 설정됐는지 확인
+	UE_LOG(LogTemp, Warning, TEXT("[Team] PossessedBy: %s, Controller=%s, MyTeamID=%d"),
+		*GetNameSafe(this), *GetNameSafe(NewController), GenericTeamIdToInteger(MyTeamID));
+
 	ConditionalBroadcastTeamChanged(this, OldTeamID, MyTeamID);
+}
+
+// PlayerState/Controller가 팀 정보를 안 주는 Enemy를 위해, GameState의 LeeTeamCreationComponent에 등록된 클래스별 팀 ID를 조회
+int32 ALeeCharacter::ResolveEnemyTeamIdFromGameState() const
+{
+	const AGameStateBase* GameState = GetWorld() ? GetWorld()->GetGameState() : nullptr;
+	const ULeeTeamCreationComponent* TeamCreationComponent = GameState ? GameState->FindComponentByClass<ULeeTeamCreationComponent>() : nullptr;
+
+	// [임시 디버그] Possess 시점에 GameState에 LeeTeamCreationComponent가 이미 붙어있는지 확인 (Experience 로드 타이밍 문제 확인용)
+	UE_LOG(LogTemp, Warning, TEXT("[Team] ResolveEnemyTeamIdFromGameState: %s, TeamCreationComponent=%s"),
+		*GetNameSafe(this), TeamCreationComponent ? TEXT("Found") : TEXT("NULL - Experience가 아직 로드 안됐거나 컴포넌트 연결 안됨"));
+
+	return TeamCreationComponent ? TeamCreationComponent->ResolveEnemyTeamId(GetClass()) : GenericTeamIdToInteger(FGenericTeamId::NoTeam);
 }
 
 
@@ -512,10 +562,52 @@ FGenericTeamId ALeeCharacter::GetGenericTeamId() const
 	return MyTeamID;
 }
 
+ETeamAttitude::Type ALeeCharacter::GetTeamAttitudeTowards(const AActor& Other) const
+{
+	// 1순위: 내 Controller(LeePlayerBotController 등)에게 판정 위임
+	if (const IGenericTeamAgentInterface* ControllerTeam = Cast<IGenericTeamAgentInterface>(GetController()))
+	{
+		return ControllerTeam->GetTeamAttitudeTowards(Other);
+	}
+
+	// 2순위: Controller 없을 때 — 상대방 팀 ID 직접 비교
+	FGenericTeamId OtherTeamId = FGenericTeamId::NoTeam;
+
+	// 상대가 Pawn이면 Controller 또는 PlayerState에서 팀 ID 조회
+	if (const APawn* OtherPawn = Cast<APawn>(&Other))
+	{
+		if (const IGenericTeamAgentInterface* OtherController = Cast<IGenericTeamAgentInterface>(OtherPawn->GetController()))
+		{
+			OtherTeamId = OtherController->GetGenericTeamId();
+		}
+		else if (const ILeeTeamAgentInterface* OtherPS = Cast<ILeeTeamAgentInterface>(OtherPawn->GetPlayerState()))
+		{
+			OtherTeamId = OtherPS->GetGenericTeamId();
+		}
+	}
+	else if (const IGenericTeamAgentInterface* OtherTeamAgent = Cast<IGenericTeamAgentInterface>(&Other))
+	{
+		OtherTeamId = OtherTeamAgent->GetGenericTeamId();
+	}
+
+	// [임시 디버그] 실제 비교되는 TeamID 값을 확인
+	UE_LOG(LogTemp, Warning, TEXT("[Team] GetTeamAttitudeTowards: %s(MyTeamID=%d) vs %s(OtherTeamId=%d)"),
+		*GetNameSafe(this), GenericTeamIdToInteger(MyTeamID), *GetNameSafe(&Other), GenericTeamIdToInteger(OtherTeamId));
+
+	if (OtherTeamId == FGenericTeamId::NoTeam || MyTeamID == FGenericTeamId::NoTeam)
+	{
+		return ETeamAttitude::Neutral;
+	}
+
+	return (MyTeamID == OtherTeamId) ? ETeamAttitude::Friendly : ETeamAttitude::Hostile;
+}
+
+
 FOnLeeTeamIndexChangedDelegate* ALeeCharacter::GetOnTeamIndexChangedDelegate()
 {
 	return &OnTeamChangedDelegate;
 }
+
 
 void ALeeCharacter::OnControllerChangedTeam(UObject* TeamAgent, int32 OldTeam, int32 NewTeam)
 {

@@ -112,6 +112,8 @@ public:
 	virtual void SetGenericTeamId(const FGenericTeamId& NewTeamID) override;
 	virtual FGenericTeamId GetGenericTeamId() const override;
 	virtual FOnLeeTeamIndexChangedDelegate* GetOnTeamIndexChangedDelegate() override;
+	// 팀 태도 판정: Controller에게 위임, 없으면 팀 ID 직접 비교
+	virtual ETeamAttitude::Type GetTeamAttitudeTowards(const AActor& Other) const override;
 	//~End of ILeeTeamAgentInterface interface
 
 	UFUNCTION(NetMulticast, unreliable)
@@ -192,6 +194,12 @@ protected:
 private:
 	UFUNCTION()
 	void OnControllerChangedTeam(UObject* TeamAgent, int32 OldTeam, int32 NewTeam);
+
+	// Controller가 팀 정보를 제공하지 않을 때(일반 AI 컨트롤러 등), GameState의 LeeTeamCreationComponent에서 Enemy 클래스 기준 팀 ID를 가져온다
+	int32 ResolveEnemyTeamIdFromGameState() const;
+
+	// Controller → PlayerState → GameState의 EnemyTeamId 매핑 순서로 유효한 팀 ID를 결정한다
+	FGenericTeamId ResolveTeamID() const;
 
 	UFUNCTION()
 	void OnRep_ReplicatedAcceleration();

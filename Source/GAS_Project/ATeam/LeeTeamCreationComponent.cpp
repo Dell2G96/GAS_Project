@@ -46,6 +46,20 @@ void ULeeTeamCreationComponent::BeginPlay()
 }
 #endif
 
+int32 ULeeTeamCreationComponent::ResolveEnemyTeamId(TSubclassOf<ALeeCharacter> EnemyClass) const
+{
+	// EnemyClass부터 부모 클래스로 거슬러 올라가며 EnemyTeamIdOverrides에 등록된 항목을 찾는다
+	for (UClass* TestClass = EnemyClass; TestClass; TestClass = TestClass->GetSuperClass())
+	{
+		if (const int32* FoundTeamId = EnemyTeamIdOverrides.Find(TSubclassOf<ALeeCharacter>(TestClass)))
+		{
+			return *FoundTeamId;
+		}
+	}
+
+	return DefaultEnemyTeamId;
+}
+
 void ULeeTeamCreationComponent::OnExperienceLoaded(const class ULeeExperienceDefinition* Experience)
 {
 #if WITH_SERVER_CODE
@@ -90,23 +104,26 @@ void ULeeTeamCreationComponent::ServerAssignPlayersToTeams()
 
 void ULeeTeamCreationComponent::ServerChooseTeamForPlayer(class ALeePlayerState* PS)
 {
+	// 관전자는 어떤 팀에도 속하지 않는다
 	if (PS->IsOnlyASpectator())
 	{
 		PS->SetGenericTeamId(FGenericTeamId::NoTeam);
 	}
+	// 그 외에는 자동 계산(GetLeastPopulatedTeamID) 대신, 에디터에서 지정한 PlayerTeamId / BotTeamId를 그대로 사용한다
 	else
 	{
-		//const FGenericTeamId TeamID = IntegerToGenericTeamId(GetLeastPopulatedTeamID());
-		//PS->SetGenericTeamId(TeamID);
 		if (PS->IsABot())
 		{
-			PS->SetGenericTeamId(IntegerToGenericTeamId(2));
+			PS->SetGenericTeamId(IntegerToGenericTeamId(BotTeamId));
 		}
 		else
 		{
-			PS->SetGenericTeamId(IntegerToGenericTeamId(1));
+			PS->SetGenericTeamId(IntegerToGenericTeamId(PlayerTeamId));
 		}
 	}
+
+	// [임시 디버그] 실제로 어떤 TeamID가 부여됐는지 확인
+	UE_LOG(LogTemp, Warning, TEXT("[Team] ServerChooseTeamForPlayer: %s → TeamId=%d"), *GetNameSafe(PS), PS->GetTeamId());
 }
 
 void ULeeTeamCreationComponent::OnPlayerInitialized(AGameModeBase* GameMode, AController* NewPlayer)

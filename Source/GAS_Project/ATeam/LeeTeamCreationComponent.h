@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Components/GameStateComponent.h"
+#include "GAS_Project/ACharacter/LeeCharacter.h"
 #include "LeeTeamCreationComponent.generated.h"
 
 
@@ -35,7 +36,28 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category=Teams)
 	TSubclassOf<class ALeeTeamPrivateInfo> PrivateTeamInfoClass;
 
-	
+	// 실제 플레이어(사람)에게 수동으로 부여할 팀 ID (TeamsToCreate에 등록된 ID여야 함)
+	UPROPERTY(EditDefaultsOnly, Category = Teams)
+	int32 PlayerTeamId = 1;
+
+	// AI 봇 플레이어에게 수동으로 부여할 팀 ID (TeamsToCreate에 등록된 ID여야 함)
+	UPROPERTY(EditDefaultsOnly, Category = Teams)
+	int32 BotTeamId = 2;
+
+	// PlayerState 없이 AI 컨트롤러로만 움직이는 Enemy(ALeeCharacter)를 위한, 캐릭터 클래스별 세분화된 팀 ID
+	UPROPERTY(EditDefaultsOnly, Category = Teams)
+	TMap<TSubclassOf<class ALeeCharacter>, int32> EnemyTeamIdOverrides;
+
+	// EnemyTeamIdOverrides에 등록되지 않은 Enemy가 사용할 기본 팀 ID
+	UPROPERTY(EditDefaultsOnly, Category = Teams)
+	int32 DefaultEnemyTeamId = 2;
+
+public:
+	// EnemyClass(또는 그 부모 클래스)에 등록된 팀 ID를 찾아 반환. 없으면 DefaultEnemyTeamId 반환
+	UFUNCTION(BlueprintCallable, Category = Teams)
+	int32 ResolveEnemyTeamId(TSubclassOf<class ALeeCharacter> EnemyClass) const;
+
+
 #if WITH_SERVER_CODE
 protected:
 	virtual void ServerCreateTeams();

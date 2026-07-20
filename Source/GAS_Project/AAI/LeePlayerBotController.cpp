@@ -23,10 +23,22 @@ void ALeePlayerBotController::SetGenericTeamId(const FGenericTeamId& NewTeamID)
 
 FGenericTeamId ALeePlayerBotController::GetGenericTeamId() const
 {
-	if (ILeeTeamAgentInterface* PSWithTeamInterface = Cast<ILeeTeamAgentInterface>(PlayerState))
+	// 1순위: 연결된 PlayerState의 팀 (팀 정보가 PlayerState에 있는 플레이어형 봇)
+	if (const ILeeTeamAgentInterface* PSWithTeamInterface = Cast<ILeeTeamAgentInterface>(PlayerState))
 	{
-		return PSWithTeamInterface->GetGenericTeamId();
+		const FGenericTeamId PSTeamId = PSWithTeamInterface->GetGenericTeamId();
+		if (PSTeamId != FGenericTeamId::NoTeam)
+		{
+			return PSTeamId;
+		}
 	}
+
+	// 2순위: PlayerState에 팀이 없으면(PlayerState 없는 Enemy 몬스터 등) 빙의 중인 Pawn의 팀을 사용
+	if (const IGenericTeamAgentInterface* PawnWithTeam = Cast<IGenericTeamAgentInterface>(GetPawn()))
+	{
+		return PawnWithTeam->GetGenericTeamId();
+	}
+
 	return FGenericTeamId::NoTeam;
 }
 
@@ -37,24 +49,48 @@ FOnLeeTeamIndexChangedDelegate* ALeePlayerBotController::GetOnTeamIndexChangedDe
 
 ETeamAttitude::Type ALeePlayerBotController::GetTeamAttitudeTowards(const AActor& Other) const
 {
+	FGenericTeamId OtherTeamId = FGenericTeamId::NoTeam;
+
 	if (const APawn* OtherPawn = Cast<APawn>(&Other))
 	{
-		if (const ILeeTeamAgentInterface* TeamAgent = Cast<ILeeTeamAgentInterface>(OtherPawn->GetController()))
+		// 1순위: 상대 컨트롤러에서 팀 조회 (AI 봇 등 컨트롤러가 팀을 들고 있는 경우)
+		if (const ILeeTeamAgentInterface* ControllerTeam = Cast<ILeeTeamAgentInterface>(OtherPawn->GetController()))
 		{
-			FGenericTeamId OtherTeamId = TeamAgent->GetGenericTeamId();
+			OtherTeamId = ControllerTeam->GetGenericTeamId();
+		}
 
-			// 상대 폰의 ID 확인
-			if (OtherTeamId.GetId() != GetGenericTeamId().GetId())
+		// 2순위: 상대 PlayerState에서 팀 조회 (플레이어는 팀 정보가 PlayerState에 있음)
+		if (OtherTeamId == FGenericTeamId::NoTeam)
+		{
+			if (const ILeeTeamAgentInterface* PlayerStateTeam = Cast<ILeeTeamAgentInterface>(OtherPawn->GetPlayerState()))
 			{
-				return ETeamAttitude::Hostile;
+				OtherTeamId = PlayerStateTeam->GetGenericTeamId();
 			}
-			else
+		}
+
+		// 3순위: 상대 폰 자체에서 팀 조회 (PlayerState 없이 AI가 조종하는 Enemy 등)
+		if (OtherTeamId == FGenericTeamId::NoTeam)
+		{
+			if (const IGenericTeamAgentInterface* PawnTeam = Cast<IGenericTeamAgentInterface>(OtherPawn))
 			{
-				return ETeamAttitude::Friendly;
+				OtherTeamId = PawnTeam->GetGenericTeamId();
 			}
 		}
 	}
-	return ETeamAttitude::Neutral;
+	// 폰이 아닌 일반 액터가 팀 인터페이스를 구현한 경우
+	else if (const IGenericTeamAgentInterface* OtherTeamAgent = Cast<IGenericTeamAgentInterface>(&Other))
+	{
+		OtherTeamId = OtherTeamAgent->GetGenericTeamId();
+	}
+
+	// 어느 한쪽이라도 팀이 없으면 중립
+	if (OtherTeamId == FGenericTeamId::NoTeam || GetGenericTeamId() == FGenericTeamId::NoTeam)
+	{
+		return ETeamAttitude::Neutral;
+	}
+
+	// 팀 ID가 다르면 적대, 같으면 우호
+	return (OtherTeamId.GetId() != GetGenericTeamId().GetId()) ? ETeamAttitude::Hostile : ETeamAttitude::Friendly;
 }
 
 void ALeePlayerBotController::ServerRestartController()
