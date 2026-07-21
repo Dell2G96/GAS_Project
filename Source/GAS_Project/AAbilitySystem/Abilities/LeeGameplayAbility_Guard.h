@@ -63,6 +63,12 @@ private:
 	/** SetByCaller Duration 방식 GE 적용 헬퍼 */
 	FActiveGameplayEffectHandle ApplyDurationEffect(TSubclassOf<UGameplayEffect> EffectClass, float Duration);
 
+	/** 현재 가드 스탠스(왼발 뒤/오른발 뒤)에 맞는 몽타주 섹션 이름 선택. 섹션이 없으면 NAME_None으로 안전 폴백 */
+	FName SelectStanceSection(const UAnimMontage* Montage) const;
+
+	/** 몽타주 + 스탠스 섹션 재생 공통 헬퍼 (플린치/패리 공용) */
+	void PlayGuardMontageWithStance(UAnimMontage* Montage);
+
 	/** 퍼펙트 가드 윈도우 GE 핸들 — EndAbility에서 반드시 제거*/
 	FActiveGameplayEffectHandle PerfectGuardWindowHandle;
 
@@ -82,6 +88,14 @@ protected:
 	/** 퍼펙트 가드(패리) 몽타주 */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Lee|Guard|Montage")
 	TObjectPtr<UAnimMontage> GuardParryMontage;
+
+	/** 왼발 뒤 스탠스 피격/패리 섹션 이름 (두 몽타주 공통 규약) */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Lee|Guard|Montage")
+	FName StanceLeftFootSection = TEXT("LeftFootBack");
+
+	/** 오른발 뒤(기본) 스탠스 섹션 이름 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Lee|Guard|Montage")
+	FName StanceRightFootSection = TEXT("RightFootBack");
 
 	/** 퍼펙트 가드 윈도우 GE. BP에서 GE_PerfectGuardWindow 지정 (Duration = SetByCaller Souls.SetByCaller.Duration) */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Lee|Guard|Effect")

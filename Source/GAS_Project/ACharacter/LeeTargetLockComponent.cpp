@@ -15,6 +15,7 @@
 #include "GAS_Project/AUI/IndicatorDescriptor.h"
 #include "GAS_Project/System/LeeIndicatorManagerComponent.h"
 #include "Blueprint/UserWidget.h"
+#include "Net/UnrealNetwork.h"
 
 ULeeTargetLockComponent::ULeeTargetLockComponent(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -22,6 +23,17 @@ ULeeTargetLockComponent::ULeeTargetLockComponent(const FObjectInitializer& Objec
 	// 락온 중에만 검사가 필요하므로 기본은 꺼두고 락온 시작 시에만 켠다
 	PrimaryComponentTick.bCanEverTick = true;
 	PrimaryComponentTick.bStartWithTickEnabled = false;
+
+	// 가드 스탠스(bGuardLeftFootBack)를 시뮬레이트 프록시에 복제하기 위해 필요
+	SetIsReplicatedByDefault(true);
+}
+
+// 가드 스탠스는 소유 클라가 권위이므로 되돌려 받지 않도록 COND_SkipOwner로 등록
+void ULeeTargetLockComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME_CONDITION(ULeeTargetLockComponent, bGuardLeftFootBack, COND_SkipOwner);
 }
 
 void ULeeTargetLockComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
@@ -96,6 +108,9 @@ void ULeeTargetLockComponent::TickComponent(float DeltaTime, ELevelTick TickType
 			}
 		}
 	}
+
+	// 가드 스탠스 갱신 — 여기까지 왔다면 락온·타겟 유효성이 모두 보장된 상태
+	UpdateGuardStance();
 }
 
 bool ULeeTargetLockComponent::ToggleLock()
@@ -191,6 +206,9 @@ void ULeeTargetLockComponent::BreakLock()
 	ApplyStatusTag(false);
 	UpdateIndicator(false);
 	BroadcastLockMessage(false);
+
+	// 락온 해제 → 기본 스탠스(오른발 뒤)로 복귀. 이걸 빼면 락온을 풀어도 왼발 자세가 남는다
+	SetGuardLeftFootBack(false);
 
 	LockedTarget = nullptr;
 	LineOfSightLostElapsed = 0.0f;
@@ -503,4 +521,49 @@ void ULeeTargetLockComponent::BroadcastLockMessage(bool bLocked) const
 	Message.bLocked = bLocked;
 
 	UGameplayMessageSubsystem::Get(OwnerPawn->GetWorld()).BroadcastMessage(MyTags::Souls::Message_TargetLock, Message);
+}
+
+// 락온 타겟 기준 좌/우 판정 — 데드존 안에서는 이전 값을 유지해 경계에서 깜빡이지 않게 한다
+void ULeeTargetLockComponent::UpdateGuardStance()
+{
+	const APawn* OwnerPawn = GetPawn<APawn>();
+	const AActor* Target = LockedTarget.Get();
+	if (!OwnerPawn || !Target || !OwnerPawn->IsLocallyControlled())
+	{
+		return; // 소유 클라(=화면을 보는 주체)만 계산한다. 서버/프록시는 동기화된 값을 쓴다
+	}
+
+	const FVector ToPlayer = (OwnerPawn->GetActorLocation() - Target->GetActorLocation()).GetSafeNormal2D();
+	const float SideDot = FVector::DotProduct(ToPlayer, Target->GetActorRightVector().GetSafeNormal2D());
+
+	if (SideDot > GuardSideDeadzone)          // 타겟의 오른쪽 → 왼발 뒤
+	{
+		SetGuardLeftFootBack(true);
+	}
+	else if (SideDot < -GuardSideDeadzone)    // 타겟의 왼쪽 → 오른발 뒤
+	{
+		SetGuardLeftFootBack(false);
+	}
+	// 데드존 구간(-0.2 ~ +0.2)은 아무것도 하지 않음 = 이전 값 유지
+}
+
+// 스탠스 확정 — 값이 실제로 바뀐 경우에만 서버로 보낸다 (데드존 덕분에 전송이 매우 드물다)
+void ULeeTargetLockComponent::SetGuardLeftFootBack(bool bNewValue)
+{
+	if (bGuardLeftFootBack == bNewValue)
+	{
+		return;
+	}
+	bGuardLeftFootBack = bNewValue;
+
+	// 리슨서버 호스트는 이미 서버라 RPC가 필요 없다
+	if (GetOwnerRole() != ROLE_Authority)
+	{
+		Server_SetGuardLeftFootBack(bNewValue);
+	}
+}
+
+void ULeeTargetLockComponent::Server_SetGuardLeftFootBack_Implementation(bool bNewValue)
+{
+	bGuardLeftFootBack = bNewValue;
 }

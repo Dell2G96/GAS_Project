@@ -18,6 +18,7 @@ class GAS_PROJECT_API ULeeAnimInstance : public UAnimInstance
 public:
 
 	virtual void NativeInitializeAnimation() override;
+	virtual void NativeUpdateAnimation(float DeltaSeconds) override;
 
 	void InitializeWithAbilitySystem(class UAbilitySystemComponent* ASC);
 
@@ -29,6 +30,11 @@ public:
 
 	UPROPERTY(BlueprintReadOnly, Category="Character State Data")
 	float GroundDistance = -1.f;
+
+	/** 가드 스탠스 미러 — 판정은 ULeeTargetLockComponent가 하고, 여기선 레이어가 읽도록 복사만 한다.
+	 *  (Thread-safe 레이어 함수에서 액터/컴포넌트 접근이 금지되므로 게임 스레드에서 미리 담아둔다) */
+	UPROPERTY(BlueprintReadOnly, Category="Character State Data")
+	bool GuardLeftFootBack = false;
 
 	UPROPERTY(EditDefaultsOnly, Category="GameplayTags")
 	FGameplayTagBlueprintPropertyMap GameplayTagPropertyMap;

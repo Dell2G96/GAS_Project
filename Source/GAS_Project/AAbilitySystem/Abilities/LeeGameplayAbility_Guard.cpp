@@ -5,6 +5,7 @@
 #include "Abilities/Tasks/AbilityTask_WaitGameplayEvent.h"
 #include "Abilities/Tasks/AbilityTask_WaitInputRelease.h"
 #include "GAS_Project/MyTags.h"
+#include "GAS_Project/ACharacter/LeeTargetLockComponent.h"
 
 // 생성자 — Hold형 입력 정책 + 태그/그룹 설정
 ULeeGameplayAbility_Guard::ULeeGameplayAbility_Guard(const FObjectInitializer& ObjectInitializer)
@@ -87,31 +88,58 @@ void ULeeGameplayAbility_Guard::EndAbility(
 	Super::EndAbility(Handle, ActorInfo, ActivationInfo, bReplicateEndAbility, bWasCancelled);
 }
 
-// 일반 가드 피격 — 플린치 몽타주만 재생, 가드는 유지
+// 일반 가드 피격 — 플린치 몽타주 재생(스탠스별 섹션 분기), 가드는 유지
 void ULeeGameplayAbility_Guard::OnGuardHitEventReceived(FGameplayEventData /*Payload*/)
 {
-	if (GuardFlinchMontage)
-	{
-		UAbilityTask_PlayMontageAndWait* MontageTask =
-			UAbilityTask_PlayMontageAndWait::CreatePlayMontageAndWaitProxy(
-				this, NAME_None, GuardFlinchMontage, /*PlayRate*/1.0f);
-		MontageTask->ReadyForActivation();
-	}
+	PlayGuardMontageWithStance(GuardFlinchMontage);
 }
 
-// 퍼펙트 가드 — 패리 몽타주 재생 + 반격 윈도우 GE 적용 (공격자 처리는 DefenseComponent 담당)
+// 퍼펙트 가드 — 패리 몽타주 재생(스탠스별 섹션 분기) + 반격 윈도우 GE 적용 (공격자 처리는 DefenseComponent 담당)
 void ULeeGameplayAbility_Guard::OnPerfectGuardEventReceived(FGameplayEventData /*Payload*/)
 {
-	if (GuardParryMontage)
-	{
-		UAbilityTask_PlayMontageAndWait* MontageTask =
-			UAbilityTask_PlayMontageAndWait::CreatePlayMontageAndWaitProxy(
-				this, NAME_None, GuardParryMontage, /*PlayRate*/1.0f);
-		MontageTask->ReadyForActivation();
-	}
+	PlayGuardMontageWithStance(GuardParryMontage);
 
 	// 반격 윈도우는 가드 종료 후에도 남아야 하므로 핸들을 보관하지 않는다 (Duration 만료에 맡김)
 	ApplyDurationEffect(CounterWindowEffect, CounterWindowDuration);
+}
+
+// 가드 스탠스(왼발 뒤/오른발 뒤)에 맞는 섹션 이름을 고른다.
+// 판정값은 ULeeTargetLockComponent가 소유 — ABP가 고르는 가드 포즈와 동일 소스라 절대 어긋나지 않는다
+FName ULeeGameplayAbility_Guard::SelectStanceSection(const UAnimMontage* Montage) const
+{
+	if (!Montage)
+	{
+		return NAME_None;
+	}
+
+	const AActor* Avatar = GetAvatarActorFromActorInfo();
+	const ULeeTargetLockComponent* LockComp = ULeeTargetLockComponent::FindTargetLockComponent(Avatar);
+	const bool bLeftFootBack = LockComp && LockComp->IsGuardLeftFootBack();
+
+	const FName Desired = bLeftFootBack ? StanceLeftFootSection : StanceRightFootSection;
+
+	// 섹션이 아직 안 만들어진 몽타주여도 가드는 계속 유지되어야 하므로, 어빌리티를 끊지 않고 처음부터 재생한다
+	if (Montage->GetSectionIndex(Desired) == INDEX_NONE)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[LeeGA_Guard] %s에 Section [%s]이 없습니다. 처음부터 재생합니다."),
+			*Montage->GetName(), *Desired.ToString());
+		return NAME_None;
+	}
+	return Desired;
+}
+
+// 몽타주 재생 공통 헬퍼 — 플린치/패리가 동일한 스탠스 섹션 규약을 공유한다
+void ULeeGameplayAbility_Guard::PlayGuardMontageWithStance(UAnimMontage* Montage)
+{
+	if (!Montage)
+	{
+		return;
+	}
+
+	UAbilityTask_PlayMontageAndWait* MontageTask =
+		UAbilityTask_PlayMontageAndWait::CreatePlayMontageAndWaitProxy(
+			this, NAME_None, Montage, /*PlayRate*/1.0f, SelectStanceSection(Montage));
+	MontageTask->ReadyForActivation();
 }
 
 // 입력 해제 — 가드 종료

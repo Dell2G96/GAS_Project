@@ -32,6 +32,9 @@ public class GAS_Project : ModuleRules
 			"UMG",
 			
 			"AIModule",
+			// StateTree — Enemy 근접 공격 C++ Task(FLeeStateTreeTask_MeleeAttack)용
+			"StateTreeModule",
+			"GameplayStateTreeModule",
 			"SlateCore",
 			"Slate",
 			"Niagara",

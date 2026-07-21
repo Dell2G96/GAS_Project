@@ -164,7 +164,7 @@ void ULeeAbilitySystemComponent::CancelAbilitiesByFunc(TShouldCancelAbilityFunc 
 
 void ULeeAbilitySystemComponent::AbilityInputTagPressed(const FGameplayTag& InputTag)
 {
-	UE_LOG(LogTemp, Warning, TEXT("AbilityInputTagPressed: %s"), *InputTag.ToString());
+	// UE_LOG(LogTemp, Warning, TEXT("AbilityInputTagPressed: %s"), *InputTag.ToString());
 	
 	if (InputTag.IsValid())
 	{
@@ -172,8 +172,8 @@ void ULeeAbilitySystemComponent::AbilityInputTagPressed(const FGameplayTag& Inpu
 		{
 			if (AbilitySpec.Ability && (AbilitySpec.GetDynamicSpecSourceTags().HasTagExact(InputTag)))
 			{
-				UE_LOG(LogTemp, Warning, TEXT("  Found matching ability: %s, IsActive: %d"), 
-		  *AbilitySpec.Ability->GetName(), AbilitySpec.IsActive());
+				// UE_LOG(LogTemp, Warning, TEXT("  Found matching ability: %s, IsActive: %d"), 
+		  // *AbilitySpec.Ability->GetName(), AbilitySpec.IsActive());
 				
 				InputPressedSpecHandles.AddUnique(AbilitySpec.Handle);
 				InputHeldSpecHandles.AddUnique(AbilitySpec.Handle);
@@ -210,8 +210,8 @@ void ULeeAbilitySystemComponent::ProcessAbilityInput(float DeltaTime, bool bGame
 		{
 			if (AbilitySpec->Ability && !AbilitySpec->IsActive())
 			{
-				UE_LOG(LogTemp, Warning, TEXT("ProcessInput - Ability: %s, IsActive: %d"), 
-			  *AbilitySpec->Ability->GetName(), AbilitySpec->IsActive());
+				// UE_LOG(LogTemp, Warning, TEXT("ProcessInput - Ability: %s, IsActive: %d"), 
+			 //  *AbilitySpec->Ability->GetName(), AbilitySpec->IsActive());
 				
 				const ULeeGameplayAbility* LeeAbilityCDO = CastChecked<ULeeGameplayAbility>(AbilitySpec->Ability);
 
@@ -229,8 +229,8 @@ void ULeeAbilitySystemComponent::ProcessAbilityInput(float DeltaTime, bool bGame
 		{
 			if (AbilitySpec->Ability)
 			{
-				UE_LOG(LogTemp, Warning, TEXT("ProcessInput - Ability: %s, IsActive: %d"), 
-			  *AbilitySpec->Ability->GetName(), AbilitySpec->IsActive());
+				// UE_LOG(LogTemp, Warning, TEXT("ProcessInput - Ability: %s, IsActive: %d"), 
+			 //  *AbilitySpec->Ability->GetName(), AbilitySpec->IsActive());
 				
 				AbilitySpec->InputPressed = true;
 

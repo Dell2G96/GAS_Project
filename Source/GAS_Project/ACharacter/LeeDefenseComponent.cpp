@@ -137,8 +137,7 @@ void ULeeDefenseComponent::HandleDamageResolved(AActor* EffectInstigator, AActor
 	// ── 퍼펙트 회피: 방어자(Dodge 어빌리티)에게 알림 → 카운터윈도우 + 잔상 Cue ──
 	if (ResultTags.HasTagExact(MyTags::Souls::DamageResult_PerfectDodge))
 	{
-		// [임시 디버그] ExecCalc가 퍼펙트닷지로 판정 → Dodge 어빌리티에 이벤트 발송 (#2: 이 로그가 뜨면 판정 성공)
-		UE_LOG(LogLee, Warning, TEXT("[임시디버그][PerfectDodge] 판정 성공 → Owner=%s 에 Event 발송"), *GetNameSafe(Owner));
+		// UE_LOG(LogLee, Warning, TEXT("[임시디버그][PerfectDodge] 판정 성공 → Owner=%s 에 Event 발송"), *GetNameSafe(Owner));
 
 		SendGameplayEventTo(Owner, MyTags::Souls::Event_Defense_PerfectDodge, Attacker);
 		return;
@@ -191,15 +190,27 @@ void ULeeDefenseComponent::HandleDamageResolved(AActor* EffectInstigator, AActor
 		return;
 	}
 
-	// ── 일반 피격: 현재 행동을 끊고 경직 리액션 ──
+	// ── 일반 피격: 현재 행동을 끊고 경직 리액션 (강공격이면 루트모션 넉백 리액션으로 분기) ──
 	if (ResultTags.HasTagExact(MyTags::Souls::DamageResult_HitReact))
 	{
-		// [임시 디버그] HitReact로 넘기는 Attacker(=EffectInstigator) 확인. None이면 HitReaction에서 방향 판정 불가(#1)
-		UE_LOG(LogLee, Warning, TEXT("[임시디버그][HitReact] Attacker(EffectInstigator)=%s Owner=%s"),
-			*GetNameSafe(Attacker), *GetNameSafe(Owner));
+		// UE_LOG(LogLee, Warning, TEXT("[임시디버그][HitReact] Attacker(EffectInstigator)=%s Owner=%s"),
+		// 	*GetNameSafe(Attacker), *GetNameSafe(Owner));
 
 		CancelExclusiveAbilities(OwnerASC);
-		SendGameplayEventTo(Owner, MyTags::Souls::Event_Combat_HitReact, Attacker);
+
+		// 가드불가 공격을 가드 중에 맞으면 → 상태 변화 없이 연출만 가드브레이크 몽타주로 대체
+		// (그로기 GE·가드 어빌리티 강제종료는 하지 않음. 실제 가드브레이크는 스태미나 고갈 시 HandleOutOfStamina가 그대로 담당)
+		if (ResultTags.HasTagExact(MyTags::Souls::DamageType_Attack_Unblockable)
+			&& OwnerASC->HasMatchingGameplayTag(MyTags::Souls::Status_Guard_Active))
+		{
+			SendGameplayEventTo(Owner, MyTags::Souls::Event_Combat_GuardBreak, Attacker);
+			return;
+		}
+
+		const FGameplayTag& HitReactEventTag = ResultTags.HasTagExact(MyTags::Souls::DamageType_Attack_Heavy)
+			? MyTags::Souls::Event_Combat_HitReactHeavy
+			: MyTags::Souls::Event_Combat_HitReact;
+		SendGameplayEventTo(Owner, HitReactEventTag, Attacker);
 	}
 }
 

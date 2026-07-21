@@ -168,6 +168,9 @@ namespace MyTags
 		UE_DEFINE_GAMEPLAY_TAG(Status_Attack_Melee, "Souls.Status.Attack.Melee")
 		// 공격 중 상태 태그 (ActivationOwnedTags로 자동 부여/제거)
 		UE_DEFINE_GAMEPLAY_TAG(Status_Attack_Attacking, "Souls.Status.Attack.Attacking")
+		// 약공격/강공격 어빌리티 식별 태그 (각 BP의 AbilityTags에서 사용)
+		UE_DEFINE_GAMEPLAY_TAG(Ability_Attack_Melee_Light, "Souls.Abilities.Attack.Melee.Light")
+		UE_DEFINE_GAMEPLAY_TAG(Ability_Attack_Melee_Heavy, "Souls.Abilities.Attack.Melee.Heavy")
 
 		// 타겟 락온
 		UE_DEFINE_GAMEPLAY_TAG(Ability_TargetLock, "Souls.Abilities.TargetLock")
@@ -200,6 +203,8 @@ namespace MyTags
 		
 		UE_DEFINE_GAMEPLAY_TAG(Event_Combat_Parried, "Souls.Events.Combat.Parried")
 		UE_DEFINE_GAMEPLAY_TAG(Event_Combat_HitReact, "Souls.Events.Combat.HitReact")
+		// 강공격 피격 이벤트 (HitReact의 형제 태그)
+		UE_DEFINE_GAMEPLAY_TAG(Event_Combat_HitReactHeavy, "Souls.Events.Combat.HitReactHeavy")
 		UE_DEFINE_GAMEPLAY_TAG(Event_Combat_GuardBreak, "Souls.Events.Combat.GuardBreak")
 		UE_DEFINE_GAMEPLAY_TAG(Event_Combat_PostureBreak, "Souls.Events.Combat.PostureBreak")
 
@@ -216,6 +221,10 @@ namespace MyTags
 		// 스태미나 감소 원인 태그 (GuardBreak/PostureBreak 분기 근거)
 		UE_DEFINE_GAMEPLAY_TAG(DamageType_ParryCounter, "Souls.DamageType.ParryCounter")
 		UE_DEFINE_GAMEPLAY_TAG(DamageType_DodgeCost, "Souls.DamageType.DodgeCost")
+		// 강공격 속성 태그 (공격 GE Spec의 DynamicAssetTag로 전달)
+		UE_DEFINE_GAMEPLAY_TAG(DamageType_Attack_Heavy, "Souls.DamageType.Attack.Heavy")
+		// 가드 불가 속성 태그 (정의만, 실제 판정 분기는 추후 구현)
+		UE_DEFINE_GAMEPLAY_TAG(DamageType_Attack_Unblockable, "Souls.DamageType.Attack.Unblockable")
 
 		// SetByCaller
 		UE_DEFINE_GAMEPLAY_TAG(SetByCaller_StaminaDamage, "Souls.SetByCaller.StaminaDamage")

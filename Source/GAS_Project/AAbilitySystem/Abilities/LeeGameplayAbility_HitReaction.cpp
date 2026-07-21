@@ -23,6 +23,7 @@ ULeeGameplayAbility_HitReaction::ULeeGameplayAbility_HitReaction(const FObjectIn
 	const FGameplayTag TriggerTags[] = {
 		MyTags::Souls::Event_Combat_Parried,
 		MyTags::Souls::Event_Combat_HitReact,
+		MyTags::Souls::Event_Combat_HitReactHeavy,
 		MyTags::Souls::Event_Combat_GuardBreak,
 		MyTags::Souls::Event_Combat_PostureBreak,
 	};
@@ -67,15 +68,16 @@ void ULeeGameplayAbility_HitReaction::ActivateAbility(
 	}
 
 	FName StartSection = NAME_None;
-	if (TriggerEventData->EventTag == MyTags::Souls::Event_Combat_HitReact)
+	if (TriggerEventData->EventTag == MyTags::Souls::Event_Combat_HitReact
+		|| TriggerEventData->EventTag == MyTags::Souls::Event_Combat_HitReactHeavy)
 	{
 		const AActor* Attacker = TriggerEventData->Instigator.Get();
 		StartSection = SelectStaggerSection(Avatar, Attacker);
 
 		if (SelectedMontage->GetSectionIndex(StartSection) == INDEX_NONE)
 		{
-			UE_LOG(LogTemp, Warning, TEXT("[LeeGA_HitReaction] StaggerReactionMontage에 Section [%s]이 없습니다."),
-				*StartSection.ToString());
+			UE_LOG(LogTemp, Warning, TEXT("[LeeGA_HitReaction] %s에 Section [%s]이 없습니다."),
+				*SelectedMontage->GetName(), *StartSection.ToString());
 			EndAbility(Handle, ActorInfo, ActivationInfo, true, true);
 			return;
 		}
@@ -145,15 +147,18 @@ UAnimMontage* ULeeGameplayAbility_HitReaction::SelectMontageForEvent(const FGame
 	{
 		return StaggerReactionMontage;
 	}
+	if (EventTag == MyTags::Souls::Event_Combat_HitReactHeavy)
+	{
+		return HeavyStaggerReactionMontage;
+	}
 	return nullptr;
 }
 
 // 몽타주 종료(완료/블렌드아웃/인터럽트/취소) — 어빌리티 종료
 FName ULeeGameplayAbility_HitReaction::SelectStaggerSection(const AActor* Avatar, const AActor* Attacker) const
 {
-	// [임시 디버그] 방향 판정 입력 확인 — Attacker가 None이면 아래 가드에서 무조건 Front로 빠짐(#1 원인)
-	UE_LOG(LogTemp, Warning, TEXT("[임시디버그][Stagger] Avatar=%s Attacker=%s"),
-		*GetNameSafe(Avatar), *GetNameSafe(Attacker));
+	// UE_LOG(LogTemp, Warning, TEXT("[임시디버그][Stagger] Avatar=%s Attacker=%s"),
+	// 	*GetNameSafe(Avatar), *GetNameSafe(Attacker));
 
 	if (!Avatar || !Attacker)
 	{
@@ -179,8 +184,8 @@ FName ULeeGameplayAbility_HitReaction::SelectStaggerSection(const AActor* Avatar
 	const float ForwardAmount = FVector::DotProduct(ToAttacker, Forward);
 	const float RightAmount = FVector::DotProduct(ToAttacker, Right);
 
-	// [임시 디버그] 방향 내적값 — Fwd>0=정면, <0=후면 / Right>0=우측, <0=좌측
-	UE_LOG(LogTemp, Warning, TEXT("[임시디버그][Stagger] Fwd=%.2f Right=%.2f"), ForwardAmount, RightAmount);
+	// // [임시 디버그] 방향 내적값 — Fwd>0=정면, <0=후면 / Right>0=우측, <0=좌측
+	// UE_LOG(LogTemp, Warning, TEXT("[임시디버그][Stagger] Fwd=%.2f Right=%.2f"), ForwardAmount, RightAmount);
 
 	if (FMath::Abs(ForwardAmount) >= FMath::Abs(RightAmount))
 	{

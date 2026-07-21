@@ -32,10 +32,8 @@ bool ULeeExecCalc_Damage::IsAttackInsideGuardArc(const AActor* Defender, const A
 	const float FrontDotThreshold = FMath::Cos(FMath::DegreesToRadians(GuardValidAngleDeg));
 	const float ArcDot = FVector::DotProduct(DefenderForward, ToAttacker);
 
-	// [임시 디버그] 가드 유효범위 판정 — Dot이 Threshold 이상이어야 가드 성립.
-	//  랜덤 실패면 Defender(방어자)의 GetActorForwardVector가 적을 향하지 않는 것 = 가드 중 캐릭터 회전 문제일 확률 높음
-	UE_LOG(LogTemp, Warning, TEXT("[임시디버그][GuardArc] Dot=%.2f Threshold=%.2f HalfAngle=%.0f → %s"),
-		ArcDot, FrontDotThreshold, GuardValidAngleDeg, (ArcDot >= FrontDotThreshold) ? TEXT("유효범위안(가드성립)") : TEXT("유효범위밖(일반피격)"));
+	// UE_LOG(LogTemp, Warning, TEXT("[임시디버그][GuardArc] Dot=%.2f Threshold=%.2f HalfAngle=%.0f → %s"),
+	// 	ArcDot, FrontDotThreshold, GuardValidAngleDeg, (ArcDot >= FrontDotThreshold) ? TEXT("유효범위안(가드성립)") : TEXT("유효범위밖(일반피격)"));
 
 	return ArcDot >= FrontDotThreshold;
 }
@@ -101,15 +99,26 @@ void ULeeExecCalc_Damage::Execute_Implementation(
 		return;
 	}
 
+	// 가드불가 공격 — 가드/퍼펙트가드 판정을 건너뛰고 무조건 일반 피격으로 강제한다 (무적/퍼펙트 회피는 위에서 이미 처리됨)
+	const bool bUnblockable = Spec.GetDynamicAssetTags().HasTagExact(MyTags::Souls::DamageType_Attack_Unblockable);
+	if (bUnblockable)
+	{
+		if (MutableSpec)
+		{
+			MutableSpec->AddDynamicAssetTag(MyTags::Souls::DamageResult_HitReact);
+		}
+
+		OutExecutionOutput.AddOutputModifier(FGameplayModifierEvaluatedData(
+			ULeeSoulsStatSet::GetHealthAttribute(), EGameplayModOp::Additive, IncomingHealthDelta));
+		return;
+	}
+
 	const bool bInsideGuardArc = IsAttackInsideGuardArc(DefenderActor, AttackerActor, GuardValidAngleDeg);
 
-	// [임시 디버그] 공격자/가드태그/원뿔 상태 한 줄 요약
-	//  - Attacker=None 이면 GetOriginalInstigator/GetEffectCauser 둘 다 null (히트리액션 방향 #1과 연관)
-	//  - GuardActive=1 인데 InsideArc=0 이면 → 방어자가 적을 안 보고 있어서 원뿔 밖 판정 = 가드 랜덤 실패 원인
-	UE_LOG(LogTemp, Warning, TEXT("[임시디버그][Damage] Attacker=%s GuardActive=%d InsideArc=%d"),
-		*GetNameSafe(AttackerActor),
-		TargetASC->HasMatchingGameplayTag(MyTags::Souls::Status_Guard_Active) ? 1 : 0,
-		bInsideGuardArc ? 1 : 0);
+	// UE_LOG(LogTemp, Warning, TEXT("[임시디버그][Damage] Attacker=%s GuardActive=%d InsideArc=%d"),
+	// 	*GetNameSafe(AttackerActor),
+	// 	TargetASC->HasMatchingGameplayTag(MyTags::Souls::Status_Guard_Active) ? 1 : 0,
+	// 	bInsideGuardArc ? 1 : 0);
 
 	// ── 우선순위 2: 퍼펙트 가드 (전방 원뿔 안) ──────────────────────
 	if (bInsideGuardArc && TargetASC->HasMatchingGameplayTag(MyTags::Souls::Status_Guard_Perfect))

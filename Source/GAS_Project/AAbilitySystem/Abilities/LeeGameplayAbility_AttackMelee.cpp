@@ -40,42 +40,32 @@ void ULeeGameplayAbility_AttackMelee::ActivateAbility(
 		return;
 	}
 
-	// 스태미나 소모, 쿨다운 적용 등 CommitAbility 처리
+	// 1. 공격 데이터 검증 — Commit(비용 소모) 이전에 끝내야 데이터 오류로 비용이 낭비되지 않는다
+	if (AttackDataList.IsEmpty())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[LeeGA_AttackMelee] AttackDataList 배열이 비어있음. BP에서 공격 데이터를 등록해주세요."));
+		EndAbility(Handle, ActorInfo, ActivationInfo, true, true);
+		return;
+	}
+
+	const FLeeMeleeAttackData& SelectedAttackData = AttackDataList[FMath::RandRange(0, AttackDataList.Num() - 1)];
+	if (!SelectedAttackData.Montage)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[LeeGA_AttackMelee] 선택된 공격 데이터의 몽타주가 null입니다."));
+		EndAbility(Handle, ActorInfo, ActivationInfo, true, true);
+		return;
+	}
+	CurrentAttackData = SelectedAttackData;
+
+	// 2. 스태미나 소모, 쿨다운 적용 등 CommitAbility 처리
 	if (!CommitAbility(Handle, ActorInfo, ActivationInfo))
 	{
 		EndAbility(Handle, ActorInfo, ActivationInfo, true, true);
 		return;
 	}
 
-	// 1. 랜덤 몽타주 선택
-	if (AttackMontages.IsEmpty())
-	{
-		UE_LOG(LogTemp, Warning, TEXT("[LeeGA_AttackMelee] AttackMontages 배열이 비어있음. BP에서 몽타주를 등록해주세요."));
-		EndAbility(Handle, ActorInfo, ActivationInfo, true, true);
-		return;
-	}
-
-	SelectedMontage = AttackMontages[FMath::RandRange(0, AttackMontages.Num() - 1)];
-	if (!SelectedMontage)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("[LeeGA_AttackMelee] 선택된 몽타주가 null입니다."));
-		EndAbility(Handle, ActorInfo, ActivationInfo, true, true);
-		return;
-	}
-
-	// 2. PlayMontageAndWait 태스크 실행
-	UAbilityTask_PlayMontageAndWait* MontageTask =
-		UAbilityTask_PlayMontageAndWait::CreatePlayMontageAndWaitProxy(
-			this, NAME_None, SelectedMontage, /*PlayRate*/1.0f);
-
-	MontageTask->OnCompleted.AddDynamic(this, &ThisClass::OnMontageCompleted);
-	MontageTask->OnBlendOut.AddDynamic(this, &ThisClass::OnMontageCompleted);
-	MontageTask->OnInterrupted.AddDynamic(this, &ThisClass::OnMontageInterrupted);
-	MontageTask->OnCancelled.AddDynamic(this, &ThisClass::OnMontageInterrupted);
-	MontageTask->ReadyForActivation();
-
-	// 3. ANS_ToggleTrace로부터 HitResult 이벤트 대기
-	//    OnlyTriggerOnce=false: 한 공격 모션 내에서 여러 타겟 히트 허용
+	// 3. ANS_ToggleTrace로부터 HitResult 이벤트 대기 — 몽타주보다 먼저 등록해야 시작 프레임 트레이스 유실을 막는다
+	//    OnlyTriggerOnce=false: 한 공격 모션 내에서 여러 타겟/여러 구간 히트 허용 (콤보 몽타주의 다단히트 포함)
 	if (TraceEventTag.IsValid())
 	{
 		UAbilityTask_WaitGameplayEvent* EventTask =
@@ -89,6 +79,17 @@ void ULeeGameplayAbility_AttackMelee::ActivateAbility(
 		EventTask->EventReceived.AddDynamic(this, &ThisClass::OnTraceEventReceived);
 		EventTask->ReadyForActivation();
 	}
+
+	// 4. PlayMontageAndWait 태스크 실행
+	UAbilityTask_PlayMontageAndWait* MontageTask =
+		UAbilityTask_PlayMontageAndWait::CreatePlayMontageAndWaitProxy(
+			this, NAME_None, CurrentAttackData.Montage, /*PlayRate*/1.0f);
+
+	MontageTask->OnCompleted.AddDynamic(this, &ThisClass::OnMontageCompleted);
+	MontageTask->OnBlendOut.AddDynamic(this, &ThisClass::OnMontageCompleted);
+	MontageTask->OnInterrupted.AddDynamic(this, &ThisClass::OnMontageInterrupted);
+	MontageTask->OnCancelled.AddDynamic(this, &ThisClass::OnMontageInterrupted);
+	MontageTask->ReadyForActivation();
 }
 
 void ULeeGameplayAbility_AttackMelee::EndAbility(
@@ -98,6 +99,9 @@ void ULeeGameplayAbility_AttackMelee::EndAbility(
 	bool bReplicateEndAbility,
 	bool bWasCancelled)
 {
+	// 다음 활성화에서 이전 공격 데이터가 남아있지 않도록 초기화
+	CurrentAttackData = FLeeMeleeAttackData();
+
 	// ActivationOwnedTags의 Status_Attack_Attacking은 GAS가 여기서 자동 제거
 	// StateTree Task가 이 태그 제거를 감지하여 FinishTask를 호출함
 	Super::EndAbility(Handle, ActorInfo, ActivationInfo, bReplicateEndAbility, bWasCancelled);
@@ -153,7 +157,14 @@ void ULeeGameplayAbility_AttackMelee::OnTraceEventReceived(FGameplayEventData Pa
 	if (SpecHandle.IsValid())
 	{
 		// 음수로 설정하여 Health 감소 (AttributeSet의 PostGameplayEffectExecute에서 처리)
-		SpecHandle.Data->SetSetByCallerMagnitude(MyTags::Souls::SetByCaller_Damage, -DamageAmount);
+		SpecHandle.Data->SetSetByCallerMagnitude(MyTags::Souls::SetByCaller_Damage, -CurrentAttackData.BaseDamage);
+
+		// 공격 속성 태그 전달 (DamageType_ParryCounter와 동일한 DynamicAssetTag 패턴)
+		for (const FGameplayTag& DamageTypeTag : CurrentAttackData.DamageTypeTags)
+		{
+			SpecHandle.Data->AddDynamicAssetTag(DamageTypeTag);
+		}
+
 		HitASC->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
 	}
 }

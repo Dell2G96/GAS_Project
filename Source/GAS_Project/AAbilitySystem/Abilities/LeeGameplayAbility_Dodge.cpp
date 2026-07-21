@@ -145,12 +145,9 @@ void ULeeGameplayAbility_Dodge::OnIFrameEnd()
 // 퍼펙트 회피 성공 — 반격 윈도우 GE + 잔상 GameplayCue (서버에서 실행 → 전 클라이언트 연출)
 void ULeeGameplayAbility_Dodge::OnPerfectDodgeEventReceived(FGameplayEventData /*Payload*/)
 {
-	// [임시 디버그] 퍼펙트 회피 이벤트 수신 확인 (#2)
-	//  - 이 로그가 "안 뜨는데" 회피 성공처럼 보였다면 → 판정(윈도우) 문제 = PerfectDodgeWindow 타이밍
-	//  - 이 로그는 "뜨는데" 잔상 연출이 없으면 → Cue 전달/연출 문제(멀티캐스트 드롭 또는 잔상 로직)
 	const AActor* DbgAvatar = GetAvatarActorFromActorInfo();
-	UE_LOG(LogLee, Warning, TEXT("[임시디버그][PerfectDodge] 이벤트 수신 → Cue 실행 시도 NetMode=%d"),
-		DbgAvatar ? (int32)DbgAvatar->GetNetMode() : -1);
+	// UE_LOG(LogLee, Warning, TEXT("[임시디버그][PerfectDodge] 이벤트 수신 → Cue 실행 시도 NetMode=%d"),
+	// 	DbgAvatar ? (int32)DbgAvatar->GetNetMode() : -1);
 
 	ApplyDurationEffect(CounterWindowEffect, CounterWindowDuration);
 

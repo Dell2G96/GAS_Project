@@ -142,6 +142,10 @@ namespace MyTags
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Status_Attack_Melee);
 		// [신규] 공격 중 상태 태그 — 어빌리티 활성 동안 ActivationOwnedTags로 자동 부여/제거
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Status_Attack_Attacking);
+		// [신규] 약공격 어빌리티 식별 태그 — 약공격 BP의 AbilityTags에서 사용
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Ability_Attack_Melee_Light);
+		// [신규] 강공격 어빌리티 식별 태그 — 강공격 BP의 AbilityTags에서 사용
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Ability_Attack_Melee_Heavy);
 
 		// [신규] 타겟 락온 — 어빌리티 식별 태그, 상태 태그(레거시 MyTags::Status::TargetLock과 별개 네임스페이스), UI 메시지 채널
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Ability_TargetLock);
@@ -176,6 +180,8 @@ namespace MyTags
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Event_Combat_GuardBreak);
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Event_Combat_Parried);
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Event_Combat_HitReact);
+		// [신규] 강공격 피격 이벤트 — HitReact의 형제 태그 (추후 GA_HitReaction 확장에서 사용)
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Event_Combat_HitReactHeavy);
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Event_Combat_PostureBreak);
 
 		// i-frame 윈도우 이벤트 — ULeeAnimNotifyState_GameplayEvent가 발사 (보조 신호용)
@@ -192,6 +198,10 @@ namespace MyTags
 		// 스태미나 감소 원인 태그 — 스태미나 0 도달 시 GuardBreak/PostureBreak 분기 근거 (리뷰 P0-3)
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(DamageType_ParryCounter);
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(DamageType_DodgeCost);
+		// [신규] 강공격 속성 태그 — 공격 GE Spec의 DynamicAssetTag로 전달 (추후 강공격 피격 리액션에서 사용)
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(DamageType_Attack_Heavy);
+		// [신규] 가드 불가 속성 태그 — 정의만, 실제 판정 분기는 추후 구현
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(DamageType_Attack_Unblockable);
 
 		// SetByCaller — 스태미나 데미지 값 / Duration GE의 지속시간
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(SetByCaller_StaminaDamage);

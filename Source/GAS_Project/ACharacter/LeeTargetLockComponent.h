@@ -80,6 +80,13 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Lee|TargetLock")
 	FVector GetLockedTargetFocusLocation() const;
 
+	/** 가드 스탠스: true = 왼발 뒤, false = 오른발 뒤(기본).
+	 *  ABP(가드 포즈)와 GA_Guard(피격 몽타주 섹션)가 공유하는 단일 소스. */
+	UFUNCTION(BlueprintPure, Category = "Lee|TargetLock")
+	bool IsGuardLeftFootBack() const { return bGuardLeftFootBack; }
+
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+
 	/** ULeeHeroComponent::DetermineCameraMode()가 락온 중일 때 반환할 카메라 모드 */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Lee|TargetLock")
 	TSubclassOf<ULeeCameraMode> LockOnCameraMode;
@@ -112,6 +119,10 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Lee|TargetLock", meta = (ClampMin = "0.0"))
 	float LockedMaxWalkSpeed = 0.0f;
 
+	/** 가드 좌/우 전환 임계값(데드존). 이 값보다 확실히 넘을 때만 스탠스를 전환해 경계에서의 깜빡임을 막는다 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Lee|TargetLock|Guard", meta = (ClampMin = "0.0", ClampMax = "1.0"))
+	float GuardSideDeadzone = 0.2f;
+
 	/** 락온 대상 UI 인디케이터 위젯 (ULeeIndicatorManagerComponent에 등록) */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Lee|TargetLock")
 	TSubclassOf<UUserWidget> IndicatorWidgetClass;
@@ -133,9 +144,23 @@ private:
 	void UpdateIndicator(bool bShow);
 	void BroadcastLockMessage(bool bLocked) const;
 
+	/** 락온 타겟 기준 좌/우 판정 — 소유 클라에서만 계산, 데드존 안에서는 이전 값 유지 */
+	void UpdateGuardStance();
+
+	/** 스탠스 확정 — 값이 바뀐 경우에만 서버로 전송 */
+	void SetGuardLeftFootBack(bool bNewValue);
+
+	/** 소유 클라 → 서버 동기화. 데드존 덕분에 호출 빈도가 매우 낮아 Reliable로 충분하다 */
+	UFUNCTION(Server, Reliable)
+	void Server_SetGuardLeftFootBack(bool bNewValue);
+
 	/** 현재 락온 대상. nullptr이면 락온 중이 아님 */
 	UPROPERTY(Transient)
 	TWeakObjectPtr<AActor> LockedTarget;
+
+	/** 가드 스탠스. 소유 클라가 권위, 서버가 받아 시뮬레이트 프록시에 복제한다(COND_SkipOwner) */
+	UPROPERTY(Replicated, Transient)
+	bool bGuardLeftFootBack = false;
 
 	UPROPERTY(Transient)
 	TObjectPtr<UIndicatorDescriptor> LockIndicator;

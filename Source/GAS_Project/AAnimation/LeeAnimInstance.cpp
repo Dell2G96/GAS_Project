@@ -6,6 +6,7 @@
 #include "AbilitySystemComponent.h"
 #include "AbilitySystemGlobals.h"
 #include "GAS_Project/ACharacter/LeePawnExtensionComponent.h"
+#include "GAS_Project/ACharacter/LeeTargetLockComponent.h"
 #include "GAS_Project/AAbilitySystem/LeeAbilitySystemComponent.h"
 
 void ULeeAnimInstance::NativeInitializeAnimation()
@@ -39,9 +40,8 @@ void ULeeAnimInstance::OnAbilitySystemInitialized()
 		{
 			if (UAbilitySystemComponent* ASC = PawnExtComp->GetLeeAbilitySystemComponent())
 			{
-				// 임시 디버그 로그 — 이 로그가 찍히면 Property Map 초기화까지는 성공한 것
-				UE_LOG(LogTemp, Warning, TEXT("[LeeAnimInstance] PropertyMap init OK. AnimInstance=%s ASC=%s"),
-					*GetNameSafe(this), *GetNameSafe(ASC));
+				// UE_LOG(LogTemp, Warning, TEXT("[LeeAnimInstance] PropertyMap init OK. AnimInstance=%s ASC=%s"),
+				// 	*GetNameSafe(this), *GetNameSafe(ASC));
 				InitializeWithAbilitySystem(ASC);
 			}
 		}
@@ -51,4 +51,14 @@ void ULeeAnimInstance::OnAbilitySystemInitialized()
 void ULeeAnimInstance::InitializeWithAbilitySystem(class UAbilitySystemComponent* ASC)
 {
 	GameplayTagPropertyMap.Initialize(this, ASC);
+}
+
+// 매 프레임 게임 스레드 갱신 — 락온 컴포넌트의 스탠스 값을 레이어가 읽을 수 있게 미러링
+void ULeeAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
+{
+	Super::NativeUpdateAnimation(DeltaSeconds);
+
+	const ULeeTargetLockComponent* LockComp =
+		ULeeTargetLockComponent::FindTargetLockComponent(GetOwningActor());
+	GuardLeftFootBack = LockComp ? LockComp->IsGuardLeftFootBack() : false;
 }
