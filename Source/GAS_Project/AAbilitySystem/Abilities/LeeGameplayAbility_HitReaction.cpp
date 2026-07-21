@@ -151,6 +151,10 @@ UAnimMontage* ULeeGameplayAbility_HitReaction::SelectMontageForEvent(const FGame
 // 몽타주 종료(완료/블렌드아웃/인터럽트/취소) — 어빌리티 종료
 FName ULeeGameplayAbility_HitReaction::SelectStaggerSection(const AActor* Avatar, const AActor* Attacker) const
 {
+	// [임시 디버그] 방향 판정 입력 확인 — Attacker가 None이면 아래 가드에서 무조건 Front로 빠짐(#1 원인)
+	UE_LOG(LogTemp, Warning, TEXT("[임시디버그][Stagger] Avatar=%s Attacker=%s"),
+		*GetNameSafe(Avatar), *GetNameSafe(Attacker));
+
 	if (!Avatar || !Attacker)
 	{
 		return StaggerFrontSection;
@@ -174,6 +178,9 @@ FName ULeeGameplayAbility_HitReaction::SelectStaggerSection(const AActor* Avatar
 
 	const float ForwardAmount = FVector::DotProduct(ToAttacker, Forward);
 	const float RightAmount = FVector::DotProduct(ToAttacker, Right);
+
+	// [임시 디버그] 방향 내적값 — Fwd>0=정면, <0=후면 / Right>0=우측, <0=좌측
+	UE_LOG(LogTemp, Warning, TEXT("[임시디버그][Stagger] Fwd=%.2f Right=%.2f"), ForwardAmount, RightAmount);
 
 	if (FMath::Abs(ForwardAmount) >= FMath::Abs(RightAmount))
 	{

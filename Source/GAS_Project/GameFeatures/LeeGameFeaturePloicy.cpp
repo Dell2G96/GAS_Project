@@ -70,7 +70,7 @@ void ULeeGameFeature_AddGameplayCuePaths::OnGameFeatureRegistering(const UGameFe
 
 				if (!DirsToAdd.IsEmpty())
 				{
-					GCM->InitializeEditorObjectLibrary();
+					GCM->InitializeRuntimeObjectLibrary();
 				}
 
 				const int32 PostInitializeNumCues = RuntimeGameplayCueSet ? RuntimeGameplayCueSet->GameplayCueData.Num() : 0;
@@ -89,7 +89,7 @@ void ULeeGameFeature_AddGameplayCuePaths::OnGameFeatureUnregistering(const UGame
 	const FString PluginRootPath = TEXT("/") + PluginName;
 	for (const UGameFeatureAction* Action : GameFeatureData->GetActions())
 	{
-		if (const UGameFeatureAction_AddGameplayCuePath* AddGameplayCueGFA = Cast<UGameFeatureAction_AddGameplayCuePath>(GameFeatureData))
+		if (const UGameFeatureAction_AddGameplayCuePath* AddGameplayCueGFA = Cast<UGameFeatureAction_AddGameplayCuePath>(Action))
 		{
 			const TArray<FDirectoryPath>& DirsToAdd = AddGameplayCueGFA->DirectoryPathsToAdd;
 			if (ULeeGameplayCueManager* GCM = ULeeGameplayCueManager::Get())
@@ -105,7 +105,7 @@ void ULeeGameFeature_AddGameplayCuePaths::OnGameFeatureUnregistering(const UGame
 				ensure(NumRemoved == DirsToAdd.Num());
 				if (NumRemoved > 0)
 				{
-					GCM->InitializeEditorObjectLibrary();
+					GCM->InitializeRuntimeObjectLibrary();
 				}
 				
 			}

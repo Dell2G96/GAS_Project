@@ -19,7 +19,7 @@
  *  3) Souls.Status.Guard.Active  (전방) → 일반 가드: HP 0, 스태미나 -GuardStaminaCost
  *  4) 없음 / 가드 각도 밖              → 일반 피격: 풀 데미지
  *
- * 가드 수치(GuardStaminaCost/GuardAngleDeg)는 방어자의 ULeeDefenseComponent에서 읽는다
+ * 가드 수치(GuardStaminaCost/GuardValidAngleDeg)는 방어자의 ULeeDefenseComponent에서 읽는다
  */
 
 UCLASS()
@@ -35,6 +35,10 @@ public:
 		FGameplayEffectCustomExecutionOutput& OutExecutionOutput) const override;
 
 private:
-	/** 공격자가 방어자의 전방 가드 원뿔(GuardAngleDeg) 안에 있는지 판정 */
-	static bool IsAttackInsideGuardArc(const AActor* Defender, const AActor* Attacker, float GuardAngleDeg);
+	/**
+	 * 공격자가 방어자의 전방 가드 유효범위 안에 있는지 판정.
+	 * GuardValidAngleDeg는 "전방 기준 좌우 각각 몇 도까지"를 뜻하는 half-angle이다
+	 * (전체 각이 아님. 예: 45를 넣으면 정면 기준 ±45도, 총 90도 범위가 유효)
+	 */
+	static bool IsAttackInsideGuardArc(const AActor* Defender, const AActor* Attacker, float GuardValidAngleDeg);
 };

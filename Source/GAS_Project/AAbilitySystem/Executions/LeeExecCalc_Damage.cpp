@@ -9,28 +9,35 @@
 namespace LeeExecCalcDefaults
 {
 	constexpr float GuardStaminaCost = 20.0f;
-	constexpr float GuardAngleDeg = 180.0f;
+	// half-angle 기본값 — 정면 기준 좌우 45도(총 90도)까지만 가드 유효
+	constexpr float GuardValidAngleDeg = 45.0f;
 }
 
 ULeeExecCalc_Damage::ULeeExecCalc_Damage()
 {
-	
+
 }
 
-// 공격자가 방어자의 전방 가드 원뿔 안에 있는지 판정
-bool ULeeExecCalc_Damage::IsAttackInsideGuardArc(const AActor* Defender, const AActor* Attacker, float GuardAngleDeg)
+// 공격자가 방어자의 전방 가드 유효범위(정면 기준 ±GuardValidAngleDeg) 안에 있는지 판정
+bool ULeeExecCalc_Damage::IsAttackInsideGuardArc(const AActor* Defender, const AActor* Attacker, float GuardValidAngleDeg)
 {
 	if (!Defender || !Attacker)
 		return true;
-	
-	// 방어자 전방 벡터 
+
+	// 방어자 전방 벡터
 	const FVector DefenderForward = Defender->GetActorForwardVector().GetSafeNormal2D();
 	// 방어자가 공격자를 바라보는 방향 벡터
 	const FVector ToAttacker = (Attacker->GetActorLocation() - Defender->GetActorLocation()).GetSafeNormal2D();
-	// 각도 계산
-	const float FrontDotThreshold = FMath::Cos(FMath::DegreesToRadians(GuardAngleDeg * 0.5f));
+	// GuardValidAngleDeg는 half-angle(좌우 각각 허용 각도)이므로 그대로 임계값 계산에 사용 (곱하기 0.5 안 함)
+	const float FrontDotThreshold = FMath::Cos(FMath::DegreesToRadians(GuardValidAngleDeg));
+	const float ArcDot = FVector::DotProduct(DefenderForward, ToAttacker);
 
-	return FVector::DotProduct(DefenderForward, ToAttacker) >= FrontDotThreshold;
+	// [임시 디버그] 가드 유효범위 판정 — Dot이 Threshold 이상이어야 가드 성립.
+	//  랜덤 실패면 Defender(방어자)의 GetActorForwardVector가 적을 향하지 않는 것 = 가드 중 캐릭터 회전 문제일 확률 높음
+	UE_LOG(LogTemp, Warning, TEXT("[임시디버그][GuardArc] Dot=%.2f Threshold=%.2f HalfAngle=%.0f → %s"),
+		ArcDot, FrontDotThreshold, GuardValidAngleDeg, (ArcDot >= FrontDotThreshold) ? TEXT("유효범위안(가드성립)") : TEXT("유효범위밖(일반피격)"));
+
+	return ArcDot >= FrontDotThreshold;
 }
 
 // 데미지 판정 본체 — 방어자 태그 우선순위 검사 후 Modifier 출력 + 판정 결과 태그 기록 (서버 전용 실행)
@@ -49,19 +56,29 @@ void ULeeExecCalc_Damage::Execute_Implementation(
 
 	AActor* DefenderActor = TargetASC ? TargetASC->GetAvatarActor() : nullptr;
 
-	// 공격자 액터 — 전방 원뿔 판정용 (Instigator 우선, 없으면 EffectCauser)
+	// 공격자 액터 — 전방 원뿔 판정용. 방향 계산에는 실제 월드 위치가 있는 폰(아바타)이 필요하다.
+	// Player는 ASC가 PlayerState에 있어 GetOriginalInstigator()가 PlayerState(월드 위치 없음)를 반환하므로,
+	// 인스티게이터 ASC의 아바타(폰)를 최우선으로 사용한다. (Enemy는 Pawn ASC라 그대로 폰이 나옴)
 	const FGameplayEffectContextHandle& Context = Spec.GetEffectContext();
-	AActor* AttackerActor = Context.GetOriginalInstigator();
+	AActor* AttackerActor = nullptr;
+	if (UAbilitySystemComponent* InstigatorASC = Context.GetInstigatorAbilitySystemComponent())
+	{
+		AttackerActor = InstigatorASC->GetAvatarActor();
+	}
 	if (!AttackerActor)
 	{
 		AttackerActor = Context.GetEffectCauser();
+	}
+	if (!AttackerActor)
+	{
+		AttackerActor = Context.GetOriginalInstigator();
 	}
 
 	// 가드 수치는 방어자의 DefenseComponent에서 읽는다 (없으면 안전 기본값)
 	const ULeeDefenseComponent* DefenseComp =
 		DefenderActor ? DefenderActor->FindComponentByClass<ULeeDefenseComponent>() : nullptr;
 	const float GuardStaminaCost = DefenseComp ? DefenseComp->GetGuardStaminaCost() : LeeExecCalcDefaults::GuardStaminaCost;
-	const float GuardAngleDeg = DefenseComp ? DefenseComp->GetGuardAngleDeg() : LeeExecCalcDefaults::GuardAngleDeg;
+	const float GuardValidAngleDeg = DefenseComp ? DefenseComp->GetGuardValidAngleDeg() : LeeExecCalcDefaults::GuardValidAngleDeg;
 
 	if (!TargetASC)
 	{
@@ -84,7 +101,15 @@ void ULeeExecCalc_Damage::Execute_Implementation(
 		return;
 	}
 
-	const bool bInsideGuardArc = IsAttackInsideGuardArc(DefenderActor, AttackerActor, GuardAngleDeg);
+	const bool bInsideGuardArc = IsAttackInsideGuardArc(DefenderActor, AttackerActor, GuardValidAngleDeg);
+
+	// [임시 디버그] 공격자/가드태그/원뿔 상태 한 줄 요약
+	//  - Attacker=None 이면 GetOriginalInstigator/GetEffectCauser 둘 다 null (히트리액션 방향 #1과 연관)
+	//  - GuardActive=1 인데 InsideArc=0 이면 → 방어자가 적을 안 보고 있어서 원뿔 밖 판정 = 가드 랜덤 실패 원인
+	UE_LOG(LogTemp, Warning, TEXT("[임시디버그][Damage] Attacker=%s GuardActive=%d InsideArc=%d"),
+		*GetNameSafe(AttackerActor),
+		TargetASC->HasMatchingGameplayTag(MyTags::Souls::Status_Guard_Active) ? 1 : 0,
+		bInsideGuardArc ? 1 : 0);
 
 	// ── 우선순위 2: 퍼펙트 가드 (전방 원뿔 안) ──────────────────────
 	if (bInsideGuardArc && TargetASC->HasMatchingGameplayTag(MyTags::Souls::Status_Guard_Perfect))
