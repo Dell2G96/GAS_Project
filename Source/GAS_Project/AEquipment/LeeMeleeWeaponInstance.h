@@ -24,8 +24,16 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Lee|Finisher")
 	ULeeFinisherData* GetFinisherData() const { return FinisherData; }
 
+	/** 가드 유지 중 이동 최대 속도에 곱해질 배수를 반환 (무기별) */
+	UFUNCTION(BlueprintPure, Category = "Lee|Guard")
+	float GetGuardSpeedMultiplier() const { return GuardSpeedMultiplier; }
+
 protected:
 	/** 이 무기의 처형/암살 몽타주·데미지·정렬 데이터 */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Lee|Finisher")
 	TObjectPtr<ULeeFinisherData> FinisherData;
+
+	/** 가드 유지 중 이동 최대 속도에 곱해질 배수 (무기별). 1.0 = 감속 없음, 0.5 = 절반 속도 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Lee|Guard", meta = (ClampMin = "0.0"))
+	float GuardSpeedMultiplier = 0.5f;
 };

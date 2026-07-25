@@ -55,6 +55,14 @@ private:
 	/** 그로기 GE 적용 (이미 그로기면 중복 적용하지 않음 — FinisherTargetComponent와 공존 안전) */
 	void ApplyGroggy();
 
+	/**
+	 * [서버] 가드 브레이크 처리 — 가드 어빌리티 강제 종료 + 그로기 적용 + GuardBreak 이벤트 발송.
+	 * 이미 그로기 상태면 전체를 스킵해 중복(이벤트 이중 발송)을 막는다.
+	 * "스태미나가 0으로 떨어지는 순간"(OnOutOfStamina)과 "이미 0인 채 가드 피격"(OnDamageResolved)
+	 * 두 경로가 이 함수 하나로 수렴한다.
+	 */
+	void BreakGuard(AActor* Attacker);
+
 	/** Exclusive 그룹(공격 등) 어빌리티 취소 — HitReaction이 활성화될 슬롯 확보  */
 	static void CancelExclusiveAbilities(UAbilitySystemComponent* ASC);
 

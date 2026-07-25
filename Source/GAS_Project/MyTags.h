@@ -142,10 +142,22 @@ namespace MyTags
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Status_Attack_Melee);
 		// [신규] 공격 중 상태 태그 — 어빌리티 활성 동안 ActivationOwnedTags로 자동 부여/제거
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Status_Attack_Attacking);
+		// [신규] 공격 단계별 스태미나 비용 이벤트 — 몽타주 AnimNotify가 발사, AttackMelee가 반복 수신
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Event_Attack_CommitStep);
 		// [신규] 약공격 어빌리티 식별 태그 — 약공격 BP의 AbilityTags에서 사용
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Ability_Attack_Melee_Light);
 		// [신규] 강공격 어빌리티 식별 태그 — 강공격 BP의 AbilityTags에서 사용
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Ability_Attack_Melee_Heavy);
+		// [신규] Player 약공격/강공격 입력 태그 — LeeInputConfig/AbilitySet에서 사용
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(InputTag_Attack_Light);
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(InputTag_Attack_Heavy);
+		// [신규] 콤보 입력 허용 구간 시작/끝 — 몽타주의 Lee Gameplay Event Window(Server) 노티파이가 발사
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Event_Attack_ComboWindowOpen);
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Event_Attack_ComboWindowClose);
+		// [신규] 콤보 전환 실행 시점 — 몽타주의 Lee Gameplay Event(Server) 단발 노티파이가 발사, 큐된 입력을 이 시점에 소비
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Event_Attack_ComboTransition);
+		// [신규] 다단 공격 몽타주에서 Warp 구간마다 워프 타깃을 재계산 — Lee Gameplay Event(Server) 노티파이가 2번째+ Warp 구간 직전에 발사
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Event_Attack_RefreshWarpTarget);
 
 		// [신규] 타겟 락온 — 어빌리티 식별 태그, 상태 태그(레거시 MyTags::Status::TargetLock과 별개 네임스페이스), UI 메시지 채널
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Ability_TargetLock);

@@ -6,7 +6,7 @@
 #include "CPlayerCharacter.generated.h"
 
 
-
+// 사용 안하는 클래스 임으로 참고하지 말것
 UCLASS()
 class GAS_PROJECT_API ACPlayerCharacter : public ACCharacter , public IExecuteInterface
 {

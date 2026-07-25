@@ -53,6 +53,9 @@ protected:
 
 	virtual void InitializeComponent() override;
 
+	// 가드 중 적용할 이동속도 배수를 현재 장착 무기 인스턴스에서 읽어온다 (없으면 1.0 = 감속 없음)
+	float GetEquippedGuardSpeedMultiplier() const;
+
 protected:
 
 	// Cached ground info for the character.  Do not access this directly!  It's only updated when accessed via GetGroundInfo().

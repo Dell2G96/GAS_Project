@@ -182,6 +182,16 @@ void ULeeDefenseComponent::HandleDamageResolved(AActor* EffectInstigator, AActor
 				RegenBlockOnHitEffect->GetDefaultObject<UGameplayEffect>(), /*Level*/1.0f, OwnerASC->MakeEffectContext());
 		}
 
+		// 이 시점에는 스태미나 감소가 이미 반영돼 있다(ExecCalc가 스태미나→Health 순으로 출력).
+		// 스태미나가 0 이하이면 가드 브레이크로 처리한다. 이렇게 하면 "이미 0인 채 가드 피격"처럼
+		// OnOutOfStamina가 재발동하지 않는(엣지 트리거 누락) 상황에서도 반드시 가드가 풀린다.
+		const float CurrentStamina = OwnerASC->GetNumericAttribute(ULeeSoulsStatSet::GetStaminaAttribute());
+		if (CurrentStamina <= 0.0f)
+		{
+			BreakGuard(Attacker);
+			return;
+		}
+
 		// 같은 피격으로 이미 가드 브레이크(그로기)됐다면 플린치는 생략 (브레이크 몽타주가 우선)
 		if (!OwnerASC->HasMatchingGameplayTag(MyTags::Souls::Status_Groggy))
 		{
@@ -235,12 +245,8 @@ void ULeeDefenseComponent::HandleOutOfStamina(AActor* EffectInstigator, AActor* 
 	// ── 가드 중 피격으로 고갈 → 가드 브레이크 ──
 	if (CauseTags.HasTagExact(MyTags::Souls::DamageResult_GuardHit))
 	{
-		// 가드 어빌리티 강제 종료 (AbilityTags = Souls.Abilities.Guard 매칭)
-		const FGameplayTagContainer GuardAbilityTags(MyTags::Souls::Ability_Guard);
-		OwnerASC->CancelAbilities(&GuardAbilityTags);
-
-		ApplyGroggy();
-		SendGameplayEventTo(Owner, MyTags::Souls::Event_Combat_GuardBreak, EffectInstigator);
+		// "0으로 떨어지는 순간" 경로 — HandleDamageResolved(이미 0 경로)와 동일한 헬퍼로 수렴
+		BreakGuard(EffectInstigator);
 		return;
 	}
 
@@ -275,6 +281,29 @@ void ULeeDefenseComponent::ApplyGroggy()
 	{
 		ASC->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
 	}
+}
+
+// 가드 브레이크 — 가드 어빌리티 강제 종료 + 그로기 + GuardBreak 이벤트. 이미 그로기면 스킵(중복 방지).
+void ULeeDefenseComponent::BreakGuard(AActor* Attacker)
+{
+	UAbilitySystemComponent* ASC = GetOwnerASC();
+	if (!ASC)
+	{
+		return;
+	}
+
+	// 이미 브레이크(그로기)된 상태면 두 경로(OnOutOfStamina/OnDamageResolved)가 겹쳐도 한 번만 처리
+	if (ASC->HasMatchingGameplayTag(MyTags::Souls::Status_Groggy))
+	{
+		return;
+	}
+
+	// 가드 어빌리티 강제 종료 (AbilityTags = Souls.Abilities.Guard 매칭)
+	const FGameplayTagContainer GuardAbilityTags(MyTags::Souls::Ability_Guard);
+	ASC->CancelAbilities(&GuardAbilityTags);
+
+	ApplyGroggy();
+	SendGameplayEventTo(GetOwner(), MyTags::Souls::Event_Combat_GuardBreak, Attacker);
 }
 
 // Exclusive 그룹(공격 등) 어빌리티만 취소 — Independent(락온 등)는 유지한다

@@ -128,4 +128,12 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Lee|Dodge|Effect")
 	TSubclassOf<UGameplayEffect> CounterWindowEffect;
 
+	/** 회피 종료 후 스태미나 회복을 지연시키는 GE. BP에서 GE_StaminaRegenDelay 지정 (Duration = SetByCaller Souls.SetByCaller.Duration) */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Lee|Dodge|Effect")
+	TSubclassOf<UGameplayEffect> StaminaRegenDelayEffect;
+
+	/** 회피 종료 후 스태미나 회복 지연 시간(초) */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Lee|Dodge", meta = (ClampMin = "0.0"))
+	float StaminaRegenDelayDuration = 1.5f;
+
 };

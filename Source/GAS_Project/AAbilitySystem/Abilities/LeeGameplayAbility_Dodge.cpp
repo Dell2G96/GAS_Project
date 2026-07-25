@@ -100,7 +100,7 @@ void ULeeGameplayAbility_Dodge::ActivateAbility(
 	PerfectDodgeTask->ReadyForActivation();
 }
 
-// 종료 — 무적/퍼펙트 윈도우 GE와 타이머를 무조건 정리 (태그 누수 방지 안전장치)
+// 종료 — 무적/퍼펙트 윈도우 GE와 타이머를 무조건 정리 (태그 누수 방지 안전장치) + 회복 지연 적용
 void ULeeGameplayAbility_Dodge::EndAbility(
 	const FGameplayAbilitySpecHandle Handle,
 	const FGameplayAbilityActorInfo* ActorInfo,
@@ -109,6 +109,10 @@ void ULeeGameplayAbility_Dodge::EndAbility(
 	bool bWasCancelled)
 {
 	CleanupDefenseWindows();
+
+	// ActivationOwnedTags의 RegenBlocked는 어빌리티 종료와 동시에 사라지므로,
+	// 여기서 별도 Duration GE를 걸어 "회피 종료 후 N초간" 회복 정지를 이어간다
+	ApplyDurationEffect(StaminaRegenDelayEffect, StaminaRegenDelayDuration);
 
 	Super::EndAbility(Handle, ActorInfo, ActivationInfo, bReplicateEndAbility, bWasCancelled);
 }

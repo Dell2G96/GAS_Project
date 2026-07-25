@@ -6,6 +6,7 @@
 #include "Abilities/Tasks/AbilityTask_WaitInputRelease.h"
 #include "GAS_Project/MyTags.h"
 #include "GAS_Project/ACharacter/LeeTargetLockComponent.h"
+#include "GAS_Project/_Souls/Abilities/LeeSoulsStatSet.h"
 
 // 생성자 — Hold형 입력 정책 + 태그/그룹 설정
 ULeeGameplayAbility_Guard::ULeeGameplayAbility_Guard(const FObjectInitializer& ObjectInitializer)
@@ -36,6 +37,18 @@ void ULeeGameplayAbility_Guard::ActivateAbility(
 	const FGameplayEventData* TriggerEventData)
 {
 	Super::ActivateAbility(Handle, ActorInfo, ActivationInfo, TriggerEventData);
+
+	// 스태미나가 0 이하이면 가드를 아예 시작할 수 없다 (지친 상태에서 방패를 들 수 없음)
+	// 서버 권위 스태미나 값을 기준으로 판정한다 (ServerInitiated).
+	if (UAbilitySystemComponent* ASC = ActorInfo ? ActorInfo->AbilitySystemComponent.Get() : nullptr)
+	{
+		const float CurrentStamina = ASC->GetNumericAttribute(ULeeSoulsStatSet::GetStaminaAttribute());
+		if (CurrentStamina <= 0.0f)
+		{
+			EndAbility(Handle, ActorInfo, ActivationInfo, true, true);
+			return;
+		}
+	}
 
 	// 가드는 시작 시 스태미나를 소모하지 않는다 (피격 시에만 ExecCalc가 소모)
 	if (!CommitAbility(Handle, ActorInfo, ActivationInfo))

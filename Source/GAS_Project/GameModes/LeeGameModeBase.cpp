@@ -139,10 +139,12 @@ void ALeeGameModeBase::FailedToRestartPlayer(AController* NewPlayer)
 
 void ALeeGameModeBase::RequestPlayerRestartNextFrame(AController* Controller, bool bForceReset)
 {
+	// Todo : 다음 프레임에 재시작 요청
 }
 
 bool ALeeGameModeBase::ControllerCanRestart(AController* Controller)
 {
+	//ToDO : 재시작 조건 설정 
 	return false;
 }
 

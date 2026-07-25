@@ -8,6 +8,8 @@
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/Character.h"
 #include "GAS_Project/MyTags.h"
+#include "GAS_Project/AEquipment/LeeEquipmentManagerComponent.h"
+#include "GAS_Project/AEquipment/LeeMeleeWeaponInstance.h"
 
 
 namespace LeeCharacter
@@ -126,8 +128,39 @@ float ULeeCharacterMovementComponent::GetMaxSpeed() const
 		{
 			return 0;
 		}
+
+		// 가드 유지 중이면 장착 무기별 배수를 최대 속도에 곱한다 (무기별 연속값).
+		// Status_Guard_Active 태그는 ASC로 복제되고, 무기 배수는 정적 데이터라 서버·클라 동일 → 예측 desync 없음
+		if (ASC->HasMatchingGameplayTag(MyTags::Souls::Status_Guard_Active))
+		{
+			return Super::GetMaxSpeed() * GetEquippedGuardSpeedMultiplier();
+		}
 	}
 
 	return Super::GetMaxSpeed();
+}
+
+// 현재 장착된 근접 무기 인스턴스의 GuardSpeedMultiplier를 반환. 장비/무기가 없으면 1.0(감속 없음)
+float ULeeCharacterMovementComponent::GetEquippedGuardSpeedMultiplier() const
+{
+	AActor* Owner = GetOwner();
+	if (!Owner)
+	{
+		return 1.0f;
+	}
+
+	ULeeEquipmentManagerComponent* EquipMgr = Owner->FindComponentByClass<ULeeEquipmentManagerComponent>();
+	if (!EquipMgr)
+	{
+		return 1.0f;
+	}
+
+	ULeeMeleeWeaponInstance* Weapon = EquipMgr->GetFirstInstanceOfType<ULeeMeleeWeaponInstance>();
+	if (!Weapon)
+	{
+		return 1.0f;
+	}
+
+	return Weapon->GetGuardSpeedMultiplier();
 }
 

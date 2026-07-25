@@ -1,4 +1,5 @@
 // CPlayerCharacter.cpp
+// 사용 안하는 클래스 임으로 참고하지 말것
 #include "CPlayerCharacter.h"
 
 #include "AbilitySystemComponent.h"

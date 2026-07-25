@@ -168,9 +168,21 @@ namespace MyTags
 		UE_DEFINE_GAMEPLAY_TAG(Status_Attack_Melee, "Souls.Status.Attack.Melee")
 		// 공격 중 상태 태그 (ActivationOwnedTags로 자동 부여/제거)
 		UE_DEFINE_GAMEPLAY_TAG(Status_Attack_Attacking, "Souls.Status.Attack.Attacking")
+		// [신규] 공격 단계별 스태미나 비용 이벤트 (몽타주 Notify → AttackMelee 반복 수신)
+		UE_DEFINE_GAMEPLAY_TAG(Event_Attack_CommitStep, "Souls.Events.Attack.CommitStep")
 		// 약공격/강공격 어빌리티 식별 태그 (각 BP의 AbilityTags에서 사용)
 		UE_DEFINE_GAMEPLAY_TAG(Ability_Attack_Melee_Light, "Souls.Abilities.Attack.Melee.Light")
 		UE_DEFINE_GAMEPLAY_TAG(Ability_Attack_Melee_Heavy, "Souls.Abilities.Attack.Melee.Heavy")
+		// [신규] Player 약공격/강공격 입력 태그
+		UE_DEFINE_GAMEPLAY_TAG(InputTag_Attack_Light, "Souls.InputTag.Attack.Light")
+		UE_DEFINE_GAMEPLAY_TAG(InputTag_Attack_Heavy, "Souls.InputTag.Attack.Heavy")
+		// [신규] 콤보 입력 허용 구간 시작/끝
+		UE_DEFINE_GAMEPLAY_TAG(Event_Attack_ComboWindowOpen, "Souls.Events.Attack.ComboWindowOpen")
+		UE_DEFINE_GAMEPLAY_TAG(Event_Attack_ComboWindowClose, "Souls.Events.Attack.ComboWindowClose")
+		// [신규] 콤보 전환 실행 시점 (윈도우 중 입력을 큐에 예약만 하고, 이 노티파이 시점에 실제 전환)
+		UE_DEFINE_GAMEPLAY_TAG(Event_Attack_ComboTransition, "Souls.Events.Attack.ComboTransition")
+		// [신규] Warp 타깃 재계산 이벤트 (다단 공격의 2번째+ Warp 구간 직전에 Lee Gameplay Event(Server) 노티파이가 발사)
+		UE_DEFINE_GAMEPLAY_TAG(Event_Attack_RefreshWarpTarget, "Souls.Events.Attack.RefreshWarpTarget")
 
 		// 타겟 락온
 		UE_DEFINE_GAMEPLAY_TAG(Ability_TargetLock, "Souls.Abilities.TargetLock")
