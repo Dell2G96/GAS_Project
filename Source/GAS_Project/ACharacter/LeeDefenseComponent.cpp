@@ -152,6 +152,16 @@ void ULeeDefenseComponent::HandleDamageResolved(AActor* EffectInstigator, AActor
 			Attacker ? UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(Attacker) : nullptr;
 		if (AttackerASC)
 		{
+			// 스태미나 감소 GE 적용은 공격자의 OnOutOfStamina를 "동기적으로" 발동시킨다.
+			// 먼저 연출 시작을 선언해두지 않으면 그로기 몽타주가 아래 Parried 이벤트보다 앞서 재생됐다가
+			// 곧바로 패리당함 몽타주에 덮여 사라진다. 그래서 GE 적용 전에 보류 플래그를 세운다.
+			ULeeDefenseComponent* AttackerDefense =
+				Attacker ? Attacker->FindComponentByClass<ULeeDefenseComponent>() : nullptr;
+			if (AttackerDefense)
+			{
+				AttackerDefense->BeginReaction();
+			}
+
 			// 공격자 스태미나 감소 GE — 원인 태그(ParryCounter)를 실어 고갈 시 PostureBreak로 분기되게 한다
 			if (StaminaDamageEffect)
 			{
@@ -169,6 +179,13 @@ void ULeeDefenseComponent::HandleDamageResolved(AActor* EffectInstigator, AActor
 			// 공격자의 공격(Exclusive_Blocking)을 먼저 취소해야 HitReaction(Exclusive_Replaceable)이 활성화된다
 			CancelExclusiveAbilities(AttackerASC);
 			SendGameplayEventTo(Attacker, MyTags::Souls::Event_Combat_Parried, Owner);
+
+			// 스태미나가 고갈되지 않았다면 보류할 그로기도 없으므로 연출 플래그를 즉시 되돌린다
+			// (패리당함 몽타주만 재생하고 끝나는 정상 케이스)
+			if (AttackerDefense && !AttackerDefense->bGroggyPending)
+			{
+				AttackerDefense->bReactionInProgress = false;
+			}
 		}
 		return;
 	}
@@ -192,8 +209,9 @@ void ULeeDefenseComponent::HandleDamageResolved(AActor* EffectInstigator, AActor
 			return;
 		}
 
-		// 같은 피격으로 이미 가드 브레이크(그로기)됐다면 플린치는 생략 (브레이크 몽타주가 우선)
-		if (!OwnerASC->HasMatchingGameplayTag(MyTags::Souls::Status_Groggy))
+		// 같은 피격으로 이미 가드 브레이크됐다면 플린치는 생략 (브레이크 몽타주가 우선).
+		// 그로기 GE는 브레이크 몽타주가 끝난 뒤에 붙으므로, 태그 대신 연출 진행 플래그로 판정한다.
+		if (!bReactionInProgress && !OwnerASC->HasMatchingGameplayTag(MyTags::Souls::Status_Groggy))
 		{
 			SendGameplayEventTo(Owner, MyTags::Souls::Event_Defense_GuardHit, Attacker);
 		}
@@ -250,15 +268,100 @@ void ULeeDefenseComponent::HandleOutOfStamina(AActor* EffectInstigator, AActor* 
 		return;
 	}
 
-	// ── 패리 반격으로 고갈 → 체간 붕괴 ──
-	if (CauseTags.HasTagExact(MyTags::Souls::DamageType_ParryCounter))
+	// ── 그 외 모든 고갈 경로(패리 반격, 일반 피격 누적, 자체 소모 등) → 체간 붕괴(그로기) ──
+	// 예전에는 ParryCounter만 처리하고 나머지는 그대로 return해서, 일반 전투로 스태미나가 마르면
+	// Status.Groggy는 붙는데 PostureBreak 이벤트가 발송되지 않아 그로기 몽타주가 재생되지 않았다.
+	EnterGroggy(EffectInstigator);
+}
+
+// [서버] 그로기 진입 단일 입구 — Exclusive 어빌리티 취소 + GE_Groggy 적용 + PostureBreak 이벤트 발송
+void ULeeDefenseComponent::EnterGroggy(AActor* Instigator)
+{
+	AActor* Owner = GetOwner();
+	UAbilitySystemComponent* OwnerASC = GetOwnerASC();
+	if (GetOwnerRole() != ROLE_Authority || !Owner || !OwnerASC)
 	{
-		CancelExclusiveAbilities(OwnerASC);
-		ApplyGroggy();
-		SendGameplayEventTo(Owner, MyTags::Souls::Event_Combat_PostureBreak, EffectInstigator);
 		return;
 	}
-	
+
+	// 이미 그로기면 재진입하지 않는다 (몽타주 재시작 방지)
+	if (OwnerASC->HasMatchingGameplayTag(MyTags::Souls::Status_Groggy))
+	{
+		return;
+	}
+
+	// 가드브레이크/패리당함 연출 중이면 지금 진입하지 않고 예약만 한다.
+	// 지금 PostureBreak를 발송하면 그로기 몽타주가 먼저 재생됐다가 선행 연출 몽타주에 덮여 사라진다.
+	if (bReactionInProgress)
+	{
+		bGroggyPending = true;
+		PendingGroggyInstigator = Instigator;
+
+		// 연출 어빌리티가 어떤 이유로든(몽타주 미설정 등) 종료 콜백을 주지 못해도 그로기가 누락되지 않도록
+		if (UWorld* World = GetWorld())
+		{
+			World->GetTimerManager().SetTimer(
+				PendingGroggyTimeoutHandle, this, &ThisClass::ForceEnterPendingGroggy, PendingGroggyTimeout, /*bLoop*/false);
+		}
+		return;
+	}
+
+	CancelExclusiveAbilities(OwnerASC);
+	ApplyGroggy();
+
+	// GE 적용 이후에 발송해야 한다 — GA_HitReaction이 Status.Groggy 제거를 기다리는데,
+	// 태그가 없는 상태로 태스크가 시작되면 즉시 종료 콜백이 날아온다.
+	SendGameplayEventTo(Owner, MyTags::Souls::Event_Combat_PostureBreak, Instigator);
+}
+
+// [서버] 선행 리액션 연출 시작 — 이 구간의 그로기 진입은 연출이 끝날 때까지 보류된다
+void ULeeDefenseComponent::BeginReaction()
+{
+	if (GetOwnerRole() != ROLE_Authority)
+	{
+		return;
+	}
+
+	bReactionInProgress = true;
+}
+
+// [서버] 선행 리액션 몽타주 종료 — 보류된 그로기가 있으면 지금 진입시킨다
+void ULeeDefenseComponent::NotifyReactionFinished(AActor* Instigator)
+{
+	if (GetOwnerRole() != ROLE_Authority)
+	{
+		return;
+	}
+
+	if (UWorld* World = GetWorld())
+	{
+		World->GetTimerManager().ClearTimer(PendingGroggyTimeoutHandle);
+	}
+
+	bReactionInProgress = false;
+
+	if (!bGroggyPending)
+	{
+		return;
+	}
+	bGroggyPending = false;
+
+	// 예약 시점의 Instigator를 우선 사용한다 (몽타주 종료 콜백에는 공격자 정보가 없다)
+	AActor* GroggyInstigator = PendingGroggyInstigator.IsValid() ? PendingGroggyInstigator.Get() : Instigator;
+	PendingGroggyInstigator = nullptr;
+
+	EnterGroggy(GroggyInstigator);
+}
+
+// [서버] 안전장치 — 연출 어빌리티가 종료 콜백을 주지 못한 경우 보류된 그로기를 강제 진입시킨다
+void ULeeDefenseComponent::ForceEnterPendingGroggy()
+{
+	UE_LOG(LogLee, Warning,
+		TEXT("[LeeDefenseComponent] %s: 리액션 몽타주 종료 통지가 %.1f초 안에 오지 않아 그로기를 강제 진입시킵니다. "
+			 "GA_HitReaction의 가드브레이크/패리당함 몽타주 설정을 확인하세요."),
+		*GetNameSafe(GetOwner()), PendingGroggyTimeout);
+
+	NotifyReactionFinished(nullptr);
 }
 
 // 그로기 GE 적용 — 이미 그로기 상태면 중복 적용하지 않는다
@@ -283,7 +386,7 @@ void ULeeDefenseComponent::ApplyGroggy()
 	}
 }
 
-// 가드 브레이크 — 가드 어빌리티 강제 종료 + 그로기 + GuardBreak 이벤트. 이미 그로기면 스킵(중복 방지).
+// 가드 브레이크 — 가드 어빌리티 강제 종료 + GuardBreak 이벤트. 그로기는 몽타주가 끝난 뒤 EnterGroggy()가 건다.
 void ULeeDefenseComponent::BreakGuard(AActor* Attacker)
 {
 	UAbilitySystemComponent* ASC = GetOwnerASC();
@@ -292,17 +395,17 @@ void ULeeDefenseComponent::BreakGuard(AActor* Attacker)
 		return;
 	}
 
-	// 이미 브레이크(그로기)된 상태면 두 경로(OnOutOfStamina/OnDamageResolved)가 겹쳐도 한 번만 처리
-	if (ASC->HasMatchingGameplayTag(MyTags::Souls::Status_Groggy))
+	// 이미 리액션 연출 중이거나 그로기면, 두 경로(OnOutOfStamina/OnDamageResolved)가 겹쳐도 한 번만 처리
+	if (bReactionInProgress || ASC->HasMatchingGameplayTag(MyTags::Souls::Status_Groggy))
 	{
 		return;
 	}
+	BeginReaction();
 
 	// 가드 어빌리티 강제 종료 (AbilityTags = Souls.Abilities.Guard 매칭)
 	const FGameplayTagContainer GuardAbilityTags(MyTags::Souls::Ability_Guard);
 	ASC->CancelAbilities(&GuardAbilityTags);
 
-	ApplyGroggy();
 	SendGameplayEventTo(GetOwner(), MyTags::Souls::Event_Combat_GuardBreak, Attacker);
 }
 

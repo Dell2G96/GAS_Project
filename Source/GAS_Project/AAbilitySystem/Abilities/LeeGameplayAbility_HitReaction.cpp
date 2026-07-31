@@ -4,7 +4,10 @@
 #include "GameFramework/Actor.h"
 #include "MotionWarpingComponent.h"
 #include "Abilities/Tasks/AbilityTask_PlayMontageAndWait.h"
+#include "Abilities/Tasks/AbilityTask_WaitGameplayTag.h"
+#include "AbilitySystemComponent.h"
 #include "GAS_Project/MyTags.h"
+#include "GAS_Project/ACharacter/LeeDefenseComponent.h"
 
 // 생성자 — GameplayEvent 트리거 4종 등록 + 그룹/재트리거 설정
 ULeeGameplayAbility_HitReaction::ULeeGameplayAbility_HitReaction(const FObjectInitializer& ObjectInitializer)
@@ -58,6 +61,9 @@ void ULeeGameplayAbility_HitReaction::ActivateAbility(
 		return;
 	}
 
+	// 몽타주 종료 시 후속 처리(가드브레이크→그로기 체인) 분기에 쓰므로 트리거 태그를 보관한다
+	ActiveEventTag = TriggerEventData->EventTag;
+
 	UAnimMontage* SelectedMontage = SelectMontageForEvent(TriggerEventData->EventTag);
 	if (!SelectedMontage)
 	{
@@ -98,7 +104,7 @@ void ULeeGameplayAbility_HitReaction::ActivateAbility(
 		}
 	}
 
-	// 몽타주 재생 — 모든 종료 경로가 EndAbility로 수렴
+	// 몽타주 재생 — 모든 종료 경로가 OnMontageFinished로 수렴
 	UAbilityTask_PlayMontageAndWait* MontageTask =
 		UAbilityTask_PlayMontageAndWait::CreatePlayMontageAndWaitProxy(
 			this, NAME_None, SelectedMontage, /*PlayRate*/1.0f, StartSection);
@@ -107,6 +113,18 @@ void ULeeGameplayAbility_HitReaction::ActivateAbility(
 	MontageTask->OnInterrupted.AddDynamic(this, &ThisClass::OnMontageFinished);
 	MontageTask->OnCancelled.AddDynamic(this, &ThisClass::OnMontageFinished);
 	MontageTask->ReadyForActivation();
+
+	// 그로기 몽타주는 loop 섹션이라 스스로 끝나지 않는다.
+	// 종료 기준을 "그로기 GE 만료(Status.Groggy 제거)"로 잡고, 그때 어빌리티를 끝내 몽타주를 끊는다.
+	// (PlayMontageAndWait는 bStopWhenAbilityEnds가 기본 true이므로 EndAbility만으로 몽타주가 멈춘다)
+	if (ActiveEventTag == MyTags::Souls::Event_Combat_PostureBreak)
+	{
+		UAbilityTask_WaitGameplayTagRemoved* GroggyEndTask =
+			UAbilityTask_WaitGameplayTagRemoved::WaitGameplayTagRemove(
+				this, MyTags::Souls::Status_Groggy, /*ExternalTarget*/nullptr, /*OnlyTriggerOnce*/true);
+		GroggyEndTask->Removed.AddDynamic(this, &ThisClass::OnGroggyTagRemoved);
+		GroggyEndTask->ReadyForActivation();
+	}
 }
 
 // 종료 — 모션워핑 타겟 정리
@@ -154,7 +172,7 @@ UAnimMontage* ULeeGameplayAbility_HitReaction::SelectMontageForEvent(const FGame
 	return nullptr;
 }
 
-// 몽타주 종료(완료/블렌드아웃/인터럽트/취소) — 어빌리티 종료
+// 공격자의 상대 방향(전/후/좌/우)으로 재생할 경직 몽타주 섹션 이름을 고른다
 FName ULeeGameplayAbility_HitReaction::SelectStaggerSection(const AActor* Avatar, const AActor* Attacker) const
 {
 	// UE_LOG(LogTemp, Warning, TEXT("[임시디버그][Stagger] Avatar=%s Attacker=%s"),
@@ -195,7 +213,45 @@ FName ULeeGameplayAbility_HitReaction::SelectStaggerSection(const AActor* Avatar
 	return RightAmount >= 0.0f ? StaggerRightSection : StaggerLeftSection;
 }
 
+// 몽타주 종료(완료/블렌드아웃/인터럽트/취소) — 가드브레이크면 그로기로 체인, 그로기면 태그 만료까지 유지
 void ULeeGameplayAbility_HitReaction::OnMontageFinished()
+{
+	// 그로기 몽타주(loop)는 몽타주 이벤트로 끝내지 않는다. Status.Groggy가 제거될 때만 종료한다.
+	// (loop 도중 블렌드아웃 콜백이 와도 그로기 상태가 유지되는 동안에는 어빌리티를 살려둬야 한다)
+	if (ActiveEventTag == MyTags::Souls::Event_Combat_PostureBreak)
+	{
+		return;
+	}
+
+	// 선행 리액션(가드브레이크/패리당함) 몽타주가 끝난 시점에 비로소 그로기(처형 가능) 진입.
+	// 몽타주가 중간에 끊긴 경우에도 호출해야 상태 누락(연출은 끝났는데 그로기가 아닌 상태)이 생기지 않는다.
+	if (ActiveEventTag == MyTags::Souls::Event_Combat_GuardBreak
+		|| ActiveEventTag == MyTags::Souls::Event_Combat_Parried)
+	{
+		if (AActor* Avatar = CurrentActorInfo ? CurrentActorInfo->AvatarActor.Get() : nullptr)
+		{
+			if (ULeeDefenseComponent* DefenseComp = Avatar->FindComponentByClass<ULeeDefenseComponent>())
+			{
+				// 연출 중 스태미나가 고갈돼 그로기가 예약돼 있었다면 여기서 실제 진입이 일어난다
+				DefenseComp->NotifyReactionFinished(nullptr);
+
+				// 그로기 진입 → PostureBreak 이벤트 → 이 어빌리티 재트리거가 동기적으로 일어난다.
+				// 재트리거가 성사됐다면 ActivateAbility가 ActiveEventTag를 PostureBreak로 바꿔놓았으므로,
+				// 여기서 EndAbility를 부르면 방금 시작된 그로기 몽타주를 끊게 된다. 반드시 빠져나간다.
+				// (클라이언트, 이미 그로기, 예약된 그로기 없음인 경우엔 아래에서 정상 종료)
+				if (ActiveEventTag == MyTags::Souls::Event_Combat_PostureBreak)
+				{
+					return;
+				}
+			}
+		}
+	}
+
+	EndAbility(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo, /*Replicate*/true, /*WasCancelled*/false);
+}
+
+// 그로기 GE 만료 — 어빌리티 종료. PlayMontageAndWait가 loop 몽타주를 같이 정리한다
+void ULeeGameplayAbility_HitReaction::OnGroggyTagRemoved()
 {
 	EndAbility(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo, /*Replicate*/true, /*WasCancelled*/false);
 }

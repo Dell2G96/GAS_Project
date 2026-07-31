@@ -247,10 +247,6 @@ int32 ALeeCharacter::ResolveEnemyTeamIdFromGameState() const
 	const AGameStateBase* GameState = GetWorld() ? GetWorld()->GetGameState() : nullptr;
 	const ULeeTeamCreationComponent* TeamCreationComponent = GameState ? GameState->FindComponentByClass<ULeeTeamCreationComponent>() : nullptr;
 
-	// [임시 디버그] Possess 시점에 GameState에 LeeTeamCreationComponent가 이미 붙어있는지 확인 (Experience 로드 타이밍 문제 확인용)
-	UE_LOG(LogTemp, Warning, TEXT("[Team] ResolveEnemyTeamIdFromGameState: %s, TeamCreationComponent=%s"),
-		*GetNameSafe(this), TeamCreationComponent ? TEXT("Found") : TEXT("NULL - Experience가 아직 로드 안됐거나 컴포넌트 연결 안됨"));
-
 	return TeamCreationComponent ? TeamCreationComponent->ResolveEnemyTeamId(GetClass()) : GenericTeamIdToInteger(FGenericTeamId::NoTeam);
 }
 

@@ -32,11 +32,10 @@ void ULeeFinisherTargetComponent::BeginPlay()
 	// 콜리전 오버랩 이벤트에 의존하지 않고 상시 주기적으로 직접 판정 (Player 콜리전 프리셋 영향 없음)
 	GetWorld()->GetTimerManager().SetTimer(EvalTimerHandle, this, &ThisClass::EvaluatePrompt, EvalInterval, /*bLoop*/true);
 
-	// ASC/AttributeSet 초기화가 오너 BeginPlay 이후일 수 있으므로 다음 틱에 바인딩
-	if (GetOwnerRole() == ROLE_Authority)
-	{
-		GetWorld()->GetTimerManager().SetTimerForNextTick(this, &ThisClass::BindToStaminaDelegate);
-	}
+	// 그로기 진입 처리는 ULeeDefenseComponent::EnterGroggy()로 일원화했다.
+	// 예전에는 여기서도 OnOutOfStamina를 구독해 GE_Groggy를 적용했는데, 두 컴포넌트 중
+	// 먼저 실행된 쪽이 Status.Groggy를 붙여버리면 DefenseComponent의 이벤트 발송이 통째로 스킵돼
+	// 리액션 몽타주가 재생되지 않았다(실행 순서도 보장되지 않음).
 }
 
 void ULeeFinisherTargetComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
@@ -46,49 +45,6 @@ void ULeeFinisherTargetComponent::EndPlay(const EEndPlayReason::Type EndPlayReas
 		World->GetTimerManager().ClearTimer(EvalTimerHandle);
 	}
 	Super::EndPlay(EndPlayReason);
-}
-
-void ULeeFinisherTargetComponent::BindToStaminaDelegate()
-{
-	UAbilitySystemComponent* ASC = GetOwnerASC();
-	const ULeeSoulsStatSet* SoulsSet = ASC ? ASC->GetSet<ULeeSoulsStatSet>() : nullptr;
-	if (!SoulsSet)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("[LeeFinisherTargetComponent] %s에서 LeeSoulsStatSet을 찾지 못했습니다. 그로기 자동 진입이 동작하지 않습니다."),
-			*GetNameSafe(GetOwner()));
-		return;
-	}
-
-	SoulsSet->OnOutOfStamina.AddUObject(this, &ThisClass::HandleOutOfStamina);
-}
-
-void ULeeFinisherTargetComponent::HandleOutOfStamina(AActor* /*EffectInstigator*/, AActor* /*EffectCauser*/,
-	const FGameplayEffectSpec* /*EffectSpec*/, float /*EffectMagnitude*/, float /*OldValue*/, float /*NewValue*/)
-{
-	// 서버 전용: 스태미나 고갈 → 그로기 GE 적용 (Status.Groggy + Status.Vulnerable.Execution)
-	if (GetOwnerRole() != ROLE_Authority)
-	{
-		return;
-	}
-
-	if (!GroggyEffect)
-	{
-		UE_LOG(LogLee, Warning, TEXT("[LeeFinisherTargetComponent] GroggyEffect가 설정되지 않음. BP에서 GE_Groggy를 지정해주세요."));
-		return;
-	}
-
-	UAbilitySystemComponent* ASC = GetOwnerASC();
-	if (!ASC || ASC->HasMatchingGameplayTag(MyTags::Souls::Status_Groggy))
-	{
-		return;
-	}
-
-	FGameplayEffectSpecHandle SpecHandle =
-		ASC->MakeOutgoingSpec(GroggyEffect, /*Level*/1.0f, ASC->MakeEffectContext());
-	if (SpecHandle.IsValid())
-	{
-		ASC->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
-	}
 }
 
 void ULeeFinisherTargetComponent::EvaluatePrompt()

@@ -18,8 +18,13 @@ class UAnimMontage;
  *  - Souls.Events.Combat.PostureBreak → 체간 붕괴(무릎 꿇기) 몽타주
  *
  * ActivationGroup = Exclusive_Replaceable. 공격 중(Exclusive_Blocking)인 대상은
- * DefenseComponent가 이벤트 발송 전에 Exclusive 어빌리티를 먼저 취소해 슬롯을 비워준다 
+ * DefenseComponent가 이벤트 발송 전에 Exclusive 어빌리티를 먼저 취소해 슬롯을 비워준다
  * 그로기 몽타주도 재생해야 하므로 Groggy를 ActivationBlockedTags로 막지 않는다.
+ *
+ * 가드브레이크 → 그로기 체인:
+ *  GuardBreak 몽타주가 끝나면 DefenseComponent::EnterGroggy()를 호출한다.
+ *  → GE_Groggy 적용 + PostureBreak 이벤트 발송 → 이 어빌리티가 재트리거되어 그로기 몽타주(loop) 재생.
+ *  그로기 몽타주는 loop이라 스스로 끝나지 않으므로, Status.Groggy 태그가 제거될 때 어빌리티를 종료해 끊는다.
  */
 UCLASS()
 class GAS_PROJECT_API ULeeGameplayAbility_HitReaction : public ULeeGameplayAbility
@@ -50,6 +55,13 @@ private:
 
 	UFUNCTION()
 	void OnMontageFinished();
+
+	/** 그로기 GE 만료(Status.Groggy 제거) — loop 몽타주를 끊고 어빌리티 종료 */
+	UFUNCTION()
+	void OnGroggyTagRemoved();
+
+	/** 이번 활성화를 트리거한 이벤트 태그. 몽타주 종료 시 후속 처리(가드브레이크→그로기 체인) 분기에 사용 */
+	FGameplayTag ActiveEventTag;
 
 protected:
 	/** 패리당함 몽타주 */

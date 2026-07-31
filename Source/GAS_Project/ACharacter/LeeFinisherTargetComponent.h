@@ -49,7 +49,8 @@ struct FLeeFinisherPromptMessage
  *     GA_Finisher::FindFinisherTarget()과 동일하게 "직접 거리 계산" 방식을 쓴다 — 콜리전 오버랩 이벤트에
  *     의존하지 않으므로 Player 쪽 콜리전 프리셋(WorldDynamic Block 등)의 영향을 받지 않는다.
  *  2) 바뀔 때만 GameplayMessageSubsystem으로 발행 → W_FinishPrompt가 수신 (표시 전용)
- *  3) [서버] LeeSoulsStatSet::OnOutOfStamina 수신 → GE_Groggy 적용 (그로기 진입)
+ *
+ * 그로기 진입(GE_Groggy 적용)은 이 컴포넌트의 책임이 아니다 — ULeeDefenseComponent::EnterGroggy()가 전담한다.
  *
  * 실제 피니셔 실행 조건은 GA_Finisher가 서버에서 재검증하므로, 이 컴포넌트의 판정은 UI 표시에만 쓰인다.
  */
@@ -93,18 +94,7 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Lee|Finisher", meta = (ClampMin = "0.02"))
 	float EvalInterval = 0.15f;
 
-	/** [서버] 스태미나 고갈 시 적용할 그로기 GE. BP에서 GE_Groggy 지정 (Status.Groggy + Status.Vulnerable.Execution 부여) */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Lee|Finisher")
-	TSubclassOf<UGameplayEffect> GroggyEffect;
-
 private:
-	/** 오너 ASC의 SoulsStatSet 델리게이트 바인딩 (ASC 초기화 순서 때문에 다음 틱에 시도) */
-	void BindToStaminaDelegate();
-
-	/** [서버] 스태미나 0 도달 → GE_Groggy 적용 */
-	void HandleOutOfStamina(AActor* EffectInstigator, AActor* EffectCauser,
-		const struct FGameplayEffectSpec* EffectSpec, float EffectMagnitude, float OldValue, float NewValue);
-
 	/** 타이머: 로컬 플레이어와의 거리/각도를 직접 계산해 표시 단계 재산출 (상시 실행, 오버랩 이벤트 불필요) */
 	void EvaluatePrompt();
 
