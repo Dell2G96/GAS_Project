@@ -108,6 +108,13 @@
 		{
 			"Name": "UnrealAgent",
 			"Enabled": false
+		},
+		{
+			"Name": "PIEAutoRecorder",
+			"Enabled": true,
+			"TargetAllowList": [
+				"Editor"
+			]
 		}
 	]
 }

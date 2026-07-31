@@ -1,0 +1,20 @@
+{
+	"FileVersion": 3,
+	"Version": 1,
+	"VersionName": "0.1",
+	"FriendlyName": "PIE Auto Recorder",
+	"Description": "PIE 시작/종료에 맞춰 OBS Studio 녹화를 자동으로 제어하는 에디터 전용 툴",
+	"Category": "Developer",
+	"CreatedBy": "GAS_Project",
+	"CanContainContent": false,
+	"IsBetaVersion": true,
+	"Installed": false,
+	"Modules": [
+		{
+			"Name": "PIEAutoRecorder",
+			"Type": "Editor",
+			"LoadingPhase": "Default",
+			"PlatformAllowList": [ "Win64" ]
+		}
+	]
+}
