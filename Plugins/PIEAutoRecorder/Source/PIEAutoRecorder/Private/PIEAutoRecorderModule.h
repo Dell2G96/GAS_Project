@@ -4,6 +4,8 @@
 #include "Modules/ModuleInterface.h"
 
 class FOBSWebSocketBackend;
+class FPIERecordingCoordinator;
+class FRecordingDispositionQueue;
 struct IConsoleCommand;
 struct FOBSRecordStateChanged;
 
@@ -27,7 +29,23 @@ private:
 	// 사용자가 직접 명령을 쳤는데 아무 반응이 없는 상황을 막기 위한 것이다.
 	bool CanRunConsoleCommand() const;
 
-	TSharedPtr<FOBSWebSocketBackend> Backend;
+	// PIE 델리게이트를 Coordinator에 연결한다. 해제와 반드시 대칭이어야 한다.
+	void RegisterPIEDelegates();
+	void UnregisterPIEDelegates();
+
+	// 설정이 바뀌면 연결에 영향을 주는 항목인지 보고 안전할 때만 다시 연결한다.
+	void HandleSettingsChanged(UObject* Object, struct FPropertyChangedEvent& PropertyChangedEvent);
+
+	TSharedPtr<FOBSWebSocketBackend>       Backend;
+	TSharedPtr<FRecordingDispositionQueue> DispositionQueue;
+	TUniquePtr<FPIERecordingCoordinator>   Coordinator;
 
 	TArray<IConsoleCommand*> ConsoleCommands;
+
+	FDelegateHandle PostPIEStartedHandle;
+	FDelegateHandle PrePIEEndedHandle;
+	FDelegateHandle ShutdownPIEHandle;
+	FDelegateHandle CancelPIEHandle;
+	FDelegateHandle EditorPreExitHandle;
+	FDelegateHandle SettingsChangedHandle;
 };

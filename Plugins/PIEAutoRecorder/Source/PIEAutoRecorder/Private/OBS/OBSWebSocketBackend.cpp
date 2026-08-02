@@ -2,6 +2,7 @@
 
 #include "PIEAutoRecorderLog.h"
 #include "PIEAutoRecorderSettings.h"
+#include "PIEAutoRecorderNotification.h"
 #include "IWebSocket.h"
 #include "WebSocketsModule.h"
 #include "Dom/JsonObject.h"
@@ -155,6 +156,9 @@ void FOBSWebSocketBackend::HandleConnectionError(const FString& Error)
 		UE_LOG(LogPIEAutoRecorder, Warning,
 			TEXT("OBS에 연결하지 못했습니다. WebSocket 서버와 포트를 확인하세요. (%s) 사유: %s"),
 			*CurrentUrl, *Error);
+
+		// 재연결마다 알림을 띄우면 화면을 뒤덮는다. 실패 구간마다 한 번만 알린다.
+		PIEAutoRecorderNotification::ShowFailure(TEXT("OBS에 연결하지 못했습니다. WebSocket 서버와 포트를 확인하세요."));
 		bReportedConnectionFailure = true;
 	}
 	else
@@ -175,7 +179,22 @@ void FOBSWebSocketBackend::HandleClosed(int32 StatusCode, const FString& Reason,
 	UE_LOG(LogPIEAutoRecorder, Warning, TEXT("OBS 연결이 끊겼습니다. (코드=%d, 사유=%s, 정상종료=%s)"),
 		StatusCode, *Reason, bWasClean ? TEXT("예") : TEXT("아니오"));
 
+	// Identify를 보낸 직후 끊겼다면 인증 실패로 본다. 비밀번호를 고치기 전에는 재시도해도 결과가 같다.
+	const bool bAuthenticationFailed = (ConnectionState == EOBSConnectionState::Identifying);
+
 	FailAllPendingRequests(TEXT("연결이 끊겼습니다."));
+
+	if (bAuthenticationFailed)
+	{
+		// 비밀번호 값은 어떤 경우에도 로그에 남기지 않는다.
+		UE_LOG(LogPIEAutoRecorder, Error, TEXT("OBS 인증에 실패했습니다. 비밀번호를 확인하세요."));
+		PIEAutoRecorderNotification::ShowFailure(TEXT("OBS 인증에 실패했습니다. 비밀번호를 확인하세요."));
+
+		ConnectionState = EOBSConnectionState::Failed;
+		CancelReconnect();
+		return;
+	}
+
 	ConnectionState = EOBSConnectionState::Disconnected;
 	ScheduleReconnect();
 }
@@ -244,6 +263,7 @@ void FOBSWebSocketBackend::ProcessHello(const TSharedPtr<FJsonObject>& Data)
 		// 재연결해도 결과가 같으므로 Failed로 끝낸다. 사용자가 설정을 고쳐야 한다.
 		UE_LOG(LogPIEAutoRecorder, Error,
 			TEXT("OBS가 인증을 요구합니다. 비밀번호를 입력하거나 OBS에서 인증을 해제하세요."));
+		PIEAutoRecorderNotification::ShowFailure(TEXT("OBS가 인증을 요구합니다. 비밀번호를 입력하거나 OBS에서 인증을 해제하세요."));
 		ConnectionState = EOBSConnectionState::Failed;
 		CancelReconnect();
 		CancelConnectTimeout();
