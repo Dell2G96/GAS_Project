@@ -3,16 +3,23 @@
 
 #include "MyTags.h"
 
-
+// 태그 정의부. 순서는 MyTags.h의 선언 순서와 1:1로 맞춘다.
 namespace MyTags
 {
-	
+	// ===== 공용 =====
+	UE_DEFINE_GAMEPLAY_TAG(None,"MyTags.None")
+	UE_DEFINE_GAMEPLAY_TAG(InputTag_Toggleable,"InputTag.Toggleable")
+	UE_DEFINE_GAMEPLAY_TAG(InputTag_Toggleable_TargetLock,"InputTag.Toggleable.TargetLock")
 	UE_DEFINE_GAMEPLAY_TAG(Movement_Mode_Walking, "Movement.Mode.Walking");
 	UE_DEFINE_GAMEPLAY_TAG(Movement_Mode_NavWalking, "Movement.Mode.NavWalking");
 	UE_DEFINE_GAMEPLAY_TAG(Movement_Mode_Falling, "Movement.Mode.Falling");
 	UE_DEFINE_GAMEPLAY_TAG(Movement_Mode_Swimming, "Movement.Mode.Swimming");
 	UE_DEFINE_GAMEPLAY_TAG(Movement_Mode_Flying, "Movement.Mode.Flying");
 	UE_DEFINE_GAMEPLAY_TAG(Movement_Mode_Custom, "Movement.Mode.Custom");
+
+	// ----- 기타 -----
+	// UE_DEFINE_GAMEPLAY_TAG(InputTag_EquipKnife,"InputTag.EquipKnife")
+	// UE_DEFINE_GAMEPLAY_TAG(InputTag_UnEquipKnife,"InputTag.UnEquipKnife")
 
 	const TMap<uint8, FGameplayTag> MovementModeTagMap =
 	{
@@ -29,7 +36,7 @@ namespace MyTags
 		// Fill these in with your custom modes
 	};
 
-	
+	// ===== 초기화 단계 (Lyra InitState) =====
 	namespace InitState
 	{
 		UE_DEFINE_GAMEPLAY_TAG(Spawned,"InitState.Spawned")
@@ -37,145 +44,121 @@ namespace MyTags
 		UE_DEFINE_GAMEPLAY_TAG(DataInitialized, "InitState.DataInitialized")
 		UE_DEFINE_GAMEPLAY_TAG(GameplayReady, "InitState.GameplayReady")
 	}
-	
-	UE_DEFINE_GAMEPLAY_TAG(None,"MyTags.None")
 
+	// ===== Lyra 프레임워크 이식분 =====
 	namespace Lyra
 	{
+		// ----- 입력 -----
 		UE_DEFINE_GAMEPLAY_TAG(InputTag_Move,"InputTag.Move")
 		UE_DEFINE_GAMEPLAY_TAG(InputTag_Look_Mouse,"InputTag.Look.Mouse")
-		
 		UE_DEFINE_GAMEPLAY_TAG(InputTag_Weapon_Fire,"InputTag.Weapon.Fire")
-		
 
-		// UI
+		// ----- 어빌리티 -----
+		UE_DEFINE_GAMEPLAY_TAG(Ability_Interaction_Activate, "Ability.Interaction.Activate");
+		UE_DEFINE_GAMEPLAY_TAG(Ability_Interaction_Duraction_Message, "Ability.Interaction.Duration.Message");
+
+		// ----- 상태 -----
+		// UE_DEFINE_GAMEPLAY_TAG(Status_Death_Dying, "Lyra.Status.Death.Dying")
+		// UE_DEFINE_GAMEPLAY_TAG(Status_Death_Dead, "Lyra.Status.Death.Dead")
+		UE_DEFINE_GAMEPLAY_TAG(Status_Crouching, "Lyra.Status.Crouching")
+
+		// ----- 메시지 채널 -----
+		UE_DEFINE_GAMEPLAY_TAG(Lyra_QickBar_Message_SlotsChanged, "Lyra.QuickBar.Message.SlotsChanged")
+		UE_DEFINE_GAMEPLAY_TAG(Lyra_QickBar_Message_ActiveIndexChanged, "Lyra.QuickBar.Message.ActiveIndexChanged")
+		UE_DEFINE_GAMEPLAY_TAG(Lyra_Elimination_Message, "Lyra.Elimination.Message")
+		UE_DEFINE_GAMEPLAY_TAG(Lyra_Enemy_Found, "Lyra.Enemy.Found")
+		UE_DEFINE_GAMEPLAY_TAG(Lyra_Enemy_Lost, "Lyra.Enemy.Lost")
+
+		// ----- UI / 플랫폼 -----
 		UE_DEFINE_GAMEPLAY_TAG(UI_Layer_Game,"UI.Layer.Game")
 		UE_DEFINE_GAMEPLAY_TAG(UI_Layer_GameMenu,"UI.Layer.GameMenu")
 		UE_DEFINE_GAMEPLAY_TAG(UI_Layer_Menu,"UI.Layer.Menu")
 		UE_DEFINE_GAMEPLAY_TAG(UI_Layer_Modal,"UI.Layer.Modal")
-		
 		UE_DEFINE_GAMEPLAY_TAG(Platform_Trait_Input_PrimarlyController,"Platform.Trait.Input.PrimarlyController")
-
-		// Ability
-		UE_DEFINE_GAMEPLAY_TAG(Ability_Interaction_Activate, "Ability.Interaction.Activate");
-		UE_DEFINE_GAMEPLAY_TAG(Ability_Interaction_Duraction_Message, "Ability.Interaction.Duration.Message");
-		
-	
-
-		UE_DEFINE_GAMEPLAY_TAG(Lyra_QickBar_Message_SlotsChanged, "Lyra.QuickBar.Message.SlotsChanged")
-		UE_DEFINE_GAMEPLAY_TAG(Lyra_QickBar_Message_ActiveIndexChanged, "Lyra.QuickBar.Message.ActiveIndexChanged")
-
-
-		UE_DEFINE_GAMEPLAY_TAG(Lyra_Elimination_Message, "Lyra.Elimination.Message")
-
-		
-		UE_DEFINE_GAMEPLAY_TAG(Lyra_Enemy_Found, "Lyra.Enemy.Found")
-		UE_DEFINE_GAMEPLAY_TAG(Lyra_Enemy_Lost, "Lyra.Enemy.Lost")
-
-		//Status
-		UE_DEFINE_GAMEPLAY_TAG(Status_Death_Dying, "Lyra.Status.Death.Dying")
-		UE_DEFINE_GAMEPLAY_TAG(Status_Death_Dead, "Lyra.Status.Death.Dead")
-		UE_DEFINE_GAMEPLAY_TAG(Status_Crouching, "Lyra.Status.Crouching")
-		
-
 	}
 
+	// ===== 소울라이크 신규 계열 =====
 	namespace Souls
 	{
-		// InputTag
+		// ----- 입력 (InputTag) -----
 		UE_DEFINE_GAMEPLAY_TAG(InputTag_BowAim,"InputTag.BowAim")
 		UE_DEFINE_GAMEPLAY_TAG(InputTag_BowFire,"InputTag.BowFire")
+		// [신규] Player 약공격/강공격 입력 태그
+		UE_DEFINE_GAMEPLAY_TAG(InputTag_Attack_Light, "Souls.InputTag.Attack.Light")
+		UE_DEFINE_GAMEPLAY_TAG(InputTag_Attack_Heavy, "Souls.InputTag.Attack.Heavy")
+		// 26.07.16
+		UE_DEFINE_GAMEPLAY_TAG(InputTag_Guard,"InputTag.Guard")
+		UE_DEFINE_GAMEPLAY_TAG(InputTag_Dodge,"InputTag.Dodge")
 		// 처형/암살 공용 입력 태그
 		UE_DEFINE_GAMEPLAY_TAG(InputTag_Finisher,"InputTag.Finisher")
-
 		// [신규] 타겟 락온 입력 태그
 		UE_DEFINE_GAMEPLAY_TAG(InputTag_TargetLock,"InputTag.TargetLock")
 		UE_DEFINE_GAMEPLAY_TAG(InputTag_TargetLock_SwitchLeft,"InputTag.TargetLock.SwitchLeft")
 		UE_DEFINE_GAMEPLAY_TAG(InputTag_TargetLock_SwitchRight,"InputTag.TargetLock.SwitchRight")
 
-		// ===== [방어 메커니즘 신규 입력 태그] =====
-		// 26.07.16
-		UE_DEFINE_GAMEPLAY_TAG(InputTag_Guard,"InputTag.Guard")
-		UE_DEFINE_GAMEPLAY_TAG(InputTag_Dodge,"InputTag.Dodge")
-		//UE_DEFINE_GAMEPLAY_TAG(InputTag_Look_Mouse,"InputTag.Look.Mouse")
-		//
-		
-		//Gameplay
-		UE_DEFINE_GAMEPLAY_TAG(Gameplay_Damage, "Souls.Gameplay.Damage")             
-		UE_DEFINE_GAMEPLAY_TAG(Gameplay_DamageImmunity, "Souls.Gameplay.DamageImmunity")     
-		UE_DEFINE_GAMEPLAY_TAG(Gameplay_DamageSelfDestruct, "Souls.Gameplay.SelfDestruct") 
-		UE_DEFINE_GAMEPLAY_TAG(Gameplay_FellOutOfWorld, "Souls.Gameplay.FellOutOfWorld")    
-		UE_DEFINE_GAMEPLAY_TAG(Gameplay_Damage_Message, "Souls.Gameplay.Message")
-		UE_DEFINE_GAMEPLAY_TAG(Gameplay_MovementStopped, "Souls.Gameplay.MovementStopped")
-		
-
-		//Ability
-		UE_DEFINE_GAMEPLAY_TAG(Ability_Type_Action_BowAim, "Souls.Ability.Type.Action.BowAim")
-		UE_DEFINE_GAMEPLAY_TAG(Ability_Type_Action_BowFire, "Souls.Ability.Type_Action.BowFire")
-		
+		// ----- 어빌리티 식별 태그 (AbilityTags / CancelAbilities 매칭용) -----
+		// 약공격/강공격 어빌리티 식별 태그 (각 BP의 AbilityTags에서 사용)
+		UE_DEFINE_GAMEPLAY_TAG(Ability_Attack_Melee_Light, "Souls.Abilities.Attack.Melee.Light")
+		UE_DEFINE_GAMEPLAY_TAG(Ability_Attack_Melee_Heavy, "Souls.Abilities.Attack.Melee.Heavy")
+		UE_DEFINE_GAMEPLAY_TAG(Ability_Guard, "Souls.Abilities.Guard")
+		UE_DEFINE_GAMEPLAY_TAG(Ability_Dodge, "Souls.Abilities.Dodge")
+		UE_DEFINE_GAMEPLAY_TAG(Ability_HitReaction, "Souls.Abilities.HitReaction")
 		UE_DEFINE_GAMEPLAY_TAG(Ability_Execution, "Souls.Abilities.Execution")
 		UE_DEFINE_GAMEPLAY_TAG(Ability_Assassination, "Souls.Abilities.Assassination")
 		UE_DEFINE_GAMEPLAY_TAG(Ability_AssassinationVictim, "Souls.Abilities.AssassinationVictim")
-
-		// CoolDown
-		UE_DEFINE_GAMEPLAY_TAG(Cooldown_BowFire, "Souls.Cooldown.BowFire")
-		
-		
-		//GameplayEvent
-		UE_DEFINE_GAMEPLAY_TAG(GameplayEvent_Death, "Souls.GameplayEvent.Death")
-		UE_DEFINE_GAMEPLAY_TAG(GameplayEvent_Bow_SpawnArrow, "Souls.GameplayEvent.Bow.SpawnArrow")
-
-
-		//SetByCaller
-		UE_DEFINE_GAMEPLAY_TAG(SetByCaller_Damage, "Souls.SetByCaller.Damage")
-
-		
+		UE_DEFINE_GAMEPLAY_TAG(Ability_TargetLock, "Souls.Abilities.TargetLock")
+		UE_DEFINE_GAMEPLAY_TAG(Ability_Type_Action_BowAim, "Souls.Ability.Type.Action.BowAim")
+		UE_DEFINE_GAMEPLAY_TAG(Ability_Type_Action_BowFire, "Souls.Ability.Type_Action.BowFire")
 		UE_DEFINE_GAMEPLAY_TAG(Ability_Behavior_SurvivesDeath, "Souls.Ability.Behavior.SurvivesDeath")
 
-		//Event
-		UE_DEFINE_GAMEPLAY_TAG(Event_Movement_BowAnim, "Souls.Event.Movement.BowAnim")
-		UE_DEFINE_GAMEPLAY_TAG(Event_Assassination_Start, "Souls.Events.Assassination.Start")
-		UE_DEFINE_GAMEPLAY_TAG(Event_Assassination_End, "Souls.Events.Assassination.End")
-		UE_DEFINE_GAMEPLAY_TAG(Event_Execution_Start, "Souls.Events.Execution.Start")
-		UE_DEFINE_GAMEPLAY_TAG(Event_Execution_End, "Souls.Events.Execution.End")
-		UE_DEFINE_GAMEPLAY_TAG(Event_BeFinished, "Souls.Events.Finish.BeFinished")
-		
-		// 피니셔 데미지 타이밍 이벤트 (AnimNotify → GA_Finisher)
-		UE_DEFINE_GAMEPLAY_TAG(Event_Finisher_Damage, "Souls.Events.Finisher.Damage")
+		// ----- 쿨다운 -----
+		UE_DEFINE_GAMEPLAY_TAG(Cooldown_BowFire, "Souls.Cooldown.BowFire")
 
-		// 피니셔 프롬프트 UI 메시지 채널
-		UE_DEFINE_GAMEPLAY_TAG(Message_Finisher_Prompt, "Souls.Message.Finisher.Prompt")
+		// ----- 공통 게임플레이 -----
+		UE_DEFINE_GAMEPLAY_TAG(Gameplay_Damage, "Souls.Gameplay.Damage")
+		UE_DEFINE_GAMEPLAY_TAG(Gameplay_DamageImmunity, "Souls.Gameplay.DamageImmunity")
+		UE_DEFINE_GAMEPLAY_TAG(Gameplay_DamageSelfDestruct, "Souls.Gameplay.SelfDestruct")
+		UE_DEFINE_GAMEPLAY_TAG(Gameplay_FellOutOfWorld, "Souls.Gameplay.FellOutOfWorld")
+		UE_DEFINE_GAMEPLAY_TAG(Gameplay_Damage_Message, "Souls.Gameplay.Message")
+		UE_DEFINE_GAMEPLAY_TAG(Gameplay_MovementStopped, "Souls.Gameplay.MovementStopped")
 
-		// GameplayCue
-		UE_DEFINE_GAMEPLAY_TAG(GameplayCue_FinishIndicator, "GameplayCue.Souls.FinishIndicator")
-		
-		
-		// Status
-		//Execution
-		UE_DEFINE_GAMEPLAY_TAG(Status_Groggy, "Souls.Status.Groggy")
-		UE_DEFINE_GAMEPLAY_TAG(Status_Executing, "Souls.Status.Executing")
-		UE_DEFINE_GAMEPLAY_TAG(Status_Executed, "Souls.Status.Executed")
-		UE_DEFINE_GAMEPLAY_TAG(Status_Assassinating, "Souls.Status.Assassinating")
-		UE_DEFINE_GAMEPLAY_TAG(Status_Assassinated, "Souls.Status.Assassinated")
-		UE_DEFINE_GAMEPLAY_TAG(Status_Unaware, "Souls.Status.Unaware")
-		UE_DEFINE_GAMEPLAY_TAG(Status_Vulnerable_Execution, "Souls.Status.Vulnerable.Execution")
-		UE_DEFINE_GAMEPLAY_TAG(Status_Invincible, "Souls.Status.Invincible")
-		// 피해자: 처형/암살 당하는 중
-		UE_DEFINE_GAMEPLAY_TAG(Status_Finisher_Victim, "Souls.Status.Finisher.Victim")
-
-		
+		// ----- 상태 - 전투 (공격/방어) -----
 		//  근접 공격 어빌리티 식별 태그 (TryActivateAbilityByTag 사용)
 		UE_DEFINE_GAMEPLAY_TAG(Status_Attack_Melee, "Souls.Status.Attack.Melee")
 		// 공격 중 상태 태그 (ActivationOwnedTags로 자동 부여/제거)
 		UE_DEFINE_GAMEPLAY_TAG(Status_Attack_Attacking, "Souls.Status.Attack.Attacking")
+		UE_DEFINE_GAMEPLAY_TAG(Status_Guard_Active, "Souls.Status.Guard.Active")
+		UE_DEFINE_GAMEPLAY_TAG(Status_Guard_Perfect, "Souls.Status.Guard.Perfect")
+		UE_DEFINE_GAMEPLAY_TAG(Status_Dodge_Active, "Souls.Status.Dodge.Active")
+		UE_DEFINE_GAMEPLAY_TAG(Status_Dodge_Perfect, "Souls.Status.Dodge.Perfect")
+		UE_DEFINE_GAMEPLAY_TAG(Status_CounterWindow, "Souls.Status.CounterWindow")
+		UE_DEFINE_GAMEPLAY_TAG(Status_Stamina_RegenBlocked, "Souls.Status.Stamina.RegenBlocked")
+		UE_DEFINE_GAMEPLAY_TAG(Status_Invincible, "Souls.Status.Invincible")
+
+		// ----- 상태 - 처형/암살 (피니셔) -----
+		UE_DEFINE_GAMEPLAY_TAG(Status_Groggy, "Souls.Status.Groggy")
+		UE_DEFINE_GAMEPLAY_TAG(Status_Vulnerable_Execution, "Souls.Status.Vulnerable.Execution")
+		UE_DEFINE_GAMEPLAY_TAG(Status_Executing, "Souls.Status.Executing")
+		UE_DEFINE_GAMEPLAY_TAG(Status_Executed, "Souls.Status.Executed")
+		UE_DEFINE_GAMEPLAY_TAG(Status_Assassinating, "Souls.Status.Assassinating")
+		UE_DEFINE_GAMEPLAY_TAG(Status_Assassinated, "Souls.Status.Assassinated")
+		// 피해자: 처형/암살 당하는 중
+		UE_DEFINE_GAMEPLAY_TAG(Status_Finisher_Victim, "Souls.Status.Finisher.Victim")
+		UE_DEFINE_GAMEPLAY_TAG(Status_Unaware, "Souls.Status.Unaware")
+
+		// ----- 상태 - 사망 / 락온 -----
+		UE_DEFINE_GAMEPLAY_TAG(Status_Death_Dying, "Souls.Status.Death.Dying")
+		UE_DEFINE_GAMEPLAY_TAG(Status_Death_Dead, "Souls.Status.Death.Dead")
+		UE_DEFINE_GAMEPLAY_TAG(Status_TargetLock, "Souls.Status.TargetLock")
+
+		// ----- 이벤트 - 사망 / 이동 -----
+		UE_DEFINE_GAMEPLAY_TAG(GameplayEvent_Death, "Souls.GameplayEvent.Death")
+		UE_DEFINE_GAMEPLAY_TAG(GameplayEvent_Bow_SpawnArrow, "Souls.GameplayEvent.Bow.SpawnArrow")
+		UE_DEFINE_GAMEPLAY_TAG(Event_Movement_BowAnim, "Souls.Event.Movement.BowAnim")
+
+		// ----- 이벤트 - 공격 (몽타주 AnimNotify 발신) -----
 		// [신규] 공격 단계별 스태미나 비용 이벤트 (몽타주 Notify → AttackMelee 반복 수신)
 		UE_DEFINE_GAMEPLAY_TAG(Event_Attack_CommitStep, "Souls.Events.Attack.CommitStep")
-		// 약공격/강공격 어빌리티 식별 태그 (각 BP의 AbilityTags에서 사용)
-		UE_DEFINE_GAMEPLAY_TAG(Ability_Attack_Melee_Light, "Souls.Abilities.Attack.Melee.Light")
-		UE_DEFINE_GAMEPLAY_TAG(Ability_Attack_Melee_Heavy, "Souls.Abilities.Attack.Melee.Heavy")
-		// [신규] Player 약공격/강공격 입력 태그
-		UE_DEFINE_GAMEPLAY_TAG(InputTag_Attack_Light, "Souls.InputTag.Attack.Light")
-		UE_DEFINE_GAMEPLAY_TAG(InputTag_Attack_Heavy, "Souls.InputTag.Attack.Heavy")
 		// [신규] 콤보 입력 허용 구간 시작/끝
 		UE_DEFINE_GAMEPLAY_TAG(Event_Attack_ComboWindowOpen, "Souls.Events.Attack.ComboWindowOpen")
 		UE_DEFINE_GAMEPLAY_TAG(Event_Attack_ComboWindowClose, "Souls.Events.Attack.ComboWindowClose")
@@ -184,90 +167,95 @@ namespace MyTags
 		// [신규] Warp 타깃 재계산 이벤트 (다단 공격의 2번째+ Warp 구간 직전에 Lee Gameplay Event(Server) 노티파이가 발사)
 		UE_DEFINE_GAMEPLAY_TAG(Event_Attack_RefreshWarpTarget, "Souls.Events.Attack.RefreshWarpTarget")
 
-		// 타겟 락온
-		UE_DEFINE_GAMEPLAY_TAG(Ability_TargetLock, "Souls.Abilities.TargetLock")
-		UE_DEFINE_GAMEPLAY_TAG(Status_TargetLock, "Souls.Status.TargetLock")
-		UE_DEFINE_GAMEPLAY_TAG(Message_TargetLock, "Souls.Message.TargetLock")
-
-		// ===== [방어 메커니즘 신규 태그] 퍼펙트 가드/패리/퍼펙트 회피/가드 브레이크 =====
-
-		// 어빌리티 식별 태그
-		UE_DEFINE_GAMEPLAY_TAG(Ability_Guard, "Souls.Abilities.Guard")
-		UE_DEFINE_GAMEPLAY_TAG(Ability_Dodge, "Souls.Abilities.Dodge")
-		UE_DEFINE_GAMEPLAY_TAG(Ability_HitReaction, "Souls.Abilities.HitReaction")
-
-		// 상태 태그
-		// Guard
-		UE_DEFINE_GAMEPLAY_TAG(Status_Guard_Active, "Souls.Status.Guard.Active")
-		UE_DEFINE_GAMEPLAY_TAG(Status_Guard_Perfect, "Souls.Status.Guard.Perfect")
-		
-		// Dodge
-		UE_DEFINE_GAMEPLAY_TAG(Status_Dodge_Active, "Souls.Status.Dodge.Active")
-		UE_DEFINE_GAMEPLAY_TAG(Status_Dodge_Perfect, "Souls.Status.Dodge.Perfect")
-		
-		UE_DEFINE_GAMEPLAY_TAG(Status_CounterWindow, "Souls.Status.CounterWindow")
-		UE_DEFINE_GAMEPLAY_TAG(Status_Stamina_RegenBlocked, "Souls.Status.Stamina.RegenBlocked")
-
-		// 방어 판정 이벤트
+		// ----- 이벤트 - 방어 판정 (ULeeDefenseComponent 발신) -----
 		UE_DEFINE_GAMEPLAY_TAG(Event_Defense_GuardHit, "Souls.Events.Defense.GuardHit")
 		UE_DEFINE_GAMEPLAY_TAG(Event_Defense_PerfectGuard, "Souls.Events.Defense.PerfectGuard")
 		UE_DEFINE_GAMEPLAY_TAG(Event_Defense_PerfectDodge, "Souls.Events.Defense.PerfectDodge")
-		
-		UE_DEFINE_GAMEPLAY_TAG(Event_Combat_Parried, "Souls.Events.Combat.Parried")
+
+		// ----- 이벤트 - 피격 리액션 -----
 		UE_DEFINE_GAMEPLAY_TAG(Event_Combat_HitReact, "Souls.Events.Combat.HitReact")
 		// 강공격 피격 이벤트 (HitReact의 형제 태그)
 		UE_DEFINE_GAMEPLAY_TAG(Event_Combat_HitReactHeavy, "Souls.Events.Combat.HitReactHeavy")
+		UE_DEFINE_GAMEPLAY_TAG(Event_Combat_Parried, "Souls.Events.Combat.Parried")
 		UE_DEFINE_GAMEPLAY_TAG(Event_Combat_GuardBreak, "Souls.Events.Combat.GuardBreak")
 		UE_DEFINE_GAMEPLAY_TAG(Event_Combat_PostureBreak, "Souls.Events.Combat.PostureBreak")
 
+		// ----- 이벤트 - 처형/암살 (피니셔) -----
+		UE_DEFINE_GAMEPLAY_TAG(Event_Execution_Start, "Souls.Events.Execution.Start")
+		UE_DEFINE_GAMEPLAY_TAG(Event_Execution_End, "Souls.Events.Execution.End")
+		UE_DEFINE_GAMEPLAY_TAG(Event_Assassination_Start, "Souls.Events.Assassination.Start")
+		UE_DEFINE_GAMEPLAY_TAG(Event_Assassination_End, "Souls.Events.Assassination.End")
+		UE_DEFINE_GAMEPLAY_TAG(Event_BeFinished, "Souls.Events.Finish.BeFinished")
+		// 피니셔 데미지 타이밍 이벤트 (AnimNotify → GA_Finisher)
+		UE_DEFINE_GAMEPLAY_TAG(Event_Finisher_Damage, "Souls.Events.Finisher.Damage")
+
+		// ----- 이벤트 - i-frame 윈도우 -----
 		// i-frame 윈도우 이벤트 (AnimNotifyState 보조 신호)
 		UE_DEFINE_GAMEPLAY_TAG(Event_Window_IFrame_Begin, "Souls.Events.Window.IFrame.Begin")
 		UE_DEFINE_GAMEPLAY_TAG(Event_Window_IFrame_End, "Souls.Events.Window.IFrame.End")
 
-		// 데미지 판정 결과 (ExecCalc → Spec DynamicAssetTags)
+		// ----- UI 메시지 채널 (GameplayMessageSubsystem) -----
+		UE_DEFINE_GAMEPLAY_TAG(Message_Finisher_Prompt, "Souls.Message.Finisher.Prompt")
+		UE_DEFINE_GAMEPLAY_TAG(Message_TargetLock, "Souls.Message.TargetLock")
+
+		// ----- 데미지 판정 결과 (ExecCalc → Spec DynamicAssetTags) -----
 		UE_DEFINE_GAMEPLAY_TAG(DamageResult_HitReact, "Souls.DamageResult.HitReact")
 		UE_DEFINE_GAMEPLAY_TAG(DamageResult_GuardHit, "Souls.DamageResult.GuardHit")
 		UE_DEFINE_GAMEPLAY_TAG(DamageResult_PerfectGuard, "Souls.DamageResult.PerfectGuard")
 		UE_DEFINE_GAMEPLAY_TAG(DamageResult_PerfectDodge, "Souls.DamageResult.PerfectDodge")
 
-		// 스태미나 감소 원인 태그 (GuardBreak/PostureBreak 분기 근거)
-		UE_DEFINE_GAMEPLAY_TAG(DamageType_ParryCounter, "Souls.DamageType.ParryCounter")
-		UE_DEFINE_GAMEPLAY_TAG(DamageType_DodgeCost, "Souls.DamageType.DodgeCost")
+		// ----- 데미지 속성 / 원인 -----
 		// 강공격 속성 태그 (공격 GE Spec의 DynamicAssetTag로 전달)
 		UE_DEFINE_GAMEPLAY_TAG(DamageType_Attack_Heavy, "Souls.DamageType.Attack.Heavy")
 		// 가드 불가 속성 태그 (정의만, 실제 판정 분기는 추후 구현)
 		UE_DEFINE_GAMEPLAY_TAG(DamageType_Attack_Unblockable, "Souls.DamageType.Attack.Unblockable")
+		// 스태미나 감소 원인 태그 (GuardBreak/PostureBreak 분기 근거)
+		UE_DEFINE_GAMEPLAY_TAG(DamageType_ParryCounter, "Souls.DamageType.ParryCounter")
+		UE_DEFINE_GAMEPLAY_TAG(DamageType_DodgeCost, "Souls.DamageType.DodgeCost")
 
-		// SetByCaller
+		// ----- SetByCaller -----
+		UE_DEFINE_GAMEPLAY_TAG(SetByCaller_Damage, "Souls.SetByCaller.Damage")
 		UE_DEFINE_GAMEPLAY_TAG(SetByCaller_StaminaDamage, "Souls.SetByCaller.StaminaDamage")
 		UE_DEFINE_GAMEPLAY_TAG(SetByCaller_Duration, "Souls.SetByCaller.Duration")
 
-		// GameplayCue
+		// ----- GameplayCue -----
+		UE_DEFINE_GAMEPLAY_TAG(GameplayCue_FinishIndicator, "GameplayCue.Souls.FinishIndicator")
 		UE_DEFINE_GAMEPLAY_TAG(GameplayCue_Dodge_Perfect, "GameplayCue.Souls.Dodge.Perfect")
-		
+
+		// ----- AI - 어택 토큰 Quota (ULeeAttackTokenComponent) -----
+		UE_DEFINE_GAMEPLAY_TAG(Attacker_Melee, "Souls.Attacker.Melee")
+		UE_DEFINE_GAMEPLAY_TAG(Attacker_Melee_Light, "Souls.Attacker.Melee.Light")
+		UE_DEFINE_GAMEPLAY_TAG(Attacker_Melee_Heavy, "Souls.Attacker.Melee.Heavy")
+		UE_DEFINE_GAMEPLAY_TAG(Attacker_Ranged, "Souls.Attacker.Ranged")
+
+		// ----- AI - StateTree 이벤트 (SendStateTreeEvent) -----
+		UE_DEFINE_GAMEPLAY_TAG(AIEvent_Died, "Souls.AI.Event.Died")
+		UE_DEFINE_GAMEPLAY_TAG(AIEvent_TargetChanged, "Souls.AI.Event.TargetChanged")
+		UE_DEFINE_GAMEPLAY_TAG(AIEvent_TargetInvalidated, "Souls.AI.Event.TargetInvalidated")
+
+		UE_DEFINE_GAMEPLAY_TAG(AIEvent_Groggy_Begin, "Souls.AI.Event.Groggy.Begin")
+		 UE_DEFINE_GAMEPLAY_TAG(AIEvent_Groggy_End, "Souls.AI.Event.Groggy.End")
+
+		// ----- 기타 -----
+		//UE_DEFINE_GAMEPLAY_TAG(InputTag_Look_Mouse,"InputTag.Look.Mouse")
 	}
 
-	/** Input Tags **/
-	// UE_DEFINE_GAMEPLAY_TAG(InputTag_EquipKnife,"InputTag.EquipKnife")
-	// UE_DEFINE_GAMEPLAY_TAG(InputTag_UnEquipKnife,"InputTag.UnEquipKnife")
-	UE_DEFINE_GAMEPLAY_TAG(InputTag_Toggleable,"InputTag.Toggleable")
-	UE_DEFINE_GAMEPLAY_TAG(InputTag_Toggleable_TargetLock,"InputTag.Toggleable.TargetLock")
-	
-
+	// ===== 레거시 계열 (C 접두사 클래스에서 사용) =====
 	namespace SetByCaller
 	{
 		UE_DEFINE_GAMEPLAY_TAG_COMMENT(Projectile, "MyTags.SetByCaller.Projectile", "Tag for Set by Caller Magnitude for Projectiles")
-	
 	}
-	
+
 	namespace Abilities
 	{
+		// ----- 공용 -----
 		UE_DEFINE_GAMEPLAY_TAG(ActivateOnGiven, "MyTags.Abilities.ActivateOnGiven")
-		UE_DEFINE_GAMEPLAY_TAG(Roll, "MyTags.Abilities.Roll")
-		UE_DEFINE_GAMEPLAY_TAG(Guard, "MyTags.Abilities.Guard")
-		
-		UE_DEFINE_GAMEPLAY_TAG(TargetLock, "MyTags.Abilities.TargetLock")
-		
+
+		// ----- 기본 공격 / 콤보 -----
+		UE_DEFINE_GAMEPLAY_TAG(BasicAttack, "MyTags.Abilities.BasicAttack")
+		UE_DEFINE_GAMEPLAY_TAG(BasicAttackPressed, "MyTags.Abilities.BasicAttack.Pressed")
+		UE_DEFINE_GAMEPLAY_TAG(BasicAttackReleased, "MyTags.Abilities.BasicAttack.Released")
+		UE_DEFINE_GAMEPLAY_TAG(HeavyAttack, "MyTags.Abilities.HeavyAttack")
 		UE_DEFINE_GAMEPLAY_TAG(ComboChange, "MyTags.Abilities.Combo.Change")
 		UE_DEFINE_GAMEPLAY_TAG(Combo1, "MyTags.Abilities.Combo.Change.Combo01")
 		UE_DEFINE_GAMEPLAY_TAG(Combo2, "MyTags.Abilities.Combo.Change.Combo02")
@@ -275,131 +263,130 @@ namespace MyTags
 		UE_DEFINE_GAMEPLAY_TAG(Combo4, "MyTags.Abilities.Combo.Change.Combo04")
 		UE_DEFINE_GAMEPLAY_TAG(ComboChangeEnd, "MyTags.Abilities.Combo.Change.End")
 		UE_DEFINE_GAMEPLAY_TAG(ComboDamage, "MyTags.Abilities.Combo.Damage")
-		
-		UE_DEFINE_GAMEPLAY_TAG(HitStop, "MyTags.Abilities.HitStop")
 
+		// ----- 가드 / 회피 -----
+		UE_DEFINE_GAMEPLAY_TAG(Guard, "MyTags.Abilities.Guard")
 		UE_DEFINE_GAMEPLAY_TAG(GuardPressed, "MyTags.Abilities.Guard.Pressed")
 		UE_DEFINE_GAMEPLAY_TAG(GuardReleased, "MyTags.Abilities.Guard.Released")
+		UE_DEFINE_GAMEPLAY_TAG(Roll, "MyTags.Abilities.Roll")
 
-		UE_DEFINE_GAMEPLAY_TAG(BasicAttack, "MyTags.Abilities.BasicAttack")
-		UE_DEFINE_GAMEPLAY_TAG(BasicAttackPressed, "MyTags.Abilities.BasicAttack.Pressed")
-		UE_DEFINE_GAMEPLAY_TAG(BasicAttackReleased, "MyTags.Abilities.BasicAttack.Released")
-		UE_DEFINE_GAMEPLAY_TAG(HeavyAttack, "MyTags.Abilities.HeavyAttack")
-		UE_DEFINE_GAMEPLAY_TAG(Tertiary, "MyTags.Abilities.Tertiary")
-
-		
-		UE_DEFINE_GAMEPLAY_TAG(Launch, "MyTags.Abilities.Launch")
-		
+		// ----- 처형 -----
 		UE_DEFINE_GAMEPLAY_TAG(Execution, "MyTags.Abilities.Execution")
 		UE_DEFINE_GAMEPLAY_TAG(Victim, "MyTags.Abilities.Victim")
 
-		
+		// ----- 기타 -----
+		UE_DEFINE_GAMEPLAY_TAG(TargetLock, "MyTags.Abilities.TargetLock")
+		UE_DEFINE_GAMEPLAY_TAG(HitStop, "MyTags.Abilities.HitStop")
+		UE_DEFINE_GAMEPLAY_TAG(Launch, "MyTags.Abilities.Launch")
+		UE_DEFINE_GAMEPLAY_TAG(Tertiary, "MyTags.Abilities.Tertiary")
 
-		
 		namespace Equip
 		{
 			UE_DEFINE_GAMEPLAY_TAG(EquipKnife, "MyTags.Abilities.Equip.Knife")
 		}
+
 		namespace UnEquip
 		{
-			UE_DEFINE_GAMEPLAY_TAG(UnEquipKnife, "MyTags.Abilities.UnEquip.Knife")	
+			UE_DEFINE_GAMEPLAY_TAG(UnEquipKnife, "MyTags.Abilities.UnEquip.Knife")
 		}
-		
 
 		namespace Enemy
 		{
-			UE_DEFINE_GAMEPLAY_TAG(Range, "MyTags.Abilities.Enemy.Range")
 			UE_DEFINE_GAMEPLAY_TAG(Melee, "MyTags.Abilities.Enemy.Melee")
 			UE_DEFINE_GAMEPLAY_TAG(Melee_Attack, "MyTags.Abilities.Enemy.Melee.Attack")
+			UE_DEFINE_GAMEPLAY_TAG(Range, "MyTags.Abilities.Enemy.Range")
 			UE_DEFINE_GAMEPLAY_TAG(Range_Attack, "MyTags.Abilities.Enemy.Range.Attack")
 			UE_DEFINE_GAMEPLAY_TAG(Trace, "MyTags.Abilities.Enemy.Trace")
 		}
-	}
+	}	// Abilities
 
 	namespace Events
 	{
+		// ----- 가드 -----
 		UE_DEFINE_GAMEPLAY_TAG(Block_Hit, "MyTags.Events.Block.Hit")
 		UE_DEFINE_GAMEPLAY_TAG(Block_Perfect, "MyTags.Events.Block.Perfect")
-		
+
+		// ----- 타겟 전환 -----
 		UE_DEFINE_GAMEPLAY_TAG(SwitchTarget_Left, "MyTags.Events.SwitchTarget.Left")
 		UE_DEFINE_GAMEPLAY_TAG(SwitchTarget_Right, "MyTags.Events.SwitchTarget.Right")
 
-		
+		// ----- 투사체 -----
 		UE_DEFINE_GAMEPLAY_TAG(SpawnProjectile, "MyTags.Events.SpawnProjectile")
-		
-		
+
 		namespace Combo
 		{
 			UE_DEFINE_GAMEPLAY_TAG(Combo_Start, "MyTags.Events.Combo.Start")
 			UE_DEFINE_GAMEPLAY_TAG(Combo_End, "MyTags.Events.Combo.End")
 		}
+
 		namespace Trace
 		{
 			UE_DEFINE_GAMEPLAY_TAG(Trace_Start, "MyTags.Events.Trace.Start")
 			UE_DEFINE_GAMEPLAY_TAG(Trace_End, "MyTags.Events.Trace.End")
 		}
-		
+
 		namespace Hit
 		{
 			UE_DEFINE_GAMEPLAY_TAG(Hit, "MyTags.Events.Hit")
-			UE_DEFINE_GAMEPLAY_TAG(HitStop, "MyTags.Events.HitStop")
 			UE_DEFINE_GAMEPLAY_TAG(LightHit, "MyTags.Events.Hit.LightHit")
 			UE_DEFINE_GAMEPLAY_TAG(HeavyHit, "MyTags.Events.Hit.HeavyHit")
+			UE_DEFINE_GAMEPLAY_TAG(HitStop, "MyTags.Events.HitStop")
 		}
+
 		namespace Equip
 		{
 			UE_DEFINE_GAMEPLAY_TAG(Knife,"MyTags.Events.Equip.Knife")
-			
 		}
-	
+
 		namespace UnEquip
 		{
 			UE_DEFINE_GAMEPLAY_TAG(Knife,"MyTags.Events.UnEquip.Knife")
 		}
-		
-		
-		
+
 		namespace Player
 		{
 			UE_DEFINE_GAMEPLAY_TAG(HitReact, "MyTags.Events.Player.HitReact")
 			UE_DEFINE_GAMEPLAY_TAG(Knockdown, "MyTags.Events.Player.Knockdown")
 			UE_DEFINE_GAMEPLAY_TAG(Death, "MyTags.Events.Player.Death")
 		}
-	
+
 		namespace Enemy
 		{
 			UE_DEFINE_GAMEPLAY_TAG(HitReact, "MyTags.Events.Enemy.HitReact")
 			UE_DEFINE_GAMEPLAY_TAG(EndAttack, "MyTags.Events.Enemy.EndAttack")
 			UE_DEFINE_GAMEPLAY_TAG(MeleeTraceHit, "MyTags.Events.Enemy.MeleeTraceHit")
 		}
-	}
+	}	// Events
+
 	namespace Status
 	{
+		// ----- 가드 -----
 		UE_DEFINE_GAMEPLAY_TAG(Guarding, "MyTags.Status.Guarding")
 		UE_DEFINE_GAMEPLAY_TAG(PerfectGuard, "MyTags.Status.PerfectGuard")
-		
+
+		// ----- 락온 / 이동 -----
 		UE_DEFINE_GAMEPLAY_TAG(TargetLock, "MyTags.Status.TargetLock")
-		
 		UE_DEFINE_GAMEPLAY_TAG(Strafing, "MyTags.Status.Strafing")
-		UE_DEFINE_GAMEPLAY_TAG(UnderAttack, "MyTags.Status.UnderAttack")
-		
+		UE_DEFINE_GAMEPLAY_TAG(Rolling, "MyTags.Status.Rolling")
+
+		// ----- 장비 / 전투 모드 -----
 		UE_DEFINE_GAMEPLAY_TAG(Equip, "MyTags.Status.Equip")
 		UE_DEFINE_GAMEPLAY_TAG(UnEquip, "MyTags.Status.UnEquip")
+		UE_DEFINE_GAMEPLAY_TAG(BattleMode, "MyTags.Status.Battle")
+		UE_DEFINE_GAMEPLAY_TAG(IdleMode, "MyTags.Status.IdleMode")
 
-		
+		// ----- 처형 -----
 		UE_DEFINE_GAMEPLAY_TAG(Groggy, "MyTags.Status.Groggy")
 		UE_DEFINE_GAMEPLAY_TAG(Executing, "MyTags.Status.Executing")
 		UE_DEFINE_GAMEPLAY_TAG(Executed, "MyTags.Status.Executed")
-		
-		
-		UE_DEFINE_GAMEPLAY_TAG(BattleMode, "MyTags.Status.Battle")
-		UE_DEFINE_GAMEPLAY_TAG(IdleMode, "MyTags.Status.IdleMode")
-		UE_DEFINE_GAMEPLAY_TAG(Rolling, "MyTags.Status.Rolling")
-		
+
+		// ----- 피격 / 사망 -----
+		UE_DEFINE_GAMEPLAY_TAG(UnderAttack, "MyTags.Status.UnderAttack")
 		UE_DEFINE_GAMEPLAY_TAG(Knockdown, "MyTags.Status.Knockdown")
-		UE_DEFINE_GAMEPLAY_TAG(Dead, "MyTags.Status.Dead")
 		UE_DEFINE_GAMEPLAY_TAG(Stun, "MyTags.Status.Stun")
-		
+		UE_DEFINE_GAMEPLAY_TAG(Dead, "MyTags.Status.Dead")
+
+		// ----- 어트리뷰트 임계값 -----
 		UE_DEFINE_GAMEPLAY_TAG(HealthFull, "MyTags.Status.Health.Full")
 		UE_DEFINE_GAMEPLAY_TAG(HealthEmpty, "MyTags.Status.Health.Empty")
 		UE_DEFINE_GAMEPLAY_TAG(StaminaFull, "MyTags.Status.Stamina.Full")
