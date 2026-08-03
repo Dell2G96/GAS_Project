@@ -1,18 +1,18 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
-
-#include "OverHeadStatsGauge.h"
-
-#include "AbilitySystemComponent.h"
-#include "ValueGauge.h"
-#include "GAS_Project/GAS/CAttributeSet.h"
-
-
-void UOverHeadStatsGauge::ConfigureWithASC(class UAbilitySystemComponent* AbilitySystemComponent)
-{
-	if (AbilitySystemComponent)
-	{
-		HealthBar->SetAndBoundToGameplayAttribute(AbilitySystemComponent,UCAttributeSet::GetHealthAttribute(),	UCAttributeSet::GetMaxHealthAttribute());
-		StaminaBar->SetAndBoundToGameplayAttribute(AbilitySystemComponent, UCAttributeSet::GetStaminaAttribute(), UCAttributeSet::GetMaxStaminaAttribute());
-	}
-}
+// // Fill out your copyright notice in the Description page of Project Settings.
+//
+//
+// #include "OverHeadStatsGauge.h"
+//
+// #include "AbilitySystemComponent.h"
+// #include "ValueGauge.h"
+// #include "GAS_Project/GAS/CAttributeSet.h"
+//
+//
+// void UOverHeadStatsGauge::ConfigureWithASC(class UAbilitySystemComponent* AbilitySystemComponent)
+// {
+// 	if (AbilitySystemComponent)
+// 	{
+// 		HealthBar->SetAndBoundToGameplayAttribute(AbilitySystemComponent,UCAttributeSet::GetHealthAttribute(),	UCAttributeSet::GetMaxHealthAttribute());
+// 		StaminaBar->SetAndBoundToGameplayAttribute(AbilitySystemComponent, UCAttributeSet::GetStaminaAttribute(), UCAttributeSet::GetMaxStaminaAttribute());
+// 	}
+// }

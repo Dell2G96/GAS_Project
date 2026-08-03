@@ -40,15 +40,15 @@ enum class EWeaponType : uint8
 	Max								UMETA(DisplayName="Max")
 };
 
-USTRUCT(BlueprintType)
-struct FWeaponData
-{
-	GENERATED_BODY()
-
-public:
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
-	TSubclassOf<class UCLinkedAnimLayer> WeaponAnimLayerToLink;
-};
+// USTRUCT(BlueprintType)
+// struct FWeaponData
+// {
+// 	GENERATED_BODY()
+//
+// public:
+// 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
+// 	TSubclassOf<class UCLinkedAnimLayer> WeaponAnimLayerToLink;
+// };
 
 USTRUCT(BlueprintType)
 struct FWeaponConfig
