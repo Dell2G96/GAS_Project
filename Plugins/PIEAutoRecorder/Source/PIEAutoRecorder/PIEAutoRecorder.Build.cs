@@ -23,6 +23,8 @@ public class PIEAutoRecorder : ModuleRules
 			"SlateCore",
 			"DesktopPlatform",   // 폴더 선택 다이얼로그
 			"OpenSSL",           // SHA256
+			"ToolMenus",         // 툴바 메뉴 확장
+			"LevelEditor",       // LevelEditor.LevelEditorToolBar.User 확장 대상
 		});
 	}
 }

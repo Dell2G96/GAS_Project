@@ -11,4 +11,7 @@ namespace PIEAutoRecorderNotification
 
 	// 실패·경고 알림. bShowFailureNotification 설정이 꺼져 있으면 표시하지 않는다.
 	void ShowFailure(const FString& Message);
+
+	// 경고성 안내(강제성은 없지만 사용자가 알아야 하는 상황). bShowFailureNotification 설정과 연동한다.
+	void ShowWarning(const FString& Message);
 }

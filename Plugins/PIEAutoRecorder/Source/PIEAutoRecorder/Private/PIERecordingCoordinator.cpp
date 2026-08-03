@@ -58,6 +58,13 @@ bool FPIERecordingCoordinator::IsBusy() const
 // PIE가 시작됐다. 세션 ID를 새로 발급하고 상태 조회부터 시작한다.
 void FPIERecordingCoordinator::HandlePostPIEStarted(bool bIsSimulating)
 {
+	// 종료 준비 진행 중에는 사용자의 종료 의사가 새 PIE보다 우선한다(§11.4). 종료 준비는 유지하고 녹화만 막는다.
+	if (bOBSShutdownPending)
+	{
+		UE_LOG(LogPIEAutoRecorder, Log, TEXT("OBS 종료 준비 중이라 이번 PIE는 녹화하지 않습니다."));
+		return;
+	}
+
 	const UPIEAutoRecorderSettings* Settings = GetDefault<UPIEAutoRecorderSettings>();
 	if (Settings == nullptr || !Settings->bEnableAutoRecording)
 	{
@@ -134,6 +141,7 @@ void FPIERecordingCoordinator::OnRecordStatusReceived(bool bSuccess, const FOBSR
 	{
 		UE_LOG(LogPIEAutoRecorder, Warning, TEXT("녹화 상태를 확인하지 못했습니다. 이번 PIE는 녹화하지 않습니다."));
 		State = EPIERecordingState::Failed;
+		ResolveOBSShutdownRejected(EOBSShutdownBlockReason::StatusQueryFailed, TEXT("녹화 상태를 확인하지 못했습니다."));
 		return;
 	}
 
@@ -143,6 +151,7 @@ void FPIERecordingCoordinator::OnRecordStatusReceived(bool bSuccess, const FOBSR
 		State = EPIERecordingState::ExternalRecording;
 		UE_LOG(LogPIEAutoRecorder, Log, TEXT("OBS가 이미 녹화 중이므로 기존 녹화를 유지합니다."));
 		PIEAutoRecorderNotification::ShowFailure(TEXT("OBS가 이미 녹화 중이므로 기존 녹화를 유지합니다."));
+		ResolveOBSShutdownRejected(EOBSShutdownBlockReason::ExternalRecording, TEXT("외부 녹화 중이므로 종료를 거부합니다."));
 		return;
 	}
 
@@ -152,6 +161,16 @@ void FPIERecordingCoordinator::OnRecordStatusReceived(bool bSuccess, const FOBSR
 		UE_LOG(LogPIEAutoRecorder, Log, TEXT("조회 중에 PIE가 종료되어 녹화를 시작하지 않습니다."));
 		State = EPIERecordingState::Idle;
 		ResetSession();
+		ResolveOBSShutdownReady();
+		return;
+	}
+
+	// 종료 준비 중에는 새 녹화를 시작하지 않는다(§11.4). 녹화가 없으므로 종료는 안전하다.
+	if (bOBSShutdownPending)
+	{
+		UE_LOG(LogPIEAutoRecorder, Log, TEXT("OBS 종료 준비 중이라 이번 PIE는 녹화를 시작하지 않습니다."));
+		State = EPIERecordingState::Idle;
+		ResolveOBSShutdownReady();
 		return;
 	}
 
@@ -191,6 +210,12 @@ void FPIERecordingCoordinator::OnStartResult(bool bSuccess, const FString& Error
 		if (bStopRequestedBeforeStartDone)
 		{
 			ResetSession();
+			// 시작에 실패해 소유 녹화가 없다. 종료 준비 중이었다면 안전하게 종료해도 된다.
+			ResolveOBSShutdownReady();
+		}
+		else
+		{
+			ResolveOBSShutdownRejected(EOBSShutdownBlockReason::StopRecordingFailed, TEXT("녹화 시작에 실패했습니다."));
 		}
 		return;
 	}
@@ -343,6 +368,15 @@ void FPIERecordingCoordinator::OnStopResult(bool bSuccess, const FString& Output
 
 	State = EPIERecordingState::Idle;
 
+	if (bSuccess)
+	{
+		ResolveOBSShutdownReady();
+	}
+	else
+	{
+		ResolveOBSShutdownRejected(EOBSShutdownBlockReason::StopRecordingFailed, TEXT("녹화 정지에 실패해 종료를 거부합니다."));
+	}
+
 	// 정지를 기다리는 동안 새 PIE가 시작됐다면 이제 조회부터 다시 한다.
 	if (bQueryAfterStopCompletes && CurrentSessionId.IsValid())
 	{
@@ -435,6 +469,128 @@ void FPIERecordingCoordinator::HandleEditorPreExit()
 		UE_LOG(LogPIEAutoRecorder, Warning,
 			TEXT("%.0f초 안에 정지 응답을 받지 못했습니다. OBS가 계속 녹화 중일 수 있으니 직접 확인하세요."), MaxExitWaitSeconds);
 	}
+}
+
+// OBS 프로그램 종료 준비를 요청한다. §11.3의 현재 상태별 처리를 그대로 따른다.
+void FPIERecordingCoordinator::PrepareForOBSShutdown(FOnOBSShutdownReady OnReady, FOnOBSShutdownRejected OnRejected)
+{
+	if (bOBSShutdownPending)
+	{
+		// 이미 진행 중인 요청이 있다. 중복 실행을 막기 위해 두 번째 요청은 로그만 남기고 무시한다.
+		UE_LOG(LogPIEAutoRecorder, Warning, TEXT("[OBS Shutdown] 이미 종료 준비가 진행 중입니다."));
+		return;
+	}
+
+	bOBSShutdownPending = true;
+	OBSShutdownReadyCallback = OnReady;
+	OBSShutdownRejectedCallback = OnRejected;
+
+	UE_LOG(LogPIEAutoRecorder, Log, TEXT("[OBS Shutdown] 녹화 정리 시작. (현재 상태=%s)"), *GetStateDescription());
+
+	switch (State)
+	{
+	case EPIERecordingState::Idle:
+	case EPIERecordingState::Failed:
+		if (!Backend->IsReady())
+		{
+			ResolveOBSShutdownRejected(EOBSShutdownBlockReason::BackendUnavailable, TEXT("OBS 연결이 없어 안전 여부를 확인할 수 없습니다."));
+			return;
+		}
+		Backend->QueryRecordStatus(FGuid::NewGuid(),
+			FOnRecordStatusResult::CreateRaw(this, &FPIERecordingCoordinator::OnOBSShutdownStatusQueried));
+		break;
+
+	case EPIERecordingState::Querying:
+		// 조회 응답이 오면 OnRecordStatusReceived에서 처리한다.
+		break;
+
+	case EPIERecordingState::StartPending:
+		// 시작 응답이 오면 이어서 정지하도록 예약한다. 기존 흐름을 그대로 재사용한다.
+		bStopRequestedBeforeStartDone = true;
+		break;
+
+	case EPIERecordingState::RecordingOwned:
+		RequestStop();
+		break;
+
+	case EPIERecordingState::StopPending:
+		// 기존 정지 완료 콜백(OnStopResult)에서 처리한다.
+		break;
+
+	case EPIERecordingState::ExternalRecording:
+		ResolveOBSShutdownRejected(EOBSShutdownBlockReason::ExternalRecording, TEXT("외부 녹화 중이므로 종료를 거부합니다."));
+		break;
+
+	default:
+		ResolveOBSShutdownRejected(EOBSShutdownBlockReason::InvalidState, TEXT("알 수 없는 상태입니다."));
+		break;
+	}
+}
+
+// 진행 중인 종료 준비 요청을 취소한다. 콜백은 실행하지 않는다.
+void FPIERecordingCoordinator::CancelOBSShutdownRequest()
+{
+	bOBSShutdownPending = false;
+	OBSShutdownReadyCallback.Unbind();
+	OBSShutdownRejectedCallback.Unbind();
+}
+
+// 종료 준비 완료를 확정한다. 대기 중이 아니면 아무것도 하지 않는다(중복 호출 방지).
+void FPIERecordingCoordinator::ResolveOBSShutdownReady()
+{
+	if (!bOBSShutdownPending)
+	{
+		return;
+	}
+
+	bOBSShutdownPending = false;
+
+	FOnOBSShutdownReady Callback = OBSShutdownReadyCallback;
+	OBSShutdownReadyCallback.Unbind();
+	OBSShutdownRejectedCallback.Unbind();
+
+	Callback.ExecuteIfBound();
+}
+
+// 종료 준비 거부를 확정한다. 대기 중이 아니면 아무것도 하지 않는다(중복 호출 방지).
+void FPIERecordingCoordinator::ResolveOBSShutdownRejected(EOBSShutdownBlockReason Reason, const FString& Message)
+{
+	if (!bOBSShutdownPending)
+	{
+		return;
+	}
+
+	bOBSShutdownPending = false;
+
+	FOnOBSShutdownRejected Callback = OBSShutdownRejectedCallback;
+	OBSShutdownReadyCallback.Unbind();
+	OBSShutdownRejectedCallback.Unbind();
+
+	UE_LOG(LogPIEAutoRecorder, Warning, TEXT("[OBS Shutdown] 종료 거부: %s"), *Message);
+	Callback.ExecuteIfBound(Reason, Message);
+}
+
+// Idle/Failed 상태에서 종료 준비를 위해 독립적으로 보낸 상태 조회의 응답을 처리한다.
+void FPIERecordingCoordinator::OnOBSShutdownStatusQueried(bool bSuccess, const FOBSRecordStatus& Status, FGuid ForSession)
+{
+	if (!bOBSShutdownPending)
+	{
+		return;
+	}
+
+	if (!bSuccess)
+	{
+		ResolveOBSShutdownRejected(EOBSShutdownBlockReason::StatusQueryFailed, TEXT("녹화 상태를 확인하지 못했습니다."));
+		return;
+	}
+
+	if (Status.bOutputActive)
+	{
+		ResolveOBSShutdownRejected(EOBSShutdownBlockReason::ExternalRecording, TEXT("OBS가 이미 녹화 중입니다."));
+		return;
+	}
+
+	ResolveOBSShutdownReady();
 }
 
 // 응답이 현재 세션의 것인지 확인한다.

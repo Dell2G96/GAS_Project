@@ -47,4 +47,10 @@ void UPIEAutoRecorderSettings::LogCurrentSettings() const
 		bConnectWhenEditorStarts ? TEXT("켜짐") : TEXT("꺼짐"),
 		bPromptOnPIEEnd ? TEXT("켜짐") : TEXT("꺼짐"),
 		DiscardBehavior == EPIERecordingDiscardBehavior::DeleteFile ? TEXT("파일 삭제") : TEXT("원본 유지"));
+
+	UE_LOG(LogPIEAutoRecorder, Log, TEXT("설정: OBSExecutablePath=%s, CloseOnEditorExit=%s, StartupTimeout=%.1fs, ShutdownTimeout=%.1fs"),
+		OBSExecutablePath.FilePath.IsEmpty() ? TEXT("(없음)") : *OBSExecutablePath.FilePath,
+		bCloseOwnedOBSOnEditorExit ? TEXT("켜짐") : TEXT("꺼짐"),
+		OBSStartupTimeoutSeconds,
+		OBSShutdownTimeoutSeconds);
 }

@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "Engine/DeveloperSettings.h"
+#include "Engine/EngineTypes.h"
 #include "PIEAutoRecorderSettings.generated.h"
 
 // 저장 확인 창에서 '저장 안 함'을 눌렀을 때의 동작.
@@ -140,4 +141,32 @@ public:
 	// 파일 잠금(리먹싱) 해제 대기 제한 시간(초).
 	UPROPERTY(config, EditAnywhere, Category = "저장 확인 창", meta = (ClampMin = "0.0"))
 	float FileReadyTimeoutSeconds = 5.0f;
+
+	//~ OBS 프로그램 ----------------------------------------------------------
+	// 이 카테고리는 OBS "프로그램 실행"만 다룬다. 위쪽 "연결" 카테고리의 WebSocket 접속 설정과는 별개다.
+
+	// OBS 실행 파일 경로. 비워두면 실행하지 않고 안내만 한다.
+	UPROPERTY(config, EditAnywhere, Category = "OBS 프로그램")
+	FFilePath OBSExecutablePath;
+
+	// 최소화(트레이) 상태로 실행할지 여부. --minimize-to-tray 인자로 반영된다.
+	UPROPERTY(config, EditAnywhere, Category = "OBS 프로그램")
+	bool bLaunchOBSMinimized = true;
+
+	// 실행 성공 판정 제한 시간(초).
+	UPROPERTY(config, EditAnywhere, Category = "OBS 프로그램", meta = (ClampMin = "1.0"))
+	float OBSStartupTimeoutSeconds = 10.0f;
+
+	// 정상 종료 제한 시간(초). 넘기면 강제 종료하지 않고 경고만 남긴다.
+	UPROPERTY(config, EditAnywhere, Category = "OBS 프로그램", meta = (ClampMin = "1.0"))
+	float OBSShutdownTimeoutSeconds = 10.0f;
+
+	// Editor 종료 시 플러그인 소유 OBS를 함께 정상 종료할지 여부.
+	UPROPERTY(config, EditAnywhere, Category = "OBS 프로그램")
+	bool bCloseOwnedOBSOnEditorExit = true;
+
+	// 사용자 추가 커맨드라인 인자. 기본 인자(--disable-updater 등) 뒤에 그대로 덧붙는다.
+	// 비밀번호(--websocket_password)는 여기 넣지 않는다 — 프로세스 목록에 노출되므로 절대 금지.
+	UPROPERTY(config, EditAnywhere, Category = "OBS 프로그램")
+	FString OBSLaunchArguments;
 };

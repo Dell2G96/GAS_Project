@@ -52,4 +52,16 @@ namespace PIEAutoRecorderNotification
 
 		Show(Message, false);
 	}
+
+	// 경고 알림. 실패와 같은 설정(bShowFailureNotification)으로 끌 수 있다.
+	void ShowWarning(const FString& Message)
+	{
+		const UPIEAutoRecorderSettings* Settings = GetDefault<UPIEAutoRecorderSettings>();
+		if (Settings && !Settings->bShowFailureNotification)
+		{
+			return;
+		}
+
+		Show(Message, false);
+	}
 }

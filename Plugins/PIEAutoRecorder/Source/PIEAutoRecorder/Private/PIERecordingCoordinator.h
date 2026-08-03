@@ -6,6 +6,19 @@
 
 class FRecordingDispositionQueue;
 
+// OBS 종료 준비 요청이 거부된 이유.
+enum class EOBSShutdownBlockReason : uint8
+{
+	ExternalRecording,
+	BackendUnavailable,
+	StatusQueryFailed,
+	StopRecordingFailed,
+	InvalidState,
+};
+
+DECLARE_DELEGATE(FOnOBSShutdownReady);
+DECLARE_DELEGATE_TwoParams(FOnOBSShutdownRejected, EOBSShutdownBlockReason /*Reason*/, FString /*Message*/);
+
 // PIE 세션과 녹화의 결합 상태.
 enum class EPIERecordingState : uint8
 {
@@ -51,7 +64,24 @@ public:
 	// 녹화나 요청이 진행 중인지. 설정 변경으로 연결을 끊어도 되는지 판단하는 데 쓴다.
 	bool IsBusy() const;
 
+	// OBS 프로그램 종료 준비를 요청한다. 소유 녹화가 있으면 안전하게 정지한 뒤 OnReady를 부른다.
+	// 외부 녹화 중이거나 상태를 확인할 수 없으면 OnRejected를 부른다. 둘 중 하나는 정확히 한 번만 실행된다.
+	void PrepareForOBSShutdown(FOnOBSShutdownReady OnReady, FOnOBSShutdownRejected OnRejected);
+
+	// 진행 중인 종료 준비 요청을 취소한다. 콜백은 실행되지 않는다.
+	void CancelOBSShutdownRequest();
+
+	bool IsOBSShutdownPending() const { return bOBSShutdownPending; }
+
 private:
+	// 종료 준비 결과를 확정하고 콜백을 정확히 한 번 실행한다.
+	void ResolveOBSShutdownReady();
+	void ResolveOBSShutdownRejected(EOBSShutdownBlockReason Reason, const FString& Message);
+
+	// Idle/Failed 상태에서 종료 준비를 위해 독립적으로 보내는 상태 조회의 응답 처리.
+	void OnOBSShutdownStatusQueried(bool bSuccess, const FOBSRecordStatus& Status, FGuid ForSession);
+
+
 	// GetRecordStatus부터 다시 시작한다. 상태를 추측하지 않고 매번 확인한다.
 	void BeginQuery();
 
@@ -103,4 +133,9 @@ private:
 	double  SessionStartTime = 0.0;
 
 	FTSTicker::FDelegateHandle StopDelayTickerHandle;
+
+	// 종료 준비가 진행 중인지. 두 번째 요청은 무시하고 로그만 남긴다(중복 실행 방지).
+	bool bOBSShutdownPending = false;
+	FOnOBSShutdownReady     OBSShutdownReadyCallback;
+	FOnOBSShutdownRejected  OBSShutdownRejectedCallback;
 };
