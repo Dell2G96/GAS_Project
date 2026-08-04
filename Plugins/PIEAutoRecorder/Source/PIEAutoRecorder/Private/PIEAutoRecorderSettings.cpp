@@ -34,6 +34,22 @@ FString UPIEAutoRecorderSettings::ResolvePassword() const
 	return Password;
 }
 
+// 새 폴더 선택 설정을 우선하고, 기존 개인 INI의 문자열 값도 계속 지원한다.
+FString UPIEAutoRecorderSettings::ResolveDefaultSaveDirectory() const
+{
+	FString Directory = DefaultSaveDirectoryPath.Path;
+	Directory.TrimStartAndEndInline();
+
+	if (!Directory.IsEmpty())
+	{
+		return Directory;
+	}
+
+	Directory = DefaultSaveDirectory;
+	Directory.TrimStartAndEndInline();
+	return Directory;
+}
+
 // 현재 설정을 한눈에 볼 수 있게 로그로 남긴다. 비밀번호는 설정 여부만 출력한다.
 void UPIEAutoRecorderSettings::LogCurrentSettings() const
 {
@@ -47,6 +63,11 @@ void UPIEAutoRecorderSettings::LogCurrentSettings() const
 		bConnectWhenEditorStarts ? TEXT("켜짐") : TEXT("꺼짐"),
 		bPromptOnPIEEnd ? TEXT("켜짐") : TEXT("꺼짐"),
 		DiscardBehavior == EPIERecordingDiscardBehavior::DeleteFile ? TEXT("파일 삭제") : TEXT("원본 유지"));
+
+	const FString SaveDirectory = ResolveDefaultSaveDirectory();
+	UE_LOG(LogPIEAutoRecorder, Log, TEXT("설정: DefaultSaveDirectory=%s, AutoSaveWithoutPrompt=%s"),
+		SaveDirectory.IsEmpty() ? TEXT("(OBS 원본 폴더)") : *SaveDirectory,
+		bAutoSaveWithoutPrompt ? TEXT("켜짐") : TEXT("꺼짐"));
 
 	UE_LOG(LogPIEAutoRecorder, Log, TEXT("설정: OBSExecutablePath=%s, CloseOnEditorExit=%s, StartupTimeout=%.1fs, ShutdownTimeout=%.1fs"),
 		OBSExecutablePath.FilePath.IsEmpty() ? TEXT("(없음)") : *OBSExecutablePath.FilePath,

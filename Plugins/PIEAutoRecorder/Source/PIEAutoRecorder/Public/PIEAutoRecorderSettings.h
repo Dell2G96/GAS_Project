@@ -48,6 +48,9 @@ public:
 	// 환경변수 → 개인 INI 순서로 비밀번호를 읽는다. 둘 다 비면 빈 문자열.
 	FString ResolvePassword() const;
 
+	// 폴더 선택 설정을 우선 사용하고, 비어 있으면 이전 문자열 설정을 반환한다.
+	FString ResolveDefaultSaveDirectory() const;
+
 	//~ 기본 동작 ------------------------------------------------------------
 
 	// 전체 on/off. 기본 off — 팀원이 모르는 사이에 녹화되지 않게 한다.
@@ -114,8 +117,12 @@ public:
 	UPROPERTY(config, EditAnywhere, Category = "저장 확인 창")
 	bool bModalPrompt = false;
 
-	// 창의 기본 저장 폴더. 비우면 OBS 원본 폴더를 그대로 쓴다.
-	UPROPERTY(config, EditAnywhere, Category = "저장 확인 창")
+	// 창과 자동 저장에서 사용할 기본 폴더. 비우면 OBS 원본 폴더를 그대로 쓴다.
+	UPROPERTY(config, EditAnywhere, Category = "저장 확인 창", meta = (DisplayName = "기본 저장 폴더"))
+	FDirectoryPath DefaultSaveDirectoryPath;
+
+	// 이전 버전의 문자열 설정값. 기존 개인 INI 호환을 위해 읽기만 한다.
+	UPROPERTY(config)
 	FString DefaultSaveDirectory;
 
 	// 창의 기본 파일명 형식. {level} {date} {time} {id} 치환.

@@ -125,7 +125,45 @@ bool FRecordingFileNameTest::RunTest(const FString& Parameters)
 }
 
 //========================================================================================
-// 3. 삭제는 대상 파일 하나만 — 같은 폴더의 다른 파일이 무사해야 한다 (P0-13)
+// 3. 기본 저장 폴더 — 폴더 선택 설정과 이전 문자열 설정의 우선순위
+//========================================================================================
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FRecordingDefaultDirectoryTest, "PIEAutoRecorder.Disposition.DefaultDirectory",
+	EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+// 새 폴더 선택 설정을 우선하고, 비어 있으면 이전 설정과 원본 폴더로 순서대로 대체한다.
+bool FRecordingDefaultDirectoryTest::RunTest(const FString& Parameters)
+{
+	UPIEAutoRecorderSettings* Settings = GetMutableDefault<UPIEAutoRecorderSettings>();
+	const FDirectoryPath SavedDirectoryPath = Settings->DefaultSaveDirectoryPath;
+	const FString SavedLegacyDirectory = Settings->DefaultSaveDirectory;
+	ON_SCOPE_EXIT
+	{
+		Settings->DefaultSaveDirectoryPath = SavedDirectoryPath;
+		Settings->DefaultSaveDirectory = SavedLegacyDirectory;
+	};
+
+	FRecordingDispositionItem Item;
+	Item.OutputPath = FPaths::Combine(FPaths::ProjectSavedDir(), TEXT("OBS"), TEXT("recording.mkv"));
+
+	const FString SelectedDirectory = FPaths::Combine(FPaths::ProjectSavedDir(), TEXT("SelectedRecordings"));
+	const FString LegacyDirectory = FPaths::Combine(FPaths::ProjectSavedDir(), TEXT("LegacyRecordings"));
+
+	Settings->DefaultSaveDirectoryPath.Path = SelectedDirectory;
+	Settings->DefaultSaveDirectory = LegacyDirectory;
+	TestEqual(TEXT("폴더 선택 설정 우선"), FRecordingDispositionQueue::GetDefaultSaveDirectory(Item), SelectedDirectory);
+
+	Settings->DefaultSaveDirectoryPath.Path.Reset();
+	TestEqual(TEXT("이전 문자열 설정 대체"), FRecordingDispositionQueue::GetDefaultSaveDirectory(Item), LegacyDirectory);
+
+	Settings->DefaultSaveDirectory.Reset();
+	TestEqual(TEXT("설정이 비면 OBS 원본 폴더"), FRecordingDispositionQueue::GetDefaultSaveDirectory(Item), FPaths::GetPath(Item.OutputPath));
+
+	return true;
+}
+
+//========================================================================================
+// 4. 삭제는 대상 파일 하나만 — 같은 폴더의 다른 파일이 무사해야 한다 (P0-13)
 //========================================================================================
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FRecordingDeleteScopeTest, "PIEAutoRecorder.Disposition.DeleteScope",
@@ -159,7 +197,7 @@ bool FRecordingDeleteScopeTest::RunTest(const FString& Parameters)
 }
 
 //========================================================================================
-// 4. Copy + Delete 폴백 — 드라이브 간 이동이 실패했을 때의 경로
+// 5. Copy + Delete 폴백 — 드라이브 간 이동이 실패했을 때의 경로
 //========================================================================================
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FRecordingCopyFallbackTest, "PIEAutoRecorder.Disposition.CopyFallback",

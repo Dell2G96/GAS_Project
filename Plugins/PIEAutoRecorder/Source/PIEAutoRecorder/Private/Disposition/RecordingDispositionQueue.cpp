@@ -409,9 +409,13 @@ FString FRecordingDispositionQueue::GetDefaultSaveDirectory(const FRecordingDisp
 {
 	const UPIEAutoRecorderSettings* Settings = GetDefault<UPIEAutoRecorderSettings>();
 
-	if (Settings && !Settings->DefaultSaveDirectory.IsEmpty())
+	if (Settings)
 	{
-		return Settings->DefaultSaveDirectory;
+		const FString ConfiguredDirectory = Settings->ResolveDefaultSaveDirectory();
+		if (!ConfiguredDirectory.IsEmpty())
+		{
+			return ConfiguredDirectory;
+		}
 	}
 
 	return FPaths::GetPath(Item.OutputPath);
@@ -436,4 +440,3 @@ void FRecordingDispositionQueue::HandleEditorPreExit()
 
 	Pending.Empty();
 }
-
