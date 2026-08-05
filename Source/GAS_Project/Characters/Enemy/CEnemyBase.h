@@ -1,3 +1,5 @@
+// 이건 레거시 코드로 절대로 참고하지마시오
+
 // // Fill out your copyright notice in the Description page of Project Settings.
 //
 // #pragma once
