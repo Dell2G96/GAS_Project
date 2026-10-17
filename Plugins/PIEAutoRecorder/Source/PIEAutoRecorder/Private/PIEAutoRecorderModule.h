@@ -10,6 +10,7 @@ class FPIERecordingCoordinator;
 class FRecordingDispositionQueue;
 class IOBSProcessPlatform;
 class SWidget;
+class UPIEAutoRecorderSettings;
 struct IConsoleCommand;
 struct FOBSRecordStateChanged;
 enum class EOBSShutdownBlockReason : uint8;
@@ -86,4 +87,10 @@ private:
 	FDelegateHandle CancelPIEHandle;
 	FDelegateHandle EditorPreExitHandle;
 	FDelegateHandle SettingsChangedHandle;
+
+#pragma region 26.09.22 추가 - 에디터 종료 시 CDO 재생성 크래시 방지
+	// ShutdownModule에서 GetMutableDefault<>를 부르면 이미 파괴된 CDO를 다시 만들려다 크래시한다.
+	// Startup에서 잡아 둔 약참조를 써서, 살아 있을 때만 델리게이트를 해제한다.
+	TWeakObjectPtr<UPIEAutoRecorderSettings> SettingsObject;
+#pragma endregion
 };

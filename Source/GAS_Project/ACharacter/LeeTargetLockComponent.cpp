@@ -69,8 +69,8 @@ void ULeeTargetLockComponent::TickComponent(float DeltaTime, ELevelTick TickType
 	// 사망 검사
 	UAbilitySystemComponent* TargetASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(Target);
 	if (!TargetASC ||
-		TargetASC->HasMatchingGameplayTag(MyTags::Lyra::Status_Death_Dying) ||
-		TargetASC->HasMatchingGameplayTag(MyTags::Lyra::Status_Death_Dead))
+		TargetASC->HasMatchingGameplayTag(MyTags::Souls::Status_Death_Dying) ||
+		TargetASC->HasMatchingGameplayTag(MyTags::Souls::Status_Death_Dead))
 	{
 		BreakLock();
 		return;
@@ -340,8 +340,8 @@ bool ULeeTargetLockComponent::IsValidCandidate(AActor* Candidate) const
 		return false;
 	}
 
-	if (CandidateASC->HasMatchingGameplayTag(MyTags::Lyra::Status_Death_Dying) ||
-		CandidateASC->HasMatchingGameplayTag(MyTags::Lyra::Status_Death_Dead))
+	if (CandidateASC->HasMatchingGameplayTag(MyTags::Souls::Status_Death_Dying) ||
+		CandidateASC->HasMatchingGameplayTag(MyTags::Souls::Status_Death_Dead))
 	{
 		return false;
 	}

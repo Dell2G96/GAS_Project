@@ -89,6 +89,11 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Lee|Guard|Montage")
 	TObjectPtr<UAnimMontage> GuardParryMontage;
 
+	/** true면 ULeeTargetLockComponent의 가드 스탠스(왼발/오른발 뒤)에 따라 섹션을 분기한다.
+	 *  false면 스탠스 조회를 건너뛰고 몽타주를 처음부터 재생한다 (스탠스 구분이 없는 무기용, 기본값) */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Lee|Guard|Montage")
+	bool bUseStanceSection = false;
+
 	/** 왼발 뒤 스탠스 피격/패리 섹션 이름 (두 몽타주 공통 규약) */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Lee|Guard|Montage")
 	FName StanceLeftFootSection = TEXT("LeftFootBack");

@@ -4,6 +4,8 @@
 #include "LeePawnExtensionComponent.h"
 
 #include "Components/GameFrameworkComponentManager.h"
+// 26.09.23 추가 - 막힌 Feature 이름 출력을 위해 InitState 인터페이스가 필요하다
+#include "Components/GameFrameworkInitStateInterface.h"
 #include "Net/UnrealNetwork.h"
 #include "GAS_Project/LeeLogChannels.h"
 #include "GAS_Project/MyTags.h"
@@ -253,10 +255,42 @@ bool ULeePawnExtensionComponent::CanChangeInitState(UGameFrameworkComponentManag
 		// Actor에 바인드된 모든 Feature들이 DataAvailable 상태일 때, DataInitialized로 넘어감:
 		// - HaveAllFeaturesReachedInitState 확인
 		bool bAllReady = Manager->HaveAllFeaturesReachedInitState(Pawn, MyTags::InitState::DataAvailable);
+#pragma region 26.09.23 수정 - 어떤 Feature가 막혔는지 이름으로 출력
+		// 기존 로그는 "모두 준비되지 않았다"고만 알려 원인 추적이 불가능했다.
+		// 엔진의 HaveAllFeaturesReachedInitState()가 bool만 반환하므로,
+		// 폰의 Feature 컴포넌트를 직접 훑어 아직 도달하지 못한 것의 이름을 찍는다.
+		//
+		// 레벨을 Warning에서 Verbose로 낮춘 이유: 이 대기는 스폰 직후 몇 프레임 동안
+		// 반드시 발생하는 정상 동작이다. 항상 Warning으로 찍으면 진짜 문제를 가린다.
+		// 필요할 때만 콘솔에서 `Log LogLee Verbose`로 켜서 본다.
 		if (!bAllReady)
 		{
-			UE_LOG(LogLee, Warning, TEXT("PawnExtComponent DataAvailable->DataInitialized Waiting... Not all features reached DataAvailable."));
+			UE_LOG(LogLee, Verbose, TEXT("[PawnExt] DataAvailable->DataInitialized 대기 중 — 아직 준비되지 않은 Feature:"));
+
+			TArray<UActorComponent*> PawnComponents;
+			Pawn->GetComponents(PawnComponents);
+			for (UActorComponent* PawnComponent : PawnComponents)
+			{
+				const IGameFrameworkInitStateInterface* Feature = Cast<IGameFrameworkInitStateInterface>(PawnComponent);
+				if (!Feature)
+				{
+					continue;
+				}
+
+				const FName FeatureName = Feature->GetFeatureName();
+				const FGameplayTag FeatureState = Manager->GetInitStateForFeature(Pawn, FeatureName);
+				if (FeatureState != MyTags::InitState::DataAvailable
+					&& FeatureState != MyTags::InitState::DataInitialized
+					&& FeatureState != MyTags::InitState::GameplayReady)
+				{
+					UE_LOG(LogLee, Verbose, TEXT("    %s (%s) = %s"),
+						*FeatureName.ToString(),
+						*PawnComponent->GetClass()->GetName(),
+						FeatureState.IsValid() ? *FeatureState.ToString() : TEXT("(상태 없음)"));
+				}
+			}
 		}
+#pragma endregion
 		return bAllReady;
 	}
 

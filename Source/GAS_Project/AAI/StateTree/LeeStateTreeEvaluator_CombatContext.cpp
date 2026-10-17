@@ -75,9 +75,19 @@ void FLeeStateTreeEvaluator_CombatContext::Tick(FStateTreeExecutionContext& Cont
 	Data.AttackerProfileComponent = ULeeAttackerProfileComponent::FindAttackerProfileComponent(Data.Actor);
 
 	// 타겟 조회 — 판단은 하지 않는다, ULeeTargetSelectionComponent의 결론을 그대로 옮긴다
-	const ULeeTargetSelectionComponent* SelectionComp = Data.AIController
-		? ULeeTargetSelectionComponent::FindTargetSelectionComponent(Data.AIController)
-		: nullptr;
+#pragma region 26.09.23 수정 - 컴포넌트를 AI 컨트롤러와 폰 양쪽에서 찾도록 확장
+	// 기존에는 AI 컨트롤러에서만 찾았는데, GameFeature 액션이 이 컴포넌트를 폰에 붙이는
+	// 구성이면 FindComponentByClass가 해당 액터만 뒤지므로 항상 null이 되었다.
+	// 그 결과 TargetActor가 비어 모든 거리 티어가 false가 되고, AI가 전투 상태로
+	// 진입하지 못한 채 Idle에 머무는 버그가 있었다(26.09.23).
+	// 어느 쪽에 붙어 있든 동작하도록 컨트롤러 → 폰 순서로 찾는다.
+	const ULeeTargetSelectionComponent* SelectionComp =
+		ULeeTargetSelectionComponent::FindTargetSelectionComponent(Data.AIController);
+	if (!SelectionComp && Data.AIController)
+	{
+		SelectionComp = ULeeTargetSelectionComponent::FindTargetSelectionComponent(Data.AIController->GetPawn());
+	}
+#pragma endregion
 	Data.TargetActor = SelectionComp ? SelectionComp->GetCurrentTarget() : nullptr;
 
 	{

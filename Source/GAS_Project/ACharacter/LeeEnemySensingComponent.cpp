@@ -48,30 +48,58 @@ void ULeeEnemySensingComponent::SenseTick()
 	UAbilitySystemComponent* ASC = GetOwnerASC();
 	if (!ASC)
 	{
+		
 		return;
 	}
 
 	// 피니셔 당하는 중이거나 사망 시 인식 상태를 건드리지 않는다
 	if (ASC->HasMatchingGameplayTag(MyTags::Souls::Status_Finisher_Victim) ||
-		ASC->HasMatchingGameplayTag(MyTags::Lyra::Status_Death_Dying) ||
-		ASC->HasMatchingGameplayTag(MyTags::Lyra::Status_Death_Dead))
+		ASC->HasMatchingGameplayTag(MyTags::Souls::Status_Death_Dying) ||
+		ASC->HasMatchingGameplayTag(MyTags::Souls::Status_Death_Dead))
 	{
+	
 		return;
 	}
 
+	const double Now = GetWorld()->GetTimeSeconds();
+
 	bool bPerceivedAny = false;
+	PerceivedPawns.Reset();
 	for (FConstPlayerControllerIterator It = GetWorld()->GetPlayerControllerIterator(); It; ++It)
 	{
 		const APlayerController* PC = It->Get();
-		const APawn* PlayerPawn = PC ? PC->GetPawn() : nullptr;
-		if (PlayerPawn && CanPerceive(PlayerPawn))
+		APawn* PlayerPawn = PC ? PC->GetPawn() : nullptr;
+		const bool bCanPerceive = PlayerPawn && CanPerceive(PlayerPawn);
+
+		
+
+		if (bCanPerceive)
 		{
 			bPerceivedAny = true;
-			break;
+			LastSeenTimeByPawn.Add(PlayerPawn, Now);
+			PerceivedPawns.Add(PlayerPawn);
+		}
+		else if (PlayerPawn)
+		{
+			// 시야를 벗어나도 LoseSightDelay 동안은 "기억"으로 후보에 남긴다
+			// (전투 중 플레이어가 등 뒤로 돌면 즉시 타겟을 잃던 문제 해결)
+			const double* LastSeen = LastSeenTimeByPawn.Find(PlayerPawn);
+			if (LastSeen && (Now - *LastSeen) <= LoseSightDelay)
+			{
+				PerceivedPawns.Add(PlayerPawn);
+			}
 		}
 	}
 
-	const double Now = GetWorld()->GetTimeSeconds();
+	// 유예 시간이 지났거나 무효화된 기억 항목을 정리
+	for (TMap<TWeakObjectPtr<APawn>, double>::TIterator It(LastSeenTimeByPawn); It; ++It)
+	{
+		if (!It->Key.IsValid() || (Now - It->Value) > LoseSightDelay)
+		{
+			It.RemoveCurrent();
+		}
+	}
+
 	if (bPerceivedAny)
 	{
 		LastPerceivedTime = Now;
@@ -163,4 +191,17 @@ void ULeeEnemySensingComponent::SetUnaware(bool bNewUnaware)
 UAbilitySystemComponent* ULeeEnemySensingComponent::GetOwnerASC() const
 {
 	return UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(GetOwner());
+}
+
+// 직전 SenseTick에서 CanPerceive를 통과한 플레이어 폰 목록을 반환 (무효화된 항목은 제외)
+void ULeeEnemySensingComponent::GetPerceivedPawns(TArray<APawn*>& OutPawns) const
+{
+	OutPawns.Reset();
+	for (const TWeakObjectPtr<APawn>& WeakPawn : PerceivedPawns)
+	{
+		if (APawn* Pawn = WeakPawn.Get())
+		{
+			OutPawns.Add(Pawn);
+		}
+	}
 }

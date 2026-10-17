@@ -24,8 +24,7 @@ void ULeeAnimInstance::NativeInitializeAnimation()
 		}
 		else
 		{
-			// 임시 디버그 로그 — PawnExtComp를 못 찾으면 Property Map이 영영 초기화되지 않는다
-			UE_LOG(LogTemp, Warning, TEXT("[LeeAnimInstance] PawnExtensionComponent not found on %s"), *GetNameSafe(OwningActor));
+			// UE_LOG(LogTemp, Warning, TEXT("[LeeAnimInstance] PawnExtensionComponent not found on %s"), *GetNameSafe(OwningActor));
 		}
 	}
 }

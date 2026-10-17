@@ -83,6 +83,20 @@ public class GAS_Project : ModuleRules
 			
 		});
 
+		#region 26.09.22 추가 - StateTree 에셋 자동 저작용 에디터 전용 의존성
+		// ULeeStateTreeAuthoringLibrary가 StateTreeEditorModule의 저작 API를 호출하기 위한 의존성.
+		// 이 모듈들은 에디터 전용이라 bBuildEditor로 감싸지 않으면 패키징 빌드가 깨진다.
+		if (Target.bBuildEditor)
+		{
+			PrivateDependencyModuleNames.AddRange(new string[]
+			{
+				"StateTreeEditorModule",   // UStateTreeEditorData / UStateTreeState / FStateTreeCompiler
+				"UnrealEd",                // UStateTreeEditingSubsystem (컴파일 + 검증 + 해시 갱신)
+				"AssetRegistry",           // FAssetRegistryModule::AssetCreated
+			});
+		}
+		#endregion
+
 		// Uncomment if you are using Slate UI
 		// PrivateDependencyModuleNames.AddRange(new string[] { "Slate", "SlateCore" });
 		

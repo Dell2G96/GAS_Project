@@ -117,10 +117,11 @@ void ULeeGameplayAbility_Guard::OnPerfectGuardEventReceived(FGameplayEventData /
 }
 
 // 가드 스탠스(왼발 뒤/오른발 뒤)에 맞는 섹션 이름을 고른다.
+// bUseStanceSection이 false인 무기(스탠스 구분 없음)는 조회 없이 처음부터 재생한다.
 // 판정값은 ULeeTargetLockComponent가 소유 — ABP가 고르는 가드 포즈와 동일 소스라 절대 어긋나지 않는다
 FName ULeeGameplayAbility_Guard::SelectStanceSection(const UAnimMontage* Montage) const
 {
-	if (!Montage)
+	if (!Montage || !bUseStanceSection)
 	{
 		return NAME_None;
 	}

@@ -234,9 +234,7 @@ void ALeeCharacter::PossessedBy(AController* NewController)
 
 	MyTeamID = ResolveTeamID();
 
-	// [임시 디버그] Possess 시점에 최종적으로 어떤 TeamID가 설정됐는지 확인
-	UE_LOG(LogTemp, Warning, TEXT("[Team] PossessedBy: %s, Controller=%s, MyTeamID=%d"),
-		*GetNameSafe(this), *GetNameSafe(NewController), GenericTeamIdToInteger(MyTeamID));
+	
 
 	ConditionalBroadcastTeamChanged(this, OldTeamID, MyTeamID);
 }
@@ -586,9 +584,7 @@ ETeamAttitude::Type ALeeCharacter::GetTeamAttitudeTowards(const AActor& Other) c
 		OtherTeamId = OtherTeamAgent->GetGenericTeamId();
 	}
 
-	// [임시 디버그] 실제 비교되는 TeamID 값을 확인
-	UE_LOG(LogTemp, Warning, TEXT("[Team] GetTeamAttitudeTowards: %s(MyTeamID=%d) vs %s(OtherTeamId=%d)"),
-		*GetNameSafe(this), GenericTeamIdToInteger(MyTeamID), *GetNameSafe(&Other), GenericTeamIdToInteger(OtherTeamId));
+	
 
 	if (OtherTeamId == FGenericTeamId::NoTeam || MyTeamID == FGenericTeamId::NoTeam)
 	{

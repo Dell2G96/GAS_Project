@@ -332,8 +332,8 @@ AActor* ULeeGameplayAbility_Finisher::FindFinisherTarget(
 
 		// 이미 피니셔 진행 중(멀티 동시 시도 잠금)이거나 사망한 대상은 제외
 		if (CandidateASC->HasMatchingGameplayTag(MyTags::Souls::Status_Finisher_Victim) ||
-			CandidateASC->HasMatchingGameplayTag(MyTags::Lyra::Status_Death_Dying) ||
-			CandidateASC->HasMatchingGameplayTag(MyTags::Lyra::Status_Death_Dead))
+			CandidateASC->HasMatchingGameplayTag(MyTags::Souls::Status_Death_Dying) ||
+			CandidateASC->HasMatchingGameplayTag(MyTags::Souls::Status_Death_Dead))
 		{
 			continue;
 		}

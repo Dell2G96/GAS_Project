@@ -51,8 +51,14 @@ void FPIEAutoRecorderModule::StartupModule()
 		FSimpleMulticastDelegate::FDelegate::CreateRaw(this, &FPIEAutoRecorderModule::RegisterToolbar));
 
 	// 설정 화면에서 값을 바꾸면 즉시 반영한다. 에디터를 다시 켜지 않아도 되도록.
-	SettingsChangedHandle = GetMutableDefault<UPIEAutoRecorderSettings>()->OnSettingChanged()
+#pragma region 26.09.22 수정 - 종료 시 CDO 재생성 크래시 방지를 위해 Settings를 캐시
+	// GetMutableDefault<>는 여기(Startup)서는 안전하지만 ShutdownModule에서는 크래시한다.
+	// 그래서 얻은 포인터를 약참조로 남겨 두고, 종료 시에는 이 약참조만 사용한다.
+	UPIEAutoRecorderSettings* MutableSettings = GetMutableDefault<UPIEAutoRecorderSettings>();
+	SettingsObject = MutableSettings;
+	SettingsChangedHandle = MutableSettings->OnSettingChanged()
 		.AddRaw(this, &FPIEAutoRecorderModule::HandleSettingsChanged);
+#pragma endregion
 
 	// 사전 연결로 PIE 시작 지연을 줄인다. bEnableAutoRecording이 꺼져 있으면 Connect가 스스로 아무것도 하지 않는다.
 	if (Settings && Settings->bConnectWhenEditorStarts)
@@ -92,11 +98,21 @@ void FPIEAutoRecorderModule::ShutdownModule()
 	ProcessPlatform.Reset();
 
 	// 3. 기존 PIE/Settings Delegate 해제.
+#pragma region 26.09.22 수정 - 에디터 종료 시 EXCEPTION_ACCESS_VIOLATION 크래시 수정
+	// 원인: GetMutableDefault<>는 "없으면 새로 만드는" 함수라, Exit Purge로 CDO가 이미
+	//       파괴된 종료 시점에 부르면 CDO를 재생성하려다 널 참조로 크래시한다.
+	// 해결: Startup에서 캐시한 약참조가 유효할 때만 해제한다. CDO가 이미 사라졌다면
+	//       델리게이트도 함께 사라진 것이므로 건너뛰어도 누수가 없다.
 	if (SettingsChangedHandle.IsValid())
 	{
-		GetMutableDefault<UPIEAutoRecorderSettings>()->OnSettingChanged().Remove(SettingsChangedHandle);
+		if (UObjectInitialized() && SettingsObject.IsValid())
+		{
+			SettingsObject->OnSettingChanged().Remove(SettingsChangedHandle);
+		}
 		SettingsChangedHandle.Reset();
 	}
+	SettingsObject.Reset();
+#pragma endregion
 
 	UnregisterPIEDelegates();
 	UnregisterConsoleCommands();

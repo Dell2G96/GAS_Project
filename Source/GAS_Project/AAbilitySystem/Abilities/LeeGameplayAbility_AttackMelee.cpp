@@ -217,8 +217,7 @@ void ULeeGameplayAbility_AttackMelee::UpdateAttackWarpTarget()
 	AActor* Target = GetWarpFacingTarget();
 	if (!Target)
 	{
-		// [디버그 로그] 임시 - 타깃 없음으로 워프 제거되는 경로인지 확인용
-		UE_LOG(LogTemp, Log, TEXT("[Warp] %s: Target 없음 -> RemoveWarpTarget"), *GetNameSafe(Avatar));
+		
 		// 워프 대상 없음 — 이전 타깃 제거하여 제자리 공격(워프 없음)으로 안전 폴백
 		MW->RemoveWarpTarget(WarpTargetName);
 		return;
@@ -233,12 +232,8 @@ void ULeeGameplayAbility_AttackMelee::UpdateAttackWarpTarget()
 		// 방식 B: 회전만 — 현재 위치 그대로, 방향만 대상 쪽으로
 		MW->AddOrUpdateWarpTargetFromLocationAndRotation(WarpTargetName, AvatarLoc, ToTargetDir.Rotation());
 
-		// [디버그 로그] 임시 - 등록에 쓴 이름(WarpTargetName)과 실제로 컴포넌트에 등록된 타깃 이름이 일치하는지 확인용
 		const FMotionWarpingTarget* Registered = MW->FindWarpTarget(WarpTargetName);
-		UE_LOG(LogTemp, Log,
-			TEXT("[Warp] %s: bWarpTranslation=false -> 회전만 (Target=%s) | 등록에 쓴 이름=\"%s\" | FindWarpTarget 결과=%s"),
-			*GetNameSafe(Avatar), *GetNameSafe(Target), *WarpTargetName.ToString(),
-			Registered ? TEXT("찾음(등록 성공)") : TEXT("못찾음(이름 불일치 의심)"));
+		
 		return;
 	}
 
@@ -246,9 +241,7 @@ void ULeeGameplayAbility_AttackMelee::UpdateAttackWarpTarget()
 	const float DistToTarget = FVector::Dist2D(AvatarLoc, TargetLoc);
 	if (CurrentAttackData.MaxWarpDistance > 0.0f && DistToTarget > CurrentAttackData.MaxWarpDistance)
 	{
-		// [디버그 로그] 임시 - MaxWarpDistance 초과로 워프가 취소되는 경로인지 확인용
-		UE_LOG(LogTemp, Log, TEXT("[Warp] %s: DistToTarget(%.1f) > MaxWarpDistance(%.1f) -> RemoveWarpTarget"),
-			*GetNameSafe(Avatar), DistToTarget, CurrentAttackData.MaxWarpDistance);
+		
 		MW->RemoveWarpTarget(WarpTargetName);
 		return;
 	}
@@ -260,15 +253,9 @@ void ULeeGameplayAbility_AttackMelee::UpdateAttackWarpTarget()
 
 	MW->AddOrUpdateWarpTargetFromLocationAndRotation(WarpTargetName, FinalLoc, ToTargetDir.Rotation());
 
-	// [디버그 로그] 임시 - 방식 A 최종 분기 + "등록에 쓴 이름"과 "실제 컴포넌트에 등록된 타깃"이 일치하는지 확인용
 	// (몽타주 노티파이의 Warp Target Name과 여기 WarpTargetName 문자열이 다르면 FindWarpTarget이 못찾음 -> 노티파이가 조용히 무시됨)
 	const FMotionWarpingTarget* Registered = MW->FindWarpTarget(WarpTargetName);
-	UE_LOG(LogTemp, Log,
-		TEXT("[Warp] %s: bWarpTranslation=true, DistToTarget=%.1f, ApproachDistance=%.1f, bAlreadyClose=%s, FinalLoc=%s | 등록에 쓴 이름=\"%s\" | FindWarpTarget 결과=%s"),
-		*GetNameSafe(Avatar), DistToTarget, CurrentAttackData.ApproachDistance,
-		bAlreadyClose ? TEXT("true(제자리 유지)") : TEXT("false(접근 이동)"), *FinalLoc.ToString(),
-		*WarpTargetName.ToString(),
-		Registered ? TEXT("찾음(등록 성공)") : TEXT("못찾음(이름 불일치 의심)"));
+	
 }
 
 // [모션워핑] RefreshWarpTarget 이벤트 수신 — 그 시점의 대상 위치로 워프 타깃을 다시 계산한다.

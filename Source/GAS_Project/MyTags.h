@@ -90,6 +90,11 @@ namespace MyTags
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Ability_Attack_Melee_Light);
 		// 강공격 어빌리티 식별 태그 — 강공격 BP의 AbilityTags에서 사용
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Ability_Attack_Melee_Heavy);
+#pragma region 26.09.22 추가 - Enemy 원거리 공격 어빌리티 식별 태그
+		// 원거리 공격 어빌리티 식별 태그 — 원거리 공격 BP의 AbilityTags에서 사용.
+		// StateTree의 Lee Activate Ability Task가 이 태그로 어빌리티를 찾아 활성화한다.
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Ability_Attack_Ranged);
+#pragma endregion
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Ability_Guard);
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Ability_Dodge);
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Ability_HitReaction);

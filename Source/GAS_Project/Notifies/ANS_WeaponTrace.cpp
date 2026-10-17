@@ -48,11 +48,9 @@ void UANS_WeaponTrace::NotifyTick(USkeletalMeshComponent* MeshComp, UAnimSequenc
 
 	if (!MeshComp) return;
 
-	// [임시 디버그] 서버 권위 관문
 	if (!ShouldRunTrace(MeshComp))
 	{
-		UE_LOG(LogTemp, Warning, TEXT("[WeaponTrace] STOP@ShouldRunTrace: bServerOnly=%d, HasAuthority=%d (클라에서 실행 중이면 bServerOnly=false로 테스트)"),
-			bServerOnly ? 1 : 0, MeshComp->GetOwner() ? MeshComp->GetOwner()->HasAuthority() : -1);
+		
 		return;
 	}
 
@@ -74,14 +72,7 @@ void UANS_WeaponTrace::NotifyTick(USkeletalMeshComponent* MeshComp, UAnimSequenc
 		return;
 	}
 
-	// [임시 디버그] 소켓 존재 관문
-	if (!WeaponMesh->DoesSocketExist(WeaponBaseSocket) || !WeaponMesh->DoesSocketExist(WeaponTipSocket))
-	{
-		UE_LOG(LogTemp, Warning, TEXT("[WeaponTrace] STOP@Socket: Base(%s)=%d Tip(%s)=%d (무기 메시에 소켓/이름 확인)"),
-			*WeaponBaseSocket.ToString(), WeaponMesh->DoesSocketExist(WeaponBaseSocket) ? 1 : 0,
-			*WeaponTipSocket.ToString(), WeaponMesh->DoesSocketExist(WeaponTipSocket) ? 1 : 0);
-		return;
-	}
+	
 
 	// 이번 프레임의 자루/칼끝 위치 (2점)
 	const FVector Start = WeaponMesh->GetSocketLocation(WeaponBaseSocket);
@@ -115,9 +106,7 @@ void UANS_WeaponTrace::NotifyTick(USkeletalMeshComponent* MeshComp, UAnimSequenc
 		FCollisionShape::MakeSphere(TraceRadius),
 		Params);
 
-	// [임시 디버그] 여기까지 왔으면 트레이스가 매 틱 도는 중 (디버그 라인도 그려짐)
-	UE_LOG(LogTemp, Log, TEXT("[WeaponTrace] TRACE OK: Channel=%d, Radius=%.1f, bHit=%d, Hits=%d"),
-		(int32)TraceChannel.GetValue(), TraceRadius, bHit ? 1 : 0, Hits.Num());
+	
 
 	if (bDrawDebug)
 	{

@@ -16,7 +16,7 @@ namespace
 		const TSharedRef<TJsonWriter<TCHAR, TCondensedJsonPrintPolicy<TCHAR>>> Writer =
 			TJsonWriterFactory<TCHAR, TCondensedJsonPrintPolicy<TCHAR>>::Create(&Output);
 
-		FJsonSerializer::Serialize(Object, Writer);
+			FJsonSerializer::Serialize(Object, Writer);
 		return Output;
 	}
 }

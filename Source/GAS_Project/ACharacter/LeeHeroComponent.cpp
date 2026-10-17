@@ -115,7 +115,11 @@ bool ULeeHeroComponent::CanChangeInitState(class UGameFrameworkComponentManager*
 	{
 		if (!LeePS)
 		{
-			UE_LOG(LogLee, Warning, TEXT("HeroComponent Spawned->DataAvailable Failed: LeePS is null"));
+#pragma region 26.09.23 수정 - 스폰 직후 정상 대기를 Warning으로 찍던 것을 Verbose로 낮춤
+			// 봇은 스폰 직후 몇 프레임 동안 PlayerState가 없는 것이 정상이다.
+			// Warning으로 두면 매 스폰마다 로그가 쌓여 진짜 문제를 가린다.
+			UE_LOG(LogLee, Verbose, TEXT("[HeroComponent] Spawned->DataAvailable 대기 — PlayerState 아직 없음"));
+#pragma endregion
 			return false;
 		}
 		return true;
@@ -129,7 +133,9 @@ bool ULeeHeroComponent::CanChangeInitState(class UGameFrameworkComponentManager*
 		
 		if (!bHasPS || !bPawnExtReady)
 		{
-			UE_LOG(LogLee, Warning, TEXT("HeroComponent DataAvailable->DataInitialized Waiting... HasPS: %d, PawnExtReady: %d"), bHasPS, bPawnExtReady);
+#pragma region 26.09.23 수정 - 위와 동일한 이유로 Verbose로 낮춤
+			UE_LOG(LogLee, Verbose, TEXT("[HeroComponent] DataAvailable->DataInitialized 대기 — PlayerState: %d, PawnExt 준비: %d"), bHasPS, bPawnExtReady);
+#pragma endregion
 		}
 		
 		return bHasPS && bPawnExtReady;

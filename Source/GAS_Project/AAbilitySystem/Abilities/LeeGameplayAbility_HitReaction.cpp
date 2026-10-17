@@ -202,8 +202,7 @@ FName ULeeGameplayAbility_HitReaction::SelectStaggerSection(const AActor* Avatar
 	const float ForwardAmount = FVector::DotProduct(ToAttacker, Forward);
 	const float RightAmount = FVector::DotProduct(ToAttacker, Right);
 
-	// // [임시 디버그] 방향 내적값 — Fwd>0=정면, <0=후면 / Right>0=우측, <0=좌측
-	// UE_LOG(LogTemp, Warning, TEXT("[임시디버그][Stagger] Fwd=%.2f Right=%.2f"), ForwardAmount, RightAmount);
+	
 
 	if (FMath::Abs(ForwardAmount) >= FMath::Abs(RightAmount))
 	{

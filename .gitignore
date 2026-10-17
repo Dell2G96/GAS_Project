@@ -4,6 +4,8 @@ Intermediate
 Saved
 Content
 Docs
+tmp
+Temp
 _AssetFiles
 .vscode
 .vs
@@ -18,6 +20,10 @@ _AssetFiles
 *.suo
 *.xcodeproj
 *.xcworkspace
+
+
+
+
 /.idea/.idea.GAS_Project/.idea/.gitignore
 /.vsconfig
 /Plugins/Developer/RiderLink/Source/RD/src/rd_framework_cpp/src/main/serialization/AbstractPolymorphic.h
@@ -438,3 +444,4 @@ _AssetFiles
 /Plugins/Developer/RiderLink/Source/RD/src/rd_core_cpp/src/main/types/wrapper.h
 /Plugins/Developer/RiderLink/Source/RD/thirdparty/spdlog/include/spdlog/fmt/bundled/xchar.h
 /Plugins/Developer/RiderLink/Source/RD/thirdparty/spdlog/include/spdlog/fmt/xchar.h
+/Temp/mytags_reference_audit.json

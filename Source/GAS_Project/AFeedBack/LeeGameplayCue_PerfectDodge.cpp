@@ -20,9 +20,7 @@ ALeeGameplayCue_PerfectDodge::ALeeGameplayCue_PerfectDodge()
 // Cue 실행 — 클라이언트에서만 잔상 샘플링 시작 (데디 서버는 연출 스킵)
 bool ALeeGameplayCue_PerfectDodge::OnExecute_Implementation(AActor* MyTarget, const FGameplayCueParameters& /*Parameters*/)
 {
-	// [임시 디버그] Cue 실행 진입 확인 — Target/NetMode
-	UE_LOG(LogLee, Warning, TEXT("[Afterimage] OnExecute 진입: Target=%s NetMode=%d"),
-		*GetNameSafe(MyTarget), (int32)GetNetMode());
+	
 
 	// 데디 서버에서는 로직 없음 — 연출은 클라이언트 전용
 	if (GetNetMode() == NM_DedicatedServer)
@@ -39,9 +37,7 @@ bool ALeeGameplayCue_PerfectDodge::OnExecute_Implementation(AActor* MyTarget, co
 		return false;
 	}
 
-	// [임시 디버그] 슬롯/폴백/맵 구성 확인
-	UE_LOG(LogLee, Warning, TEXT("[Afterimage] TargetMesh=%s NumMaterials=%d 폴백AfterimageMaterial=%s MapNum=%d"),
-		*GetNameSafe(TargetMesh), TargetMesh->GetNumMaterials(), *GetNameSafe(AfterimageMaterial), AfterimageMaterialMap.Num());
+	
 
 	// 연속 실행 대비: 이전 잔상/타이머 정리 후 새로 시작
 	ClearAfterimages();
@@ -107,9 +103,7 @@ void ALeeGameplayCue_PerfectDodge::SpawnAfterimageSample()
 			}
 		}
 
-		// [임시 디버그] 각 슬롯이 어떤 머티리얼을 고르는지
-		UE_LOG(LogLee, Warning, TEXT("[Afterimage] Slot %d: Orig=%s → Chosen=%s"),
-			MaterialIndex, *GetNameSafe(OriginalSlotMaterial), *GetNameSafe(AfterimageSlotMaterial));
+		
 
 		if (AfterimageSlotMaterial)
 		{

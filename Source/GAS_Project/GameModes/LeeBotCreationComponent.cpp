@@ -158,7 +158,11 @@ void ULeeBotCreationComponent::RemoveOneBot()
 
 void ULeeBotCreationComponent::ServerCreateBots()
 {
-	UE_LOG(LogLee, Error, TEXT("Create BOt spawn"));
+#pragma region 26.09.23 수정 - 정상 동작 로그가 Error 레벨이라 진짜 에러에 섞이던 문제
+	// 봇 생성 시작을 알리는 디버그 로그다. 에러가 아닌데 Error 레벨이라
+	// 크래시 리포트와 로그 필터에서 실제 에러와 구분되지 않았다. Verbose로 낮춘다.
+	UE_LOG(LogLee, Verbose, TEXT("[BotCreation] 봇 생성 시작 (요청 수: %d)"), NumBotsToCreate);
+#pragma endregion
 
 	if (BotControllerClass == nullptr)
 	{

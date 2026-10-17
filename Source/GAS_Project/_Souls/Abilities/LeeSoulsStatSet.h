@@ -51,7 +51,7 @@ public:
 	// [신규] 스태미나가 0에 도달했을 때 브로드캐스트 — LeeFinisherTargetComponent가 수신하여 그로기 GE 적용
 	mutable FLeeAttributeEvent OnOutOfStamina;
 
-	// [방어 시스템 — 빌드 검증 완료, 학습용 주석 처리] 데미지 판정 완료 브로드캐스트.
+	// [방어 시스템 — 빌드 검증 완료,] 데미지 판정 완료 브로드캐스트.
 	// ULeeExecCalc_Damage가 Spec DynamicAssetTags에 기록한 판정 결과(Souls.DamageResult.*)를
 	// 어트리뷰트 변경 확정 후 알린다 → ULeeDefenseComponent가 수신해 이벤트 발송/GE 적용 담당.
 	// (ExecCalc 내부에서 이벤트를 직접 쏘지 않기 위한 구조 변경, 리팩토링)

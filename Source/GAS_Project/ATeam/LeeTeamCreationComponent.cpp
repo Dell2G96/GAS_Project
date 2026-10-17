@@ -121,9 +121,7 @@ void ULeeTeamCreationComponent::ServerChooseTeamForPlayer(class ALeePlayerState*
 			PS->SetGenericTeamId(IntegerToGenericTeamId(PlayerTeamId));
 		}
 	}
-
-	// [임시 디버그] 실제로 어떤 TeamID가 부여됐는지 확인
-	UE_LOG(LogTemp, Warning, TEXT("[Team] ServerChooseTeamForPlayer: %s → TeamId=%d"), *GetNameSafe(PS), PS->GetTeamId());
+	
 }
 
 void ULeeTeamCreationComponent::OnPlayerInitialized(AGameModeBase* GameMode, AController* NewPlayer)

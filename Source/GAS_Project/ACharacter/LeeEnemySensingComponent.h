@@ -28,6 +28,16 @@ class GAS_PROJECT_API ULeeEnemySensingComponent : public UActorComponent
 public:
 	ULeeEnemySensingComponent();
 
+	UFUNCTION(BlueprintPure, Category = "Lee|Sensing")
+	static ULeeEnemySensingComponent* FindEnemySensingComponent(const AActor* Actor)
+	{
+		return Actor ? Actor->FindComponentByClass<ULeeEnemySensingComponent>() : nullptr;
+	}
+
+	/** [서버] 직전 SenseTick에서 CanPerceive를 통과한 플레이어 폰 목록 — AI 타겟 선정의 후보 원본 */
+	UFUNCTION(BlueprintPure, Category = "Lee|Sensing")
+	void GetPerceivedPawns(TArray<APawn*>& OutPawns) const;
+
 protected:
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
@@ -72,4 +82,10 @@ private:
 	double LastPerceivedTime = 0.0;
 
 	FTimerHandle SenseTimerHandle;
+
+	/** [서버] 직전 SenseTick에서 CanPerceive를 통과한 폰들 (AAI/Token의 타겟 선정 컴포넌트가 조회) */
+	TArray<TWeakObjectPtr<APawn>> PerceivedPawns;
+
+	/** [서버] 폰별 마지막 인식 시각 — 시야를 벗어나도 LoseSightDelay 동안 후보로 유지하기 위한 기억 */
+	TMap<TWeakObjectPtr<APawn>, double> LastSeenTimeByPawn;
 };

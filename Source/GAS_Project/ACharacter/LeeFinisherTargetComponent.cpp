@@ -72,15 +72,7 @@ void ULeeFinisherTargetComponent::EvaluatePrompt()
 			break;
 		}
 	}
-
-	// [임시 진단 로그] 로컬 플레이어 폰 자체를 못 찾는 경우 (서버 전용 인스턴스 등)
-	if (!bFoundLocalPlayer && GEngine)
-	{
-		GEngine->AddOnScreenDebugMessage(
-			(int32)GetUniqueID(), 0.3f, FColor::Red,
-			FString::Printf(TEXT("[Finisher] %s: 로컬 플레이어 폰을 못 찾음"), *GetNameSafe(GetOwner())));
-	}
-
+	
 	BroadcastPrompt(NewPhase, NewType);
 }
 
@@ -92,18 +84,7 @@ void ULeeFinisherTargetComponent::ComputePromptFor(
 	const AActor* Owner = GetOwner();
 	UAbilitySystemComponent* OwnerASC = GetOwnerASC();
 
-	// [임시 진단 로그] 화면에 실시간 상태 표시 — 원인 확정되면 제거할 것
-	const float DebugDistSq = (Owner ? FVector::DistSquared2D(Owner->GetActorLocation(), PlayerPawn->GetActorLocation()) : -1.0);
-	const bool bDebugGroggy = OwnerASC && OwnerASC->HasMatchingGameplayTag(MyTags::Souls::Status_Groggy);
-	const bool bDebugUnaware = OwnerASC && OwnerASC->HasMatchingGameplayTag(MyTags::Souls::Status_Unaware);
-	if (GEngine)
-	{
-		GEngine->AddOnScreenDebugMessage(
-			(int32)GetUniqueID(), 0.3f, FColor::Yellow,
-			FString::Printf(TEXT("[Finisher] Owner=%s ASC=%s Groggy=%d Unaware=%d Dist=%.0f/%d(Prompt) PromptR=%.0f"),
-				*GetNameSafe(Owner), OwnerASC ? TEXT("O") : TEXT("X"), bDebugGroggy, bDebugUnaware,
-				FMath::Sqrt(FMath::Max(DebugDistSq, 0.0f)), 0, PromptRadius));
-	}
+	
 
 	if (!Owner || !OwnerASC)
 	{
@@ -112,8 +93,8 @@ void ULeeFinisherTargetComponent::ComputePromptFor(
 
 	// 사망했거나 이미 피니셔 진행 중이면 숨김
 	if (OwnerASC->HasMatchingGameplayTag(MyTags::Souls::Status_Finisher_Victim) ||
-		OwnerASC->HasMatchingGameplayTag(MyTags::Lyra::Status_Death_Dying) ||
-		OwnerASC->HasMatchingGameplayTag(MyTags::Lyra::Status_Death_Dead))
+		OwnerASC->HasMatchingGameplayTag(MyTags::Souls::Status_Death_Dying) ||
+		OwnerASC->HasMatchingGameplayTag(MyTags::Souls::Status_Death_Dead))
 	{
 		return;
 	}
@@ -139,14 +120,7 @@ void ULeeFinisherTargetComponent::ComputePromptFor(
 		const float BehindDotThreshold = -FMath::Cos(FMath::DegreesToRadians(BehindAngleDeg * 0.5f));
 		const float ActualDot = FVector::DotProduct(OwnerForward, ToPlayer);
 
-		// [임시 진단 로그] 각도 판정 상세
-		if (GEngine)
-		{
-			GEngine->AddOnScreenDebugMessage(
-				(int32)GetUniqueID() + 1, 0.3f, FColor::Cyan,
-				FString::Printf(TEXT("[Finisher-Angle] %s Dot=%.2f Threshold=%.2f (Dot<=Threshold 이면 통과) BehindAngleDeg=%.0f"),
-					*GetNameSafe(Owner), ActualDot, BehindDotThreshold, BehindAngleDeg));
-		}
+		
 
 		if (FVector::DotProduct(OwnerForward, ToPlayer) <= BehindDotThreshold)
 		{
@@ -178,14 +152,7 @@ void ULeeFinisherTargetComponent::BroadcastPrompt(ELeeFinisherPromptPhase Phase,
 	LastPhase = Phase;
 	LastType = Type;
 
-	// [임시 진단 로그] 실제 메시지 발행 시점
-	if (GEngine)
-	{
-		GEngine->AddOnScreenDebugMessage(
-			(int32)GetUniqueID() + 2, 3.0f, FColor::Green,
-			FString::Printf(TEXT("[Finisher-Broadcast] %s Phase=%d Type=%d 메시지 발행됨"),
-				*GetNameSafe(GetOwner()), (int32)Phase, (int32)Type));
-	}
+	
 
 	FLeeFinisherPromptMessage Message;
 	Message.Target = GetOwner();

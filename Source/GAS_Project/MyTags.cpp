@@ -100,6 +100,9 @@ namespace MyTags
 		// 약공격/강공격 어빌리티 식별 태그 (각 BP의 AbilityTags에서 사용)
 		UE_DEFINE_GAMEPLAY_TAG(Ability_Attack_Melee_Light, "Souls.Abilities.Attack.Melee.Light")
 		UE_DEFINE_GAMEPLAY_TAG(Ability_Attack_Melee_Heavy, "Souls.Abilities.Attack.Melee.Heavy")
+#pragma region 26.09.22 추가 - Enemy 원거리 공격 어빌리티 식별 태그
+		UE_DEFINE_GAMEPLAY_TAG(Ability_Attack_Ranged, "Souls.Abilities.Attack.Ranged")
+#pragma endregion
 		UE_DEFINE_GAMEPLAY_TAG(Ability_Guard, "Souls.Abilities.Guard")
 		UE_DEFINE_GAMEPLAY_TAG(Ability_Dodge, "Souls.Abilities.Dodge")
 		UE_DEFINE_GAMEPLAY_TAG(Ability_HitReaction, "Souls.Abilities.HitReaction")
