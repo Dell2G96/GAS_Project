@@ -77,6 +77,11 @@ EStateTreeRunStatus FLeeStateTreeTask_StrafeAroundTarget::EnterState(FStateTreeE
 	Data.TimeSinceLastGoalUpdate = Data.StrafeGoalUpdateInterval;
 	Data.MoveRequestId = FAIRequestID::InvalidRequest;
 
+	// CanStrafe(true)로 이동해도 Focus가 없으면 이동 방향을 보고 걷는다(뒤로 물러날 때 타겟을 등지게 됨).
+	// Focus를 타겟으로 고정해야 몸은 타겟을 보면서 옆/뒤로 움직인다(26.10.20 발견 — 물러날 때
+	// 타겟을 등져서 시야 원뿔 밖으로 나가 인식을 잃어버리는 문제).
+	Data.AIController->SetFocus(Data.TargetActor);
+
 	return EStateTreeRunStatus::Running;
 }
 
@@ -192,4 +197,9 @@ void FLeeStateTreeTask_StrafeAroundTarget::ExitState(FStateTreeExecutionContext&
 	}
 
 	Data.MoveRequestId = FAIRequestID::InvalidRequest;
+
+	if (Data.AIController)
+	{
+		Data.AIController->ClearFocus(EAIFocusPriority::Gameplay);
+	}
 }

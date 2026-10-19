@@ -43,6 +43,43 @@ struct GAS_PROJECT_API FLeeStateTreeCondition_CanClaimAttackToken : public FStat
 };
 
 /**
+ * FLeeStateTreeCondition_TimeSinceLastUse의 StateTree 에디터 노출 데이터.
+ * 값 소스는 ULeeAttackerProfileComponent::GetTimeSinceLastUse (Consideration과 동일한 데이터 소스).
+ */
+USTRUCT()
+struct FLeeTimeSinceLastUseConditionInstanceData
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, Category = "Context")
+	TObjectPtr<AActor> RequesterPawn = nullptr;
+
+	/** 조회할 공격 식별 태그 (예: Souls.Attacker.Ranged) — ClaimAttackToken Task가 RecordUse로 기록한 것과 같은 태그여야 한다 */
+	UPROPERTY(EditAnywhere, Category = "Parameter")
+	FGameplayTag AttackTag;
+
+	/** 이 시간(초) 이상 지나야 다시 쏠 수 있다 */
+	UPROPERTY(EditAnywhere, Category = "Parameter", meta = (ClampMin = "0.0"))
+	float MinSeconds = 1.0f;
+};
+
+/**
+ * 지정된 공격을 마지막으로 쓴 지 MinSeconds 이상 지났는지 확인한다.
+ * 26.10.19 추가 — RangedAttack에 재발사 간격을 거는 Enter Condition이 없어서
+ * 토큰만 잡히면 매 틱 연속 발사되는 문제가 있었다(R7).
+ */
+USTRUCT(meta = (DisplayName = "Lee Time Since Last Use", Category = "Lee|AI|Condition"))
+struct GAS_PROJECT_API FLeeStateTreeCondition_TimeSinceLastUse : public FStateTreeConditionCommonBase
+{
+	GENERATED_BODY()
+
+	using FInstanceDataType = FLeeTimeSinceLastUseConditionInstanceData;
+	virtual const UStruct* GetInstanceDataType() const override { return FInstanceDataType::StaticStruct(); }
+
+	virtual bool TestCondition(FStateTreeExecutionContext& Context) const override;
+};
+
+/**
  * FLeeStateTreeCondition_CanClaimAnyMeleeAttack의 StateTree 에디터 노출 데이터.
  * ProfileComponent가 없으면 애초에 근접 공격 후보가 없으므로 false를 반환한다.
  */

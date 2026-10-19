@@ -23,10 +23,16 @@ namespace
 	}
 }
 
-// Tick에서 매 프레임 정렬 각도를 확인해야 하므로 계속 호출되어야 한다
+// Tick에서 매 프레임 정렬 각도를 확인해야 하므로 계속 호출되어야 한다.
+// 완료 판정에는 참여하지 않는다(같은 State의 ActivateAbility Task가 결정) — 결함 A 수정:
+// 이 플래그가 없으면 정렬이 끝나는 즉시 State가 완료 처리되어, 발사 전에 ActivateAbility::ExitState가
+// 어빌리티를 취소해버린다(26.10.19 분석 문서 참고).
 FLeeStateTreeTask_FaceTarget::FLeeStateTreeTask_FaceTarget()
 {
 	bShouldCallTick = true;
+#if WITH_EDITORONLY_DATA
+	bConsideredForCompletion = false;
+#endif
 }
 
 // 상태 진입 — AIController의 Focus를 타겟으로 설정

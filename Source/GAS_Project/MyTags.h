@@ -162,6 +162,8 @@ namespace MyTags
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Event_Attack_ComboTransition);
 		// 다단 공격 몽타주에서 Warp 구간마다 워프 타깃을 재계산 — Lee Gameplay Event(Server) 노티파이가 2번째+ Warp 구간 직전에 발사
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Event_Attack_RefreshWarpTarget);
+		// [신규] 원거리 공격 발사 시점 — 몽타주의 Lee Gameplay Event(Server) 노티파이가 발사, GA_EnemyRangedAttack이 수신해 투사체를 스폰
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Event_Attack_Fire);
 
 		// ----- 이벤트 - 방어 판정 (ULeeDefenseComponent 발신) -----
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Event_Defense_GuardHit);
@@ -210,6 +212,8 @@ namespace MyTags
 		// 스태미나 감소 원인 태그 — 스태미나 0 도달 시 GuardBreak/PostureBreak 분기 근거 (리뷰 P0-3)
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(DamageType_ParryCounter);
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(DamageType_DodgeCost);
+		// [신규] 투사체(원거리) 공격 속성 태그 — 가드 방향 판정 기준을 투사체 위치로 바꾸는 등 원거리 전용 분기에 사용
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(DamageType_Attack_Projectile);
 
 		// ----- SetByCaller -----
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(SetByCaller_Damage)

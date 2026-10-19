@@ -21,6 +21,20 @@ bool FLeeStateTreeCondition_CanClaimAttackToken::TestCondition(FStateTreeExecuti
 	return Data.TokenComponent->CanClaim(Data.RequesterPawn, Data.Reservation.QuotaTag, Data.Reservation.Cost);
 }
 
+// 지정된 공격을 마지막으로 쓴 지 MinSeconds 이상 지났는지 확인 (기록이 없으면 통과)
+bool FLeeStateTreeCondition_TimeSinceLastUse::TestCondition(FStateTreeExecutionContext& Context) const
+{
+	const FInstanceDataType& Data = Context.GetInstanceData(*this);
+
+	ULeeAttackerProfileComponent* Profile = ULeeAttackerProfileComponent::FindAttackerProfileComponent(Data.RequesterPawn);
+	if (!Profile)
+	{
+		return true;
+	}
+
+	return Profile->GetTimeSinceLastUse(Data.AttackTag) >= Data.MinSeconds;
+}
+
 // 근접 공격(Light/Heavy) 중 하나라도 지금 Claim 가능한지 확인
 bool FLeeStateTreeCondition_CanClaimAnyMeleeAttack::TestCondition(FStateTreeExecutionContext& Context) const
 {

@@ -169,6 +169,7 @@ namespace MyTags
 		UE_DEFINE_GAMEPLAY_TAG(Event_Attack_ComboTransition, "Souls.Events.Attack.ComboTransition")
 		// [신규] Warp 타깃 재계산 이벤트 (다단 공격의 2번째+ Warp 구간 직전에 Lee Gameplay Event(Server) 노티파이가 발사)
 		UE_DEFINE_GAMEPLAY_TAG(Event_Attack_RefreshWarpTarget, "Souls.Events.Attack.RefreshWarpTarget")
+		UE_DEFINE_GAMEPLAY_TAG(Event_Attack_Fire, "Souls.Events.Attack.Fire")
 
 		// ----- 이벤트 - 방어 판정 (ULeeDefenseComponent 발신) -----
 		UE_DEFINE_GAMEPLAY_TAG(Event_Defense_GuardHit, "Souls.Events.Defense.GuardHit")
@@ -215,6 +216,7 @@ namespace MyTags
 		// 스태미나 감소 원인 태그 (GuardBreak/PostureBreak 분기 근거)
 		UE_DEFINE_GAMEPLAY_TAG(DamageType_ParryCounter, "Souls.DamageType.ParryCounter")
 		UE_DEFINE_GAMEPLAY_TAG(DamageType_DodgeCost, "Souls.DamageType.DodgeCost")
+		UE_DEFINE_GAMEPLAY_TAG(DamageType_Attack_Projectile, "Souls.DamageType.Attack.Projectile")
 
 		// ----- SetByCaller -----
 		UE_DEFINE_GAMEPLAY_TAG(SetByCaller_Damage, "Souls.SetByCaller.Damage")
