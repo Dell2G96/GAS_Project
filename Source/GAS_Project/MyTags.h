@@ -214,6 +214,8 @@ namespace MyTags
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(DamageType_DodgeCost);
 		// [신규] 투사체(원거리) 공격 속성 태그 — 가드 방향 판정 기준을 투사체 위치로 바꾸는 등 원거리 전용 분기에 사용
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(DamageType_Attack_Projectile);
+		// [신규 26.10.20] 모래 공격 속성 태그 — 피격 시 DefenseComponent가 시야 방해 GE(GE_SandBlind)를 건다
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(DamageType_Attack_Sand);
 
 		// ----- SetByCaller -----
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(SetByCaller_Damage)
@@ -223,6 +225,12 @@ namespace MyTags
 		// ----- GameplayCue -----
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(GameplayCue_FinishIndicator);
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(GameplayCue_Dodge_Perfect);
+		// [신규 26.10.20] 모래 시야 방해 화면 효과 Cue (ALeeGameplayCue_SandBlind)
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(GameplayCue_SandBlind);
+
+		// ----- 쿨타임 -----
+		// [신규 26.10.20] 근접 공격 몽타주별 쿨다운 태그의 부모. 개별 태그(Souls.Cooldown.<Enemy>.<Attack>)는 DefaultGameplayTags.ini에 추가
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Cooldown);
 
 		// ----- AI - 어택 토큰 Quota (ULeeAttackTokenComponent) -----
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Attacker_Melee);

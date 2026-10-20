@@ -25,6 +25,7 @@ public class PIEAutoRecorder : ModuleRules
 			"OpenSSL",           // SHA256
 			"ToolMenus",         // 툴바 메뉴 확장
 			"LevelEditor",       // LevelEditor.LevelEditorToolBar.User 확장 대상
+			"Settings",          // ISettingsModule - 설정 화면 열기 (26.10.20 추가)
 		});
 	}
 }

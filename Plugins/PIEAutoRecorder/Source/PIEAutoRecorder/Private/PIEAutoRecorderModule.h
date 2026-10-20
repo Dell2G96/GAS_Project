@@ -55,6 +55,12 @@ private:
 	bool GetOBSToggleEnabled() const;
 	void HandleOBSToggleChanged(ECheckBoxState NewState);
 
+#pragma region 26.10.20 추가 - 툴바 녹화 폴더 열기 버튼
+	// 폴더 아이콘 클릭 시 '기본 저장 폴더'를 탐색기로 연다. 비어 있으면 설정 화면 이동을 묻는다.
+	void HandleOpenRecordingFolderClicked();
+	FText GetOpenRecordingFolderToolTip() const;
+#pragma endregion
+
 	// Controller 상태가 바뀔 때마다 호출된다. WebSocket 연결/해제를 여기서 연계한다.
 	void HandleOBSProcessStateChanged(EOBSProcessState NewState);
 

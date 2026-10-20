@@ -9,6 +9,7 @@
 #include "LeeStateTreeAuthoringLibrary.generated.h"
 
 class UStateTree;
+class UEnvQuery;
 
 /**
  * Enemy 전투 StateTree를 생성할 때 쓰는 빌드 설정.
@@ -53,6 +54,22 @@ struct FLeeEnemyTreeBuildConfig
 	/** 원거리 공격 재발사 최소 간격(초). 이 시간이 지나기 전에는 RangedAttack State에 진입하지 않는다(R7) */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Lee|AI|Authoring")
 	float RangedMinFireInterval = 2.0f;
+
+	/**
+	 * 26.10.21 추가 — 원거리 공격 GA의 쿨다운 태그 (예: Souls.Cooldown.Morgana.Ranged).
+	 * 지정하면 이 태그가 있는 동안 RangedAttack State에 진입하지 않는다 (GA 쿨타임과 자동으로 맞춰진다).
+	 * 비어 있으면 조건을 붙이지 않는다(기존 동작).
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Lee|AI|Authoring")
+	FGameplayTag RangedCooldownTag;
+
+	/**
+	 * 26.10.21 추가 — 원거리 공격을 못 쓰는 동안(쿨타임) 재배치할 지점을 고르는 EQS.
+	 * 지정하면 Mid/Far 티어에 RangedAttack 다음 순서로 Reposition State를 만든다.
+	 * 비어 있으면 Reposition을 만들지 않는다(기존 동작).
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Lee|AI|Authoring")
+	TObjectPtr<UEnvQuery> RangedRepositionQuery = nullptr;
 };
 
 /**
@@ -101,6 +118,8 @@ public:
 		FName TargetVulnerableTagName,
 		bool bUseGuardStrafe = true,
 		float RangedCloseRetreatRadius = 900.f,
-		float RangedMinFireInterval = 2.0f);
+		float RangedMinFireInterval = 2.0f,
+		FName RangedCooldownTagName = NAME_None,
+		UEnvQuery* RangedRepositionQuery = nullptr);
 #pragma endregion
 };

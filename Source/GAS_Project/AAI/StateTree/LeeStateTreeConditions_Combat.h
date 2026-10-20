@@ -138,3 +138,39 @@ struct GAS_PROJECT_API FLeeStateTreeCondition_TargetHasGameplayTag : public FSta
 
 	virtual bool TestCondition(FStateTreeExecutionContext& Context) const override;
 };
+
+/**
+ * FLeeStateTreeCondition_SelfHasGameplayTag의 StateTree 에디터 노출 데이터.
+ * Actor는 Context(자기 자신 Pawn)에 자동 바인딩된다.
+ */
+USTRUCT()
+struct FLeeSelfHasGameplayTagInstanceData
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, Category = "Context")
+	TObjectPtr<AActor> Actor = nullptr;
+
+	/** 검사할 태그 (예: 원거리 공격 쿨다운 태그 Souls.Cooldown.Morgana.Ranged) */
+	UPROPERTY(EditAnywhere, Category = "Parameter")
+	FGameplayTag Tag;
+
+	/** true면 결과를 뒤집는다 — "태그가 없을 때" 통과 (쿨타임이 끝났을 때만 진입) */
+	UPROPERTY(EditAnywhere, Category = "Parameter")
+	bool bInvert = false;
+};
+
+/**
+ * 26.10.21 추가 — 자기 자신 ASC가 Tag를 보유하고 있는지 확인한다.
+ * RangedAttack 진입 조건에 쿨다운 태그(bInvert=true)를 걸어, GA 쿨타임 중에는 진입 자체를 막는 데 쓴다.
+ */
+USTRUCT(meta = (DisplayName = "Lee Self Has Gameplay Tag", Category = "Lee|AI|Condition"))
+struct GAS_PROJECT_API FLeeStateTreeCondition_SelfHasGameplayTag : public FStateTreeConditionCommonBase
+{
+	GENERATED_BODY()
+
+	using FInstanceDataType = FLeeSelfHasGameplayTagInstanceData;
+	virtual const UStruct* GetInstanceDataType() const override { return FInstanceDataType::StaticStruct(); }
+
+	virtual bool TestCondition(FStateTreeExecutionContext& Context) const override;
+};

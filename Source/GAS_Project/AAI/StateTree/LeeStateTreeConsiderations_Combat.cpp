@@ -6,6 +6,7 @@
 #include "AbilitySystemComponent.h"
 #include "StateTreeExecutionContext.h"
 #include "GAS_Project/AAI/Token/LeeAttackerProfileComponent.h"
+#include "GAS_Project/LeeLogChannels.h"
 
 // 마지막 사용 후 경과 시간을 InputRange로 정규화한 뒤 ResponseCurve로 평가 (한 번도 안 썼으면 최댓값 취급)
 float FLeeConsideration_TimeSinceLastUse::GetScore(FStateTreeExecutionContext& Context) const
@@ -16,7 +17,21 @@ float FLeeConsideration_TimeSinceLastUse::GetScore(FStateTreeExecutionContext& C
 		? ULeeAttackerProfileComponent::FindAttackerProfileComponent(Data.RequesterPawn)
 		: nullptr;
 
-	if (!Profile || !Data.AttackTag.IsValid())
+	// 점수 0인 State는 Utility 선택에서 아예 제외되므로, 태그 누락은 조용히 넘기지 않고 알린다(26.10.20).
+	// 매 평가마다 찍히면 로그가 넘치므로 실행 중 한 번만 출력한다.
+	if (!Data.AttackTag.IsValid())
+	{
+		static bool bWarnedEmptyTag = false;
+		if (!bWarnedEmptyTag)
+		{
+			bWarnedEmptyTag = true;
+			UE_LOG(LogLee, Warning, TEXT("[LeeConsideration_TimeSinceLastUse] AttackTag가 비어 있어 점수가 0입니다. 이 State는 Utility 선택에서 제외됩니다. (Owner: %s)"),
+				*GetNameSafe(Context.GetOwner()));
+		}
+		return 0.f;
+	}
+
+	if (!Profile)
 	{
 		return 0.f;
 	}

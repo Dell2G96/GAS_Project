@@ -157,4 +157,9 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Lee|Defense|Effect")
 	TSubclassOf<UGameplayEffect> RegenBlockOnHitEffect;
 
+	/** [서버] 모래 공격(Souls.DamageType.Attack.Sand) 일반 피격 시 적용할 시야 방해 Duration GE
+	 * BP에서 GE_SandBlind 지정 (GE의 GameplayCue가 화면 효과를 담당) */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Lee|Defense|Effect")
+	TSubclassOf<UGameplayEffect> SandBlindEffect;
+
 };

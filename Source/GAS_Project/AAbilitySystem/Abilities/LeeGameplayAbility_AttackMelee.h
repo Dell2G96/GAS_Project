@@ -55,6 +55,14 @@ struct FLeeMeleeAttackData
 	/** bWarpTranslation=true일 때, 이 거리보다 적이 멀면 위치 워프를 하지 않음(순간이동 방지). 0이면 제한 없음 */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Lee|Attack|Warp", meta = (EditCondition = "bWarpTranslation", ClampMin = "0.0"))
 	float MaxWarpDistance = 400.0f;
+
+	/** 이 몽타주의 쿨타임(초). 0이면 쿨타임 없음. GA의 CooldownGameplayEffectClass(SetByCaller Duration GE)에 전달된다 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Lee|Attack|Cooldown", meta = (ClampMin = "0.0"))
+	float CooldownDuration = 0.0f;
+
+	/** 이 몽타주 전용 쿨다운 태그 (예: Souls.Cooldown.Morgana.SandAttack). 몽타주마다 달라야 서로 독립된 쿨타임이 된다 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Lee|Attack|Cooldown", meta = (Categories = "Souls.Cooldown"))
+	FGameplayTag CooldownTag;
 };
 
 /**
@@ -171,6 +179,17 @@ protected:
 	 * 반환 nullptr이면 ActivateAbility가 즉시 종료한다.
 	 */
 	virtual const FLeeMeleeAttackData* SelectAttackData();
+
+	/** [쿨타임] 공격 데이터 중 하나라도 쿨타임이 아니면 활성화 가능 (몽타주별 독립 쿨타임) */
+	virtual bool CheckCooldown(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo,
+		OUT FGameplayTagContainer* OptionalRelevantTags = nullptr) const override;
+
+	/** [쿨타임] 이번에 선택된 몽타주의 CooldownDuration/CooldownTag를 SetByCaller로 실어 쿨다운 GE 적용 */
+	virtual void ApplyCooldown(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo,
+		const FGameplayAbilityActivationInfo ActivationInfo) const override;
+
+	/** [쿨타임] 해당 공격 데이터의 쿨다운 태그가 ASC에 남아 있는지 (태그가 없으면 쿨타임 없음으로 취급) */
+	static bool IsAttackDataOnCooldown(const FLeeMeleeAttackData& AttackData, const UAbilitySystemComponent* ASC);
 
 	/**
 	 * 스태미나 비용을 검사/차감하는 공통 처리.

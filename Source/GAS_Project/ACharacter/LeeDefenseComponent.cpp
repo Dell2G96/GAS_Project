@@ -226,6 +226,13 @@ void ULeeDefenseComponent::HandleDamageResolved(AActor* EffectInstigator, AActor
 
 		CancelExclusiveAbilities(OwnerASC);
 
+		// 모래 공격 — 경직 리액션은 그대로 두고 시야 방해 GE만 추가로 건다 (화면 효과는 GE의 GameplayCue가 담당)
+		if (ResultTags.HasTagExact(MyTags::Souls::DamageType_Attack_Sand) && SandBlindEffect)
+		{
+			OwnerASC->ApplyGameplayEffectToSelf(
+				SandBlindEffect->GetDefaultObject<UGameplayEffect>(), /*Level*/1.0f, OwnerASC->MakeEffectContext());
+		}
+
 		// 가드불가 공격을 가드 중에 맞으면 → 상태 변화 없이 연출만 가드브레이크 몽타주로 대체
 		// (그로기 GE·가드 어빌리티 강제종료는 하지 않음. 실제 가드브레이크는 스태미나 고갈 시 HandleOutOfStamina가 그대로 담당)
 		if (ResultTags.HasTagExact(MyTags::Souls::DamageType_Attack_Unblockable)

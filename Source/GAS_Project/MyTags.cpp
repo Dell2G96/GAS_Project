@@ -217,6 +217,8 @@ namespace MyTags
 		UE_DEFINE_GAMEPLAY_TAG(DamageType_ParryCounter, "Souls.DamageType.ParryCounter")
 		UE_DEFINE_GAMEPLAY_TAG(DamageType_DodgeCost, "Souls.DamageType.DodgeCost")
 		UE_DEFINE_GAMEPLAY_TAG(DamageType_Attack_Projectile, "Souls.DamageType.Attack.Projectile")
+		// 모래 공격 속성 태그 (피격 시 시야 방해)
+		UE_DEFINE_GAMEPLAY_TAG(DamageType_Attack_Sand, "Souls.DamageType.Attack.Sand")
 
 		// ----- SetByCaller -----
 		UE_DEFINE_GAMEPLAY_TAG(SetByCaller_Damage, "Souls.SetByCaller.Damage")
@@ -226,6 +228,10 @@ namespace MyTags
 		// ----- GameplayCue -----
 		UE_DEFINE_GAMEPLAY_TAG(GameplayCue_FinishIndicator, "GameplayCue.Souls.FinishIndicator")
 		UE_DEFINE_GAMEPLAY_TAG(GameplayCue_Dodge_Perfect, "GameplayCue.Souls.Dodge.Perfect")
+		UE_DEFINE_GAMEPLAY_TAG(GameplayCue_SandBlind, "GameplayCue.Souls.SandBlind")
+
+		// 근접 공격 몽타주별 쿨다운 태그의 부모
+		UE_DEFINE_GAMEPLAY_TAG(Cooldown, "Souls.Cooldown")
 
 		// ----- AI - 어택 토큰 Quota (ULeeAttackTokenComponent) -----
 		UE_DEFINE_GAMEPLAY_TAG(Attacker_Melee, "Souls.Attacker.Melee")

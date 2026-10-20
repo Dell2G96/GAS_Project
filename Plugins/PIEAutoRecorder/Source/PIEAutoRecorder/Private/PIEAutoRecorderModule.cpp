@@ -13,6 +13,12 @@
 #include "HAL/PlatformProcess.h"
 #include "Modules/ModuleManager.h"
 #include "ToolMenus.h"
+#include "ISettingsModule.h"
+#include "Misc/MessageDialog.h"
+#include "Misc/Paths.h"
+#include "Styling/AppStyle.h"
+#include "Widgets/Input/SButton.h"
+#include "Widgets/Images/SImage.h"
 
 DEFINE_LOG_CATEGORY(LogPIEAutoRecorder);
 
@@ -434,6 +440,32 @@ void FPIEAutoRecorderModule::RegisterToolbar()
 		FText::GetEmpty(),
 		/*bNoIndent=*/true,
 		/*bSearchable=*/false));
+
+#pragma region 26.10.20 추가 - 툴바 녹화 폴더 열기 버튼
+	// OBS 체크박스 바로 오른쪽에 폴더 아이콘 버튼을 둔다.
+	// 26.10.20 수정 - 아이콘을 노란색으로 칠하기 위해 InitToolBarButton 대신 SButton + SImage 위젯을 사용한다.
+	//                 (InitToolBarButton은 FSlateIcon만 받아서 아이콘 색을 바꿀 수 없음)
+	Section.AddEntry(FToolMenuEntry::InitWidget(
+		TEXT("PIEAutoRecorder.OpenRecordingFolder"),
+		SNew(SButton)
+		.ButtonStyle(FAppStyle::Get(), TEXT("SimpleButton"))
+		.ContentPadding(FMargin(4.0f, 2.0f))
+		.VAlign(VAlign_Center)
+		.ToolTipText(TAttribute<FText>::Create(TAttribute<FText>::FGetter::CreateRaw(this, &FPIEAutoRecorderModule::GetOpenRecordingFolderToolTip)))
+		.OnClicked(FOnClicked::CreateLambda([this]()
+		{
+			HandleOpenRecordingFolderClicked();
+			return FReply::Handled();
+		}))
+		[
+			SNew(SImage)
+			.Image(FAppStyle::GetBrush(TEXT("Icons.FolderOpen")))
+			.ColorAndOpacity(FAppStyle::GetSlateColor(TEXT("Colors.AccentYellow")))
+		],
+		FText::GetEmpty(),
+		/*bNoIndent=*/true,
+		/*bSearchable=*/false));
+#pragma endregion
 }
 
 // Owner 단위로 등록한 Entry를 전부 해제한다. Reload 후 중복 표시를 막는 핵심이다.
@@ -561,6 +593,59 @@ void FPIEAutoRecorderModule::HandleOBSToggleChanged(ECheckBoxState NewState)
 		BeginOwnedOBSShutdown();
 	}
 }
+
+#pragma region 26.10.20 추가 - 툴바 녹화 폴더 열기 버튼
+// '기본 저장 폴더'를 탐색기로 연다. 비어 있으면 경고 후 설정 화면으로 이동할지 묻는다.
+void FPIEAutoRecorderModule::HandleOpenRecordingFolderClicked()
+{
+	const UPIEAutoRecorderSettings* Settings = GetDefault<UPIEAutoRecorderSettings>();
+	if (Settings == nullptr)
+	{
+		return;
+	}
+
+	const FString Directory = Settings->ResolveDefaultSaveDirectory();
+
+	// 1. 경로가 비어 있음 → 경고 + "설정하시겠습니까?" → 예: 설정 화면 열기
+	if (Directory.IsEmpty())
+	{
+		PIEAutoRecorderNotification::ShowWarning(TEXT("녹화 파일 '기본 저장 폴더'가 설정되지 않았습니다."));
+
+		const EAppReturnType::Type Answer = FMessageDialog::Open(EAppMsgType::YesNo,
+			FText::FromString(TEXT("녹화 파일 '기본 저장 폴더'가 설정되지 않았습니다.\n지금 설정하시겠습니까?")),
+			FText::FromString(TEXT("PIE Auto Recorder")));
+
+		if (Answer == EAppReturnType::Yes)
+		{
+			FModuleManager::LoadModuleChecked<ISettingsModule>(TEXT("Settings")).ShowViewer(
+				Settings->GetContainerName(), Settings->GetCategoryName(), Settings->GetSectionName());
+		}
+		return;
+	}
+
+	// 2. 경로는 있지만 실제 폴더가 없음 → 경고만 표시
+	const FString FullPath = FPaths::ConvertRelativePathToFull(Directory);
+	if (!FPaths::DirectoryExists(FullPath))
+	{
+		PIEAutoRecorderNotification::ShowWarning(FString::Printf(TEXT("녹화 폴더가 존재하지 않습니다: %s"), *FullPath));
+		return;
+	}
+
+	// 3. 정상 → 탐색기로 연다
+	FPlatformProcess::ExploreFolder(*FullPath);
+}
+
+// 버튼 툴팁. 현재 설정된 폴더 경로를 함께 보여준다.
+FText FPIEAutoRecorderModule::GetOpenRecordingFolderToolTip() const
+{
+	const UPIEAutoRecorderSettings* Settings = GetDefault<UPIEAutoRecorderSettings>();
+	const FString Directory = Settings ? Settings->ResolveDefaultSaveDirectory() : FString();
+
+	return FText::FromString(Directory.IsEmpty()
+		? TEXT("녹화 폴더 열기 (기본 저장 폴더 미설정)")
+		: FString::Printf(TEXT("녹화 폴더 열기\n%s"), *FPaths::ConvertRelativePathToFull(Directory)));
+}
+#pragma endregion
 
 // Controller 상태 변화에 맞춰 WebSocket 연결을 연계한다. 초기 연결 지연은 Backend의 재연결 로직에 위임한다(§9.2).
 void FPIEAutoRecorderModule::HandleOBSProcessStateChanged(EOBSProcessState NewState)

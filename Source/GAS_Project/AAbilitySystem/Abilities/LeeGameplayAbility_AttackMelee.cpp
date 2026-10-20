@@ -71,6 +71,13 @@ void ULeeGameplayAbility_AttackMelee::ActivateAbility(
 		EndAbility(Handle, ActorInfo, ActivationInfo, true, true);
 		return;
 	}
+
+	// [쿨타임] 파생 클래스(Player 콤보 등)가 쿨타임 중인 데이터를 골랐을 수 있으므로 한 번 더 확인
+	if (IsAttackDataOnCooldown(*SelectedAttackData, GetAbilitySystemComponentFromActorInfo()))
+	{
+		EndAbility(Handle, ActorInfo, ActivationInfo, true, true);
+		return;
+	}
 	CurrentAttackData = *SelectedAttackData;
 
 	// 2. 공격 단계 상태 초기화
@@ -184,14 +191,89 @@ bool ULeeGameplayAbility_AttackMelee::ValidateAttackDataList() const
 	return !AttackDataList.IsEmpty();
 }
 
-// 공격 데이터 선택 — 기본(Enemy)은 목록에서 랜덤 1개. Player는 콤보 첫 타로 override.
+// 공격 데이터 선택 — 기본(Enemy)은 쿨타임이 아닌 데이터 중 랜덤 1개. Player는 콤보 첫 타로 override.
 const FLeeMeleeAttackData* ULeeGameplayAbility_AttackMelee::SelectAttackData()
 {
-	if (AttackDataList.IsEmpty())
+	const UAbilitySystemComponent* ASC = GetAbilitySystemComponentFromActorInfo();
+
+	TArray<int32> AvailableIndices;
+	for (int32 Index = 0; Index < AttackDataList.Num(); ++Index)
+	{
+		if (!IsAttackDataOnCooldown(AttackDataList[Index], ASC))
+		{
+			AvailableIndices.Add(Index);
+		}
+	}
+
+	if (AvailableIndices.IsEmpty())
 	{
 		return nullptr;
 	}
-	return &AttackDataList[FMath::RandRange(0, AttackDataList.Num() - 1)];
+	return &AttackDataList[AvailableIndices[FMath::RandRange(0, AvailableIndices.Num() - 1)]];
+}
+
+// [쿨타임] 공격 데이터 중 하나라도 쿨타임이 아니면 활성화 가능 — 모두 쿨타임이면 TryActivateAbility 단계에서 실패시킨다
+bool ULeeGameplayAbility_AttackMelee::CheckCooldown(const FGameplayAbilitySpecHandle Handle,
+	const FGameplayAbilityActorInfo* ActorInfo, FGameplayTagContainer* OptionalRelevantTags) const
+{
+	// 기본 GE 기반 쿨타임 검사도 유지 (공용 쿨다운 GE는 태그를 부여하지 않으므로 보통 통과)
+	if (!Super::CheckCooldown(Handle, ActorInfo, OptionalRelevantTags))
+	{
+		return false;
+	}
+
+	const UAbilitySystemComponent* ASC = ActorInfo ? ActorInfo->AbilitySystemComponent.Get() : nullptr;
+	if (!ASC || AttackDataList.IsEmpty())
+	{
+		return true;
+	}
+
+	for (const FLeeMeleeAttackData& AttackData : AttackDataList)
+	{
+		if (!IsAttackDataOnCooldown(AttackData, ASC))
+		{
+			return true;
+		}
+	}
+
+	// 전부 쿨타임 — 실패 사유로 각 데이터의 쿨다운 태그를 알려준다
+	if (OptionalRelevantTags)
+	{
+		for (const FLeeMeleeAttackData& AttackData : AttackDataList)
+		{
+			OptionalRelevantTags->AddTag(AttackData.CooldownTag);
+		}
+	}
+	return false;
+}
+
+// [쿨타임] 이번에 선택된 몽타주(CurrentAttackData)의 시간/태그로 공용 쿨다운 GE를 적용
+void ULeeGameplayAbility_AttackMelee::ApplyCooldown(const FGameplayAbilitySpecHandle Handle,
+	const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo) const
+{
+	UGameplayEffect* CooldownGE = GetCooldownGameplayEffect();
+	if (!CooldownGE || CurrentAttackData.CooldownDuration <= 0.0f || !CurrentAttackData.CooldownTag.IsValid())
+	{
+		return;
+	}
+
+	FGameplayEffectSpecHandle SpecHandle =
+		MakeOutgoingGameplayEffectSpec(Handle, ActorInfo, ActivationInfo, CooldownGE->GetClass(), GetAbilityLevel(Handle, ActorInfo));
+	if (!SpecHandle.IsValid())
+	{
+		return;
+	}
+
+	// 몽타주 전용 태그를 GE가 부여하게 하고, 지속시간은 SetByCaller로 넘긴다 (GE 에셋 1개를 모든 근접 GA가 공유)
+	SpecHandle.Data->DynamicGrantedTags.AddTag(CurrentAttackData.CooldownTag);
+	SpecHandle.Data->SetSetByCallerMagnitude(MyTags::Souls::SetByCaller_Duration, CurrentAttackData.CooldownDuration);
+	ApplyGameplayEffectSpecToOwner(Handle, ActorInfo, ActivationInfo, SpecHandle);
+}
+
+// [쿨타임] 공격 데이터의 쿨다운 태그가 ASC에 남아 있는지 확인
+bool ULeeGameplayAbility_AttackMelee::IsAttackDataOnCooldown(const FLeeMeleeAttackData& AttackData, const UAbilitySystemComponent* ASC)
+{
+	return ASC && AttackData.CooldownTag.IsValid() && ASC->HasMatchingGameplayTag(AttackData.CooldownTag);
 }
 
 // [모션워핑] 워프가 바라볼 대상 — 기본(Enemy): AIController의 네이티브 Focus를 그대로 읽는다.

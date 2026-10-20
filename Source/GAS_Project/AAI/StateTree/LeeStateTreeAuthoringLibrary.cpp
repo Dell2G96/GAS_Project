@@ -22,6 +22,7 @@
 #include "GAS_Project/AAI/StateTree/LeeStateTreeTask_ClaimAttackToken.h"
 #include "GAS_Project/AAI/StateTree/LeeStateTreeTask_FaceTarget.h"
 #include "GAS_Project/AAI/StateTree/LeeStateTreeTask_MaintainGuard.h"
+#include "GAS_Project/AAI/StateTree/LeeStateTreeTask_MoveToEQSLocation.h"
 #include "GAS_Project/AAI/StateTree/LeeStateTreeTask_SetMovementGait.h"
 #include "GAS_Project/AAI/StateTree/LeeStateTreeTask_StrafeAroundTarget.h"
 #include "GAS_Project/AAI/LeeStateTreeTask_MeleeAttack.h"
@@ -136,6 +137,15 @@ UStateTree* ULeeStateTreeAuthoringLibrary::BuildEnemyCombatStateTree(const FStri
 	// ---------------------------------------------------------------------
 	// Close: 근접 공격 → (토큰 부족 시) 가드 스트래핑 → 일반 스트래핑
 	// ---------------------------------------------------------------------
+	// 근접 태그가 둘 다 비어 있으면 MeleeAttack 부모 자체를 만들지 않는다.
+	// 자식 없는 부모가 남으면 Close 진입 때마다 선택 실패만 반복한다(26.10.20).
+	const bool bHasAnyMeleeTag = Config.LightAttackAbilityTag.IsValid() || Config.HeavyAttackAbilityTag.IsValid();
+	if (!bHasAnyMeleeTag)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[LeeAuthoring] 근접 어빌리티 태그(Light/Heavy)가 모두 비어 있어 MeleeAttack State를 만들지 않습니다: %s"), *AssetName);
+	}
+
+	if (bHasAnyMeleeTag)
 	{
 		UStateTreeState& MeleeParent = CloseState.AddChildState(TEXT("MeleeAttack"));
 		// 약/강 선택은 Consideration 점수 기반. 항상 최고점만 고르면 패턴이 읽히므로
@@ -153,6 +163,13 @@ UStateTree* ULeeStateTreeAuthoringLibrary::BuildEnemyCombatStateTree(const FStri
 		auto BuildMeleeChild = [&](const TCHAR* StateName, const TCHAR* ProfileProperty,
 		                           const FGameplayTag& AbilityTag, bool bIsHeavy) -> void
 		{
+			// 태그가 빈 State는 Activate Ability가 항상 실패하므로 만들지 않는다(26.10.20 Morgana HeavyAttack).
+			if (!AbilityTag.IsValid())
+			{
+				UE_LOG(LogTemp, Warning, TEXT("[LeeAuthoring] %s 어빌리티 태그가 비어 있어 State를 만들지 않습니다: %s"), StateName, *AssetName);
+				return;
+			}
+
 			UStateTreeState& AttackState = MeleeParent.AddChildState(StateName);
 
 			const FString ReservationSource = FString::Printf(TEXT("AttackerProfileComponent.%s"), ProfileProperty);
@@ -166,7 +183,12 @@ UStateTree* ULeeStateTreeAuthoringLibrary::BuildEnemyCombatStateTree(const FStri
 			// Utility: 마지막 사용 후 오래 지났을수록 높은 점수 → 같은 공격 연타를 억제한다
 			TStateTreeEditorNode<FLeeConsideration_TimeSinceLastUse>& TimeConsideration =
 				LeeAuthoring::AddConsideration<FLeeConsideration_TimeSinceLastUse>(AttackState);
-			TimeConsideration.GetInstanceData().AttackTag = AbilityTag;
+			// 사용 기록은 ClaimAttackToken이 Reservation.QuotaTag로 남기므로 같은 태그로 조회해야 한다.
+			// 예전에는 어빌리티 태그를 넣어서 기록을 못 찾고 항상 1.0이 나왔다(26.10.20 발견).
+			// 2단계 중첩 경로 바인딩은 조용히 실패하는 문제가 있어(26.10.19) 원거리처럼 상수로 넣는다.
+			TimeConsideration.GetInstanceData().AttackTag = bIsHeavy
+				? MyTags::Souls::Attacker_Melee_Heavy
+				: MyTags::Souls::Attacker_Melee_Light;
 			EditorData->AddPropertyBinding(Eval, TEXT("Actor"), TimeConsideration, TEXT("RequesterPawn"));
 
 			// 강공격만: 타겟이 그로기 등 취약 상태일 때 가중치를 올린다
@@ -192,13 +214,21 @@ UStateTree* ULeeStateTreeAuthoringLibrary::BuildEnemyCombatStateTree(const FStri
 
 			AttackState.AddTransition(EStateTreeTransitionTrigger::OnStateCompleted,
 				EStateTreeTransitionType::GotoState, &Root);
-			AttackState.AddTransition(EStateTreeTransitionTrigger::OnStateFailed,
+			// 쿨타임 등으로 활성화에 실패하면 즉시 Root로 돌아가 같은 틱에 다시 실패하는 반복이 생긴다.
+			// 원거리 State와 같은 짧은 지연을 둬서 그 사이클을 늦춘다(26.10.20).
+			FStateTreeTransition& FailedTransition = AttackState.AddTransition(EStateTreeTransitionTrigger::OnStateFailed,
 				EStateTreeTransitionType::GotoState, &Root);
+			FailedTransition.bDelayTransition = true;
+			FailedTransition.DelayDuration = 0.5f;
+			FailedTransition.DelayRandomVariance = 0.2f;
 		};
 
 		BuildMeleeChild(TEXT("LightAttack"), TEXT("LightAttack"), Config.LightAttackAbilityTag, false);
 		BuildMeleeChild(TEXT("HeavyAttack"), TEXT("HeavyAttack"), Config.HeavyAttackAbilityTag, true);
+	}
 
+	// 근접 공격 유무와 상관없이 Close의 대기 행동은 항상 만든다.
+	{
 		// 토큰을 못 잡았을 때의 대기 행동. 가드 스트래핑을 먼저 두어
 		// "붙어는 있는데 때리지 못하는" 구간이 무방비로 보이지 않게 한다.
 		if (Config.bUseGuardStrafe)
@@ -268,6 +298,16 @@ UStateTree* ULeeStateTreeAuthoringLibrary::BuildEnemyCombatStateTree(const FStri
 		IntervalCond.GetInstanceData().AttackTag = MyTags::Souls::Attacker_Ranged;
 		IntervalCond.GetInstanceData().MinSeconds = Config.RangedMinFireInterval;
 
+		// GA 쿨타임 중에는 진입하지 않는다(26.10.21). 이게 없으면 쿨타임이 RangedMinFireInterval보다 길 때
+		// 진입 → GA 활성화 실패 → 0.5초 정지가 반복되고, 그동안 Reposition으로 넘어가지 못한다.
+		if (Config.RangedCooldownTag.IsValid())
+		{
+			TStateTreeEditorNode<FLeeStateTreeCondition_SelfHasGameplayTag>& CooldownCond =
+				RangedState.AddEnterCondition<FLeeStateTreeCondition_SelfHasGameplayTag>();
+			CooldownCond.GetInstanceData().Tag = Config.RangedCooldownTag;
+			CooldownCond.GetInstanceData().bInvert = true;
+		}
+
 		TStateTreeEditorNode<FLeeStateTreeTask_ClaimAttackToken>& ClaimTask =
 			RangedState.AddTask<FLeeStateTreeTask_ClaimAttackToken>();
 		EditorData->AddPropertyBinding(Eval, TEXT("AttackTokenComponent"), ClaimTask, TEXT("TokenComponent"));
@@ -289,6 +329,31 @@ UStateTree* ULeeStateTreeAuthoringLibrary::BuildEnemyCombatStateTree(const FStri
 		// FaceTarget이 매 틱 Focus를 설정했다가(진입) 바로 해제(이탈)하는 게 반복돼
 		// 회전이 끊기는 것처럼 보인다(26.10.19 발견). 짧은 지연을 둬서 그 사이클을 늦춘다.
 		FStateTreeTransition& FailedTransition = RangedState.AddTransition(
+			EStateTreeTransitionTrigger::OnStateFailed, EStateTreeTransitionType::GotoState, &Root);
+		FailedTransition.bDelayTransition = true;
+		FailedTransition.DelayDuration = 0.5f;
+		FailedTransition.DelayRandomVariance = 0.2f;
+	};
+
+	// 원거리 공격을 못 쓰는 동안(쿨타임/토큰 없음) EQS가 고른 지점으로 걸어서 자리를 옮긴다(26.10.21).
+	// 이게 없으면 Approach가 "이미 사거리 안"이라 즉시 성공 → Root → Approach…를 반복해 제자리에 서 있었다.
+	auto BuildRepositionState = [&](UStateTreeState& Parent) -> void
+	{
+		UStateTreeState& Reposition = Parent.AddChildState(TEXT("Reposition"));
+
+		TStateTreeEditorNode<FLeeStateTreeTask_SetMovementGait>& GaitTask =
+			Reposition.AddTask<FLeeStateTreeTask_SetMovementGait>();
+		GaitTask.GetInstanceData().Gait = ELeeMovementGait::Walk;
+
+		TStateTreeEditorNode<FLeeStateTreeTask_MoveToEQSLocation>& MoveTask =
+			Reposition.AddTask<FLeeStateTreeTask_MoveToEQSLocation>();
+		MoveTask.GetInstanceData().QueryTemplate = Config.RangedRepositionQuery;
+		EditorData->AddPropertyBinding(Eval, TEXT("TargetActor"), MoveTask, TEXT("TargetActor"));
+
+		Reposition.AddTransition(EStateTreeTransitionTrigger::OnStateCompleted,
+			EStateTreeTransitionType::GotoState, &Root);
+		// EQS 결과가 없으면 즉시 실패한다. 바로 Root로 가면 같은 틱에 다시 골라 매 틱 EQS를 돌리게 되므로 지연을 둔다.
+		FStateTreeTransition& FailedTransition = Reposition.AddTransition(
 			EStateTreeTransitionTrigger::OnStateFailed, EStateTreeTransitionType::GotoState, &Root);
 		FailedTransition.bDelayTransition = true;
 		FailedTransition.DelayDuration = 0.5f;
@@ -323,6 +388,13 @@ UStateTree* ULeeStateTreeAuthoringLibrary::BuildEnemyCombatStateTree(const FStri
 	{
 		BuildRangedState(MidState);
 		BuildRangedState(FarState);
+
+		// 순서 선택이므로 RangedAttack이 막히면 Reposition, EQS가 없으면 기존처럼 Approach로 넘어간다
+		if (Config.RangedRepositionQuery)
+		{
+			BuildRepositionState(MidState);
+			BuildRepositionState(FarState);
+		}
 	}
 	// 중거리는 걷기로 간격을 좁히고, 원거리는 달려서 붙는다.
 	// 원거리 아키타입의 접근은 공격범위 경계(플레이어에게는 가장 먼 지점)에서 멈춘다 —
@@ -439,7 +511,9 @@ UStateTree* ULeeStateTreeAuthoringLibrary::BuildEnemyCombatStateTreeByTagNames(
 	FName TargetVulnerableTagName,
 	bool bUseGuardStrafe,
 	float RangedCloseRetreatRadius,
-	float RangedMinFireInterval)
+	float RangedMinFireInterval,
+	FName RangedCooldownTagName,
+	UEnvQuery* RangedRepositionQuery)
 {
 	bool bHadError = false;
 
@@ -448,6 +522,8 @@ UStateTree* ULeeStateTreeAuthoringLibrary::BuildEnemyCombatStateTreeByTagNames(
 	Config.bUseGuardStrafe = bUseGuardStrafe;
 	Config.RangedCloseRetreatRadius = RangedCloseRetreatRadius;
 	Config.RangedMinFireInterval = RangedMinFireInterval;
+	Config.RangedRepositionQuery = RangedRepositionQuery;
+	ResolveTagName(RangedCooldownTagName, Config.RangedCooldownTag, bHadError);
 	ResolveTagName(LightAttackTagName, Config.LightAttackAbilityTag, bHadError);
 	ResolveTagName(HeavyAttackTagName, Config.HeavyAttackAbilityTag, bHadError);
 	ResolveTagName(RangedAttackTagName, Config.RangedAttackAbilityTag, bHadError);

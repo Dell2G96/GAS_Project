@@ -76,3 +76,19 @@ bool FLeeStateTreeCondition_TargetHasGameplayTag::TestCondition(FStateTreeExecut
 	const UAbilitySystemComponent* ASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(Data.TargetActor);
 	return ASC && ASC->HasMatchingGameplayTag(Data.TargetTag);
 }
+
+// 자기 자신 ASC가 Tag를 보유하는지 확인 (bInvert=true면 "없을 때" 통과)
+bool FLeeStateTreeCondition_SelfHasGameplayTag::TestCondition(FStateTreeExecutionContext& Context) const
+{
+	const FInstanceDataType& Data = Context.GetInstanceData(*this);
+
+	// 태그를 지정하지 않았으면 검사할 게 없으므로 항상 통과시킨다 (조건이 State를 막아버리지 않게)
+	if (!Data.Tag.IsValid())
+	{
+		return true;
+	}
+
+	const UAbilitySystemComponent* ASC = Data.Actor ? UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(Data.Actor) : nullptr;
+	const bool bHasTag = ASC && ASC->HasMatchingGameplayTag(Data.Tag);
+	return Data.bInvert ? !bHasTag : bHasTag;
+}
