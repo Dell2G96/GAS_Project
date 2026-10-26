@@ -122,4 +122,22 @@ public:
 		FName RangedCooldownTagName = NAME_None,
 		UEnvQuery* RangedRepositionQuery = nullptr);
 #pragma endregion
+
+#pragma region 26.10.21 추가 - 원거리 재배치용 EQS 자동 생성
+	/**
+	 * EQS의 Generator/Test 설정값을 전부 문자열로 만들어 로그에 찍고 반환한다.
+	 * EQS 노드 속성은 Python에 노출되지 않아 C++ 리플렉션으로 읽는다.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Lee|AI|Authoring", meta = (DevelopmentOnly))
+	static FString DescribeEnvQuery(UEnvQuery* Query);
+
+	/**
+	 * 원거리 재배치용 EQS(Generator = Points: Circle)에 필터 2개를 추가하고 저장한다. 기존 테스트는 그대로 둔다.
+	 * - 현재 위치(Querier)에서 MinMoveDistance 미만인 지점 제외 → 반드시 자리를 옮기게
+	 * - 원 중심(공격 대상)까지 시야가 막힌 지점 제외 → 다음 사격이 가능하게 (지점은 SightHeightOffset 높이에서 검사)
+	 * 같은 필터가 이미 있으면 다시 추가하지 않는다(여러 번 호출해도 안전).
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Lee|AI|Authoring", meta = (DevelopmentOnly))
+	static bool AddRangedRepositionFilters(UEnvQuery* Query, float MinMoveDistance = 300.f, float SightHeightOffset = 100.f);
+#pragma endregion
 };

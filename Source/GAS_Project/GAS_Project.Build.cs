@@ -53,6 +53,8 @@ public class GAS_Project : ModuleRules
 			"UIExtension",
 			//CommonUI
 			"CommonUI",
+			//Debugger
+			"Debugger",
 			
 			//AsyncMixin
 			"AsyncMixin",

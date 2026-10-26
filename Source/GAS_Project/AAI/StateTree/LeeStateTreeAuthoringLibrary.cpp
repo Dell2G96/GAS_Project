@@ -27,6 +27,14 @@
 #include "GAS_Project/AAI/StateTree/LeeStateTreeTask_StrafeAroundTarget.h"
 #include "GAS_Project/AAI/LeeStateTreeTask_MeleeAttack.h"
 
+#include "EnvironmentQuery/EnvQuery.h"
+#include "EnvironmentQuery/EnvQueryOption.h"
+#include "EnvironmentQuery/EnvQueryTest.h"
+#include "EnvironmentQuery/Contexts/EnvQueryContext_Querier.h"
+#include "EnvironmentQuery/Generators/EnvQueryGenerator_OnCircle.h"
+#include "EnvironmentQuery/Tests/EnvQueryTest_Distance.h"
+#include "EnvironmentQuery/Tests/EnvQueryTest_Trace.h"
+
 #include "AssetRegistry/AssetRegistryModule.h"
 #include "Misc/PackageName.h"
 #include "UObject/SavePackage.h"
@@ -463,7 +471,158 @@ UStateTree* ULeeStateTreeAuthoringLibrary::BuildEnemyCombatStateTree(const FStri
 	return StateTree;
 }
 
+#pragma region 26.10.21 추가 - 원거리 재배치용 EQS 자동 생성
+namespace LeeAuthoring
+{
+	/** EQS 노드(Generator/Test)에 선언된 속성만 "이름 = 값" 형태로 이어 붙인다 (UObject 기본 속성 제외) */
+	FString DescribeEnvQueryNode(const UObject* Node)
+	{
+		FString Out = FString::Printf(TEXT("  [%s] %s\n"), *Node->GetClass()->GetName(), *Node->GetName());
+		for (TFieldIterator<FProperty> It(Node->GetClass()); It; ++It)
+		{
+			if (!It->GetOwnerClass() || !It->GetOwnerClass()->IsChildOf(UEnvQueryNode::StaticClass()))
+			{
+				continue;
+			}
+			FString Value;
+			It->ExportText_InContainer(0, Value, Node, Node, const_cast<UObject*>(Node), PPF_None);
+			Out += FString::Printf(TEXT("      %s = %s\n"), *It->GetName(), *Value);
+		}
+		return Out;
+	}
+}
+
+// EQS의 모든 Option/Generator/Test 설정을 문자열로 만들어 로그에 출력한다
+FString ULeeStateTreeAuthoringLibrary::DescribeEnvQuery(UEnvQuery* Query)
+{
+	if (!Query)
+	{
+		return TEXT("Query가 비어 있습니다.");
+	}
+
+	FString Out = FString::Printf(TEXT("EQS %s\n"), *Query->GetPathName());
+	for (int32 OptionIndex = 0; OptionIndex < Query->GetOptions().Num(); ++OptionIndex)
+	{
+		const UEnvQueryOption* Option = Query->GetOptions()[OptionIndex];
+		if (!Option)
+		{
+			continue;
+		}
+		Out += FString::Printf(TEXT(" Option %d\n"), OptionIndex);
+		if (Option->Generator)
+		{
+			Out += LeeAuthoring::DescribeEnvQueryNode(Option->Generator);
+		}
+		for (const UEnvQueryTest* Test : Option->Tests)
+		{
+			if (Test)
+			{
+				Out += LeeAuthoring::DescribeEnvQueryNode(Test);
+			}
+		}
+	}
+
+	UE_LOG(LogTemp, Display, TEXT("[LeeAuthoring] %s"), *Out);
+	return Out;
+}
+
+// 원거리 재배치 EQS에 "최소 이동거리" + "공격 대상 시야" 필터를 추가하고 저장한다 (이미 있으면 건너뜀)
+bool ULeeStateTreeAuthoringLibrary::AddRangedRepositionFilters(UEnvQuery* Query, float MinMoveDistance, float SightHeightOffset)
+{
+	if (!Query || Query->GetOptions().IsEmpty() || !Query->GetOptions()[0])
+	{
+		UE_LOG(LogTemp, Error, TEXT("[LeeAuthoring] EQS가 비어 있습니다."));
+		return false;
+	}
+
+	UEnvQueryOption* Option = Query->GetOptionsMutable()[0];
+	const UEnvQueryGenerator_OnCircle* Circle = Cast<UEnvQueryGenerator_OnCircle>(Option->Generator);
+	if (!Circle)
+	{
+		UE_LOG(LogTemp, Error, TEXT("[LeeAuthoring] Generator가 Points: Circle이 아닙니다: %s"), *Query->GetName());
+		return false;
+	}
+
+	// 같은 필터가 이미 있는지 확인 — 여러 번 실행해도 중복으로 쌓이지 않게
+	bool bHasMinMoveFilter = false;
+	bool bHasSightFilter = false;
+	for (const UEnvQueryTest* Test : Option->Tests)
+	{
+		if (const UEnvQueryTest_Distance* Distance = Cast<UEnvQueryTest_Distance>(Test))
+		{
+			bHasMinMoveFilter |= Distance->DistanceTo == UEnvQueryContext_Querier::StaticClass()
+				&& Distance->TestPurpose != EEnvTestPurpose::Score
+				&& Distance->FilterType == EEnvTestFilterType::Minimum;
+		}
+		bHasSightFilter |= Test && Test->IsA<UEnvQueryTest_Trace>();
+	}
+
+	Query->Modify();
+
+	// 1) 현재 위치에서 너무 가까운 지점 제외 (Filter Only) — 이게 없으면 제자리 근처가 뽑혀 거의 안 움직인다
+	if (!bHasMinMoveFilter)
+	{
+		UEnvQueryTest_Distance* MinMoveTest = NewObject<UEnvQueryTest_Distance>(Option, NAME_None, RF_Transactional);
+		MinMoveTest->TestMode = EEnvTestDistance::Distance2D;
+		MinMoveTest->DistanceTo = UEnvQueryContext_Querier::StaticClass();
+		MinMoveTest->TestPurpose = EEnvTestPurpose::Filter;
+		MinMoveTest->FilterType = EEnvTestFilterType::Minimum;
+		MinMoveTest->FloatValueMin.DefaultValue = MinMoveDistance;
+		MinMoveTest->TestComment = TEXT("현재 위치에서 최소 이만큼 떨어진 지점만 (반드시 자리를 옮기게)");
+		Option->Tests.Add(MinMoveTest);
+	}
+
+	// 2) 원 중심(공격 대상)까지 시야가 막힌 지점 제외 — BoolValue=false: "막히지 않은(Hit 없음)" 지점만 통과.
+	//    지점은 바닥 높이라 낮은 턱에도 막히므로 SightHeightOffset만큼 올려서 검사한다. 대상 자신은 엔진이 Trace에서 무시한다.
+	if (!bHasSightFilter)
+	{
+		UEnvQueryTest_Trace* SightTest = NewObject<UEnvQueryTest_Trace>(Option, NAME_None, RF_Transactional);
+		SightTest->Context = Circle->CircleCenter;
+		SightTest->TestPurpose = EEnvTestPurpose::Filter;
+		SightTest->BoolValue.DefaultValue = false;
+		SightTest->ItemHeightOffset.DefaultValue = SightHeightOffset;
+		SightTest->TestComment = TEXT("공격 대상까지 시야가 열린 지점만 (다음 사격 가능)");
+		Option->Tests.Add(SightTest);
+	}
+
+	// 테스트 실행 순서 번호를 배열 순서대로 다시 매긴다 (에디터 그래프 저장 시와 같은 규칙)
+	for (int32 Index = 0; Index < Option->Tests.Num(); ++Index)
+	{
+		if (Option->Tests[Index])
+		{
+			Option->Tests[Index]->TestOrder = Index;
+		}
+	}
+
+	UPackage* Package = Query->GetOutermost();
+	Package->MarkPackageDirty();
+
+	const FString FileName = FPackageName::LongPackageNameToFilename(Package->GetName(), FPackageName::GetAssetPackageExtension());
+	FSavePackageArgs SaveArgs;
+	SaveArgs.TopLevelFlags = RF_Public | RF_Standalone;
+	if (!UPackage::SavePackage(Package, Query, *FileName, SaveArgs))
+	{
+		UE_LOG(LogTemp, Error, TEXT("[LeeAuthoring] 패키지 저장 실패: %s"), *FileName);
+		return false;
+	}
+
+	UE_LOG(LogTemp, Log, TEXT("[LeeAuthoring] 원거리 재배치 필터 적용 완료 (최소이동 %s, 시야 %s): %s"),
+		bHasMinMoveFilter ? TEXT("기존 유지") : TEXT("추가"), bHasSightFilter ? TEXT("기존 유지") : TEXT("추가"), *Package->GetName());
+	return true;
+}
+#pragma endregion
+
 #else // WITH_EDITOR
+
+FString ULeeStateTreeAuthoringLibrary::DescribeEnvQuery(UEnvQuery*)
+{
+	return FString();
+}
+
+bool ULeeStateTreeAuthoringLibrary::AddRangedRepositionFilters(UEnvQuery*, float, float)
+{
+	return false;
+}
 
 FString ULeeStateTreeAuthoringLibrary::MakeVersionedAssetName(const FString&, const FString&)
 {
