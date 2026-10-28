@@ -24,6 +24,8 @@ void FDebuggerEditorModule::StartupModule()
 			FToolBarButton::Get().Command_Slomo,
 			FToolBarExtensionDelegate::CreateRaw(this, &FDebuggerEditorModule::OnAdd_ToolBarButton));
 
+		
+		// 레벨 에디터가 창이 생기기 전에 해당 툴바를 추가해야한다
 		FLevelEditorModule& levelEditor = FModuleManager::LoadModuleChecked<FLevelEditorModule>("LevelEditor");
 		levelEditor.GetToolBarExtensibilityManager()->AddExtender(Extender);
 
@@ -37,10 +39,10 @@ void FDebuggerEditorModule::OnAdd_ToolBarButton(FToolBarBuilder& InBuilders)
 	TSharedPtr<FDell2gPluginStyle> style = FDell2gPluginStyle::Get();
 
 	InBuilders.AddSeparator();
-	InBuilders.AddToolBarButton(FToolBarButton::Get().btnCommandInfo1, NAME_None, FText::FromString("Slow"), FText::FromString("배속 -0.1"), style->Slomo_Down);
-	InBuilders.AddToolBarButton(FToolBarButton::Get().btnCommandInfo2, NAME_None, FText::FromString("Fast"), FText::FromString("배속 +0.1"), style->Slomo_Up);
-	InBuilders.AddToolBarButton(FToolBarButton::Get().btnCommandInfo3, NAME_None, FText::FromString("x0.1"), FText::FromString("최저 배속"), style->Slomo_0_1);
-	InBuilders.AddToolBarButton(FToolBarButton::Get().btnCommandInfo4, NAME_None, FText::FromString("x1.0"), FText::FromString("기본 배속"), style->Slomo_1_0);
+	InBuilders.AddToolBarButton(FToolBarButton::Get().btnCommandInfo1, NAME_None, FText::FromString("Slow"), FText::FromString(TEXT("배속 -0.1")), style->Slomo_Down);
+	InBuilders.AddToolBarButton(FToolBarButton::Get().btnCommandInfo2, NAME_None, FText::FromString("Fast"), FText::FromString(TEXT("배속 +0.1")), style->Slomo_Up);
+	InBuilders.AddToolBarButton(FToolBarButton::Get().btnCommandInfo3, NAME_None, FText::FromString("x0.1"), FText::FromString(TEXT("최저 배속")), style->Slomo_0_1);
+	InBuilders.AddToolBarButton(FToolBarButton::Get().btnCommandInfo4, NAME_None, FText::FromString("x1.0"), FText::FromString(TEXT("기본 배속")), style->Slomo_1_0);
 }
 
 // 모듈 언로드 시 등록 역순으로 해제

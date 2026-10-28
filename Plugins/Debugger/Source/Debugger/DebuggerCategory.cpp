@@ -4,6 +4,7 @@
 #include "AbilitySystemComponent.h"
 #include "AbilitySystemGlobals.h"
 #include "AttributeSet.h"
+#include "GameFramework/PlayerController.h"
 
 namespace DebuggerCategoryHelper
 {
@@ -39,8 +40,8 @@ TSharedRef<FGameplayDebuggerCategory> FDebugger::MakeInstance()
 	return MakeShareable(new FDebugger());
 }
 
-// 데이터팩 직렬화 (서버 → 클라이언트 복제용)
-void FDebugger::FRepData::Serialize(FArchive& Ar)
+// 액터 한 명분 데이터 직렬화
+void FDebugger::FActorStat::Serialize(FArchive& Ar)
 {
 	Ar << ActorName;
 	Ar << bHasASC;
@@ -51,45 +52,70 @@ void FDebugger::FRepData::Serialize(FArchive& Ar)
 	Ar << Tags;
 }
 
-// (서버) 선택한 액터의 ASC에서 HP/스태미나와 태그를 수집
-void FDebugger::CollectData(APlayerController* OwnerPC, AActor* DebugActor)
+// 데이터팩 직렬화 (서버 → 클라이언트 복제용). Player → Target 순서로 처리
+void FDebugger::FRepData::Serialize(FArchive& Ar)
 {
-	if (DebugActor == nullptr)
+	Player.Serialize(Ar);
+	Target.Serialize(Ar);
+}
+
+// 액터 하나의 ASC에서 HP/스태미나와 태그를 수집 (액터가 없으면 OutStat을 기본값 그대로 둠)
+void FDebugger::CollectActorStat(AActor* InActor, FActorStat& OutStat)
+{
+	if (InActor == nullptr)
 		return;
 
-	DataPack.ActorName = DebugActor->GetName();
+	OutStat.ActorName = InActor->GetName();
 
-	UAbilitySystemComponent* asc = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(DebugActor);
-	DataPack.bHasASC = (asc != nullptr);
+	UAbilitySystemComponent* asc = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(InActor);
+	OutStat.bHasASC = (asc != nullptr);
 	if (asc == nullptr)
 		return;
 
-	DataPack.Health     = DebuggerCategoryHelper::FindAttributeValue(asc, "Health");
-	DataPack.MaxHealth  = DebuggerCategoryHelper::FindAttributeValue(asc, "MaxHealth");
-	DataPack.Stamina    = DebuggerCategoryHelper::FindAttributeValue(asc, "Stamina");
-	DataPack.MaxStamina = DebuggerCategoryHelper::FindAttributeValue(asc, "MaxStamina");
-	DataPack.Tags       = asc->GetOwnedGameplayTags().ToStringSimple();
+	OutStat.Health     = DebuggerCategoryHelper::FindAttributeValue(asc, "Health");
+	OutStat.MaxHealth  = DebuggerCategoryHelper::FindAttributeValue(asc, "MaxHealth");
+	OutStat.Stamina    = DebuggerCategoryHelper::FindAttributeValue(asc, "Stamina");
+	OutStat.MaxStamina = DebuggerCategoryHelper::FindAttributeValue(asc, "MaxStamina");
+	OutStat.Tags       = asc->GetOwnedGameplayTags().ToStringSimple();
 }
 
-// (클라이언트) 복제된 데이터를 화면에 출력
+// (서버) 내 플레이어 Pawn과 선택한 액터의 정보를 수집
+void FDebugger::CollectData(APlayerController* OwnerPC, AActor* DebugActor)
+{
+	if (OwnerPC != nullptr)
+		CollectActorStat(OwnerPC->GetPawn(), DataPack.Player);
+
+	CollectActorStat(DebugActor, DataPack.Target);
+}
+
+// 액터 하나의 정보를 [제목] 블록으로 출력
+void FDebugger::DrawActorStat(const TCHAR* InTitle, const FActorStat& InStat, FGameplayDebuggerCanvasContext& CanvasContext)
+{
+	CanvasContext.Printf(TEXT("{orange}[%s]"), InTitle);
+
+	if (InStat.ActorName.IsEmpty())
+	{
+		CanvasContext.Printf(TEXT("{red}  액터 없음"));
+		return;
+	}
+
+	CanvasContext.Printf(TEXT("{yellow}  Actor : {white}%s"), *InStat.ActorName);
+
+	if (InStat.bHasASC == false)
+	{
+		CanvasContext.Printf(TEXT("{red}  AbilitySystemComponent 없음"));
+		return;
+	}
+
+	CanvasContext.Printf(TEXT("{yellow}  Health : {green}%.1f / %.1f"), InStat.Health, InStat.MaxHealth);
+	CanvasContext.Printf(TEXT("{yellow}  Stamina : {cyan}%.1f / %.1f"), InStat.Stamina, InStat.MaxStamina);
+	CanvasContext.Printf(TEXT("{yellow}  Tags : {white}%s"), InStat.Tags.IsEmpty() ? TEXT("None") : *InStat.Tags);
+}
+
+// (클라이언트) 복제된 데이터를 Player → Target 순서로 화면에 출력
 void FDebugger::DrawData(APlayerController* OwnerPC, FGameplayDebuggerCanvasContext& CanvasContext)
 {
-	if (DataPack.ActorName.IsEmpty())
-	{
-		CanvasContext.Printf(TEXT("{red}DebugActor 없음"));
-		return;
-	}
-
-	CanvasContext.Printf(TEXT("{yellow}Actor : {white}%s"), *DataPack.ActorName);
-
-	if (DataPack.bHasASC == false)
-	{
-		CanvasContext.Printf(TEXT("{red}AbilitySystemComponent 없음"));
-		return;
-	}
-
-	CanvasContext.Printf(TEXT("{yellow}Health : {green}%.1f / %.1f"), DataPack.Health, DataPack.MaxHealth);
-	CanvasContext.Printf(TEXT("{yellow}Stamina : {cyan}%.1f / %.1f"), DataPack.Stamina, DataPack.MaxStamina);
-	CanvasContext.Printf(TEXT("{yellow}Tags : {white}%s"), DataPack.Tags.IsEmpty() ? TEXT("None") : *DataPack.Tags);
+	DrawActorStat(TEXT("Player"), DataPack.Player, CanvasContext);
+	DrawActorStat(TEXT("Target"), DataPack.Target, CanvasContext);
 }
 #endif
