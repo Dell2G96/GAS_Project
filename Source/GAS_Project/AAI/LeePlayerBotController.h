@@ -36,6 +36,11 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=BotIdentifier)
 	int32 BotIdentifier;
 
+	// 26.10.29 추가 - 처음 스폰된 PlayerStart. 리셋(휴식/사망) 후 재시작 시 항상 이 자리에서 다시 생성된다
+	// (Phase 3에서 ALeeEnemySpawnPoint 방식으로 교체 예정)
+	UPROPERTY(Transient)
+	TWeakObjectPtr<class ALeePlayerStart> HomePlayerStart;
+
 private:
 	UFUNCTION()
 	void OnPlayerStateChangedTeam(UObject* TeamAgent, int32 OldTeam, int32 NewTeam);

@@ -73,6 +73,19 @@ public:
 		return (T*)GetFirstInstanceOfType(T::StaticClass());
 	}
 
+	//~UActorComponent interface
+	virtual void InitializeComponent() override;
+	virtual void UninitializeComponent() override;
+	//~End of UActorComponent interface
+
+	// 26.10.29 추가 - 장착 중인 모든 장비 해제 (Pawn이 ASC를 잃거나 사라질 때 사용)
+	void UnEquipAllItems();
+
+protected:
+	// 26.10.29 추가 - Pawn의 ASC 연결이 끊길 때 호출. ASC가 아직 유효한 시점에 장비와 부여된 어빌리티를 회수한다
+	void HandleAbilitySystemUnInitialized();
+
+public:
 	UPROPERTY()
 	FLeeEquipmentList EquipmentList;
 };

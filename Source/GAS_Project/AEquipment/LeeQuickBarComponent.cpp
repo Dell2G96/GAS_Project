@@ -8,6 +8,7 @@
 #include "LeeEquipmentManagerComponent.h"
 #include "GameFramework/GameplayMessageSubsystem.h"
 #include "GAS_Project/MyTags.h"
+#include "GAS_Project/ACharacter/LeePawnExtensionComponent.h"
 #include "GAS_Project/AInventory/LeeInventoryFragment_EquippableItem.h"
 #include "GAS_Project/AInventory/LeeInventoryItemInstance.h"
 #include "Net/UnrealNetwork.h"
@@ -33,8 +34,43 @@ void ULeeQuickBarComponent::BeginPlay()
 	{
 		Slots.AddDefaulted(NumSlots - Slots.Num());
 	}
-	
+
 	Super::BeginPlay();
+
+	// 26.10.29 추가 - 장비 장착은 서버에서만 하므로, 서버에서만 Pawn 교체(리스폰)를 감지한다
+	if (AController* OwnerController = GetController<AController>())
+	{
+		if (OwnerController->HasAuthority())
+		{
+			OwnerController->OnPossessedPawnChanged.AddDynamic(this, &ThisClass::HandlePossessedPawnChanged);
+		}
+	}
+}
+
+// Controller의 Pawn이 바뀌면 이전 Pawn 장비 참조를 버리고, 새 Pawn의 ASC 초기화 후 재장착하도록 등록한다
+void ULeeQuickBarComponent::HandlePossessedPawnChanged(APawn* OldPawn, APawn* NewPawn)
+{
+	// 이전 Pawn의 장비는 그 Pawn의 EquipmentManager가 ASC 해제 시점에 이미 정리한다. 여기서는 참조만 버린다
+	// 주의: 이 이벤트는 Pawn의 Possessed(BP 초기 지급) 이후에 방송되므로, 새 Pawn에 이미 장착된 장비는 유지한다
+	if (EquippedItem && EquippedItem->GetPawn() != NewPawn)
+	{
+		EquippedItem = nullptr;
+	}
+
+	if (ULeePawnExtensionComponent* PawnExtComp = ULeePawnExtensionComponent::FindPawnExtensionComponent(NewPawn))
+	{
+		// ASC가 이미 준비됐으면 즉시, 아니면 준비되는 순간 호출된다
+		PawnExtComp->OnAbilitySystemInitialized_RegistedAndCall(FSimpleMulticastDelegate::FDelegate::CreateUObject(this, &ThisClass::HandleNewPawnAbilitySystemInitialized));
+	}
+}
+
+// 새 Pawn의 ASC가 준비되면 활성 슬롯 장비를 재장착한다 (최초 스폰처럼 아직 슬롯이 없거나 이미 장착됐으면 무시)
+void ULeeQuickBarComponent::HandleNewPawnAbilitySystemInitialized()
+{
+	if (EquippedItem == nullptr && Slots.IsValidIndex(ActiveSlotIndex) && FindEquipmentManger())
+	{
+		EquipItemInSlot();
+	}
 }
 
 

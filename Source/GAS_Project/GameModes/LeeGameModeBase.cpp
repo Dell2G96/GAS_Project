@@ -14,6 +14,8 @@
 #include "GAS_Project/ACharacter/LeeCharacter.h"
 #include "GAS_Project/APlayer/LeePlayerController.h"
 #include "GAS_Project/APlayer/LeePlayerState.h"
+#include "GAS_Project/APlayer/LeePlayerSpawningManagerComponent.h"
+#include "GAS_Project/System/LeeGameSession.h"
 #include "GAS_Project/ACharacter/LeePawnData.h"
 #include "GAS_Project/ACharacter/LeePawnExtensionComponent.h"
 #include "GAS_Project/AUI/LeeHUD.h"
@@ -25,7 +27,7 @@ ALeeGameModeBase::ALeeGameModeBase(const FObjectInitializer& ObjectInitializer)
 
 {
 	GameStateClass = ALeeGameState::StaticClass();
-	GameSessionClass = ALeeGameState::StaticClass();
+	GameSessionClass = ALeeGameSession::StaticClass();
 	PlayerControllerClass = ALeePlayerController::StaticClass();
 	
 	PlayerStateClass = ALeePlayerState::StaticClass();
@@ -102,24 +104,38 @@ APawn* ALeeGameModeBase::SpawnDefaultPawnAtTransform_Implementation(AController*
 	return nullptr;
 }
 
+// 캐싱된 StartSpot을 재사용하지 않고, 스폰할 때마다 ChoosePlayerStart로 위치를 다시 고르게 한다
 bool ALeeGameModeBase::ShouldSpawnAtStartSpot(AController* Player)
 {
-	return Super::ShouldSpawnAtStartSpot(Player);
+	return false;
 }
 
+// 스폰 위치 선택을 SpawningManagerComponent에 위임 (없으면 엔진 기본 동작)
 AActor* ALeeGameModeBase::ChoosePlayerStart_Implementation(AController* Player)
 {
+	if (ULeePlayerSpawningManagerComponent* PlayerSpawningComponent = GameState->FindComponentByClass<ULeePlayerSpawningManagerComponent>())
+	{
+		return PlayerSpawningComponent->ChoosePlayerStart(Player);
+	}
+
 	return Super::ChoosePlayerStart_Implementation(Player);
 }
 
+// 스폰 완료 후 처리를 SpawningManagerComponent에 먼저 알리고 엔진 기본 처리 진행
 void ALeeGameModeBase::FinishRestartPlayer(AController* NewPlayer, const FRotator& StartRotation)
 {
+	if (ULeePlayerSpawningManagerComponent* PlayerSpawningComponent = GameState->FindComponentByClass<ULeePlayerSpawningManagerComponent>())
+	{
+		PlayerSpawningComponent->FinishRestartPlayer(NewPlayer, StartRotation);
+	}
+
 	Super::FinishRestartPlayer(NewPlayer, StartRotation);
 }
 
+// 플레이어 재시작 가능 여부를 Player/Bot 공용 함수 ControllerCanRestart로 판단
 bool ALeeGameModeBase::PlayerCanRestart_Implementation(APlayerController* Player)
 {
-	return Super::PlayerCanRestart_Implementation(Player);
+	return ControllerCanRestart(Player);
 }
 
 bool ALeeGameModeBase::UpdatePlayerStartSpot(AController* Player, const FString& Portal, FString& OutErrorMessage)
@@ -132,20 +148,79 @@ void ALeeGameModeBase::GenericPlayerInitialization(AController* NewPlayer)
 	Super::GenericPlayerInitialization(NewPlayer);
 }
 
+// 스폰에 실패하면 Pawn 클래스가 있고 재시작이 가능한 경우 다음 프레임에 다시 시도
 void ALeeGameModeBase::FailedToRestartPlayer(AController* NewPlayer)
 {
 	Super::FailedToRestartPlayer(NewPlayer);
+
+	if (UClass* PawnClass = GetDefaultPawnClassForController(NewPlayer))
+	{
+		if (APlayerController* NewPC = Cast<APlayerController>(NewPlayer))
+		{
+			if (PlayerCanRestart(NewPC))
+			{
+				RequestPlayerRestartNextFrame(NewPlayer, false);
+			}
+			else
+			{
+				UE_LOG(LogLee, Verbose, TEXT("FailedToRestartPlayer(%s) and PlayerCanRestart returned false, so we're not going to try again."), *GetPathNameSafe(NewPlayer));
+			}
+		}
+		else
+		{
+			RequestPlayerRestartNextFrame(NewPlayer, false);
+		}
+	}
+	else
+	{
+		UE_LOG(LogLee, Verbose, TEXT("FailedToRestartPlayer(%s) but there's no pawn class so giving up."), *GetPathNameSafe(NewPlayer));
+	}
 }
 
+// 다음 프레임에 Player 또는 Bot을 재시작(리스폰) 요청. bForceReset이면 현재 Pawn을 버리고 즉시 리셋
 void ALeeGameModeBase::RequestPlayerRestartNextFrame(AController* Controller, bool bForceReset)
 {
-	// Todo : 다음 프레임에 재시작 요청
+	if (bForceReset && (Controller != nullptr))
+	{
+		Controller->Reset();
+	}
+
+	if (APlayerController* PC = Cast<APlayerController>(Controller))
+	{
+		GetWorldTimerManager().SetTimerForNextTick(PC, &APlayerController::ServerRestartPlayer_Implementation);
+	}
+	else if (ALeePlayerBotController* BotController = Cast<ALeePlayerBotController>(Controller))
+	{
+		GetWorldTimerManager().SetTimerForNextTick(BotController, &ALeePlayerBotController::ServerRestartController);
+	}
 }
 
+// Player/Bot 공용 재시작 가능 판단. 기본 검사 후 최종 규칙은 SpawningManagerComponent에 위임
 bool ALeeGameModeBase::ControllerCanRestart(AController* Controller)
 {
-	//ToDO : 재시작 조건 설정 
-	return false;
+	if (APlayerController* PC = Cast<APlayerController>(Controller))
+	{
+		// this->PlayerCanRestart를 부르면 다시 이 함수로 돌아오므로 반드시 Super로 호출
+		if (!Super::PlayerCanRestart_Implementation(PC))
+		{
+			return false;
+		}
+	}
+	else
+	{
+		// Bot용 PlayerCanRestart 기본 검사
+		if ((Controller == nullptr) || Controller->IsPendingKillPending())
+		{
+			return false;
+		}
+	}
+
+	if (ULeePlayerSpawningManagerComponent* PlayerSpawningComponent = GameState->FindComponentByClass<ULeePlayerSpawningManagerComponent>())
+	{
+		return PlayerSpawningComponent->ControllerCanRestart(Controller);
+	}
+
+	return true;
 }
 
 

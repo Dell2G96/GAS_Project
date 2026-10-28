@@ -64,6 +64,13 @@ protected:
 	UFUNCTION()
 	void OnRep_ActiveSlotIndex();
 
+	// 26.10.29 추가 - Controller가 새 Pawn을 빙의하면(리스폰) 이전 Pawn의 장착 정보를 버리고, 새 Pawn ASC 준비를 기다린다
+	UFUNCTION()
+	void HandlePossessedPawnChanged(APawn* OldPawn, APawn* NewPawn);
+
+	// 26.10.29 추가 - 새 Pawn의 ASC가 준비되면 현재 활성 슬롯의 장비를 새 Pawn에 다시 장착한다
+	void HandleNewPawnAbilitySystemInitialized();
+
 private:
 	UPROPERTY(ReplicatedUsing=OnRep_Slots)
 	TArray<TObjectPtr<class ULeeInventoryItemInstance>> Slots;;

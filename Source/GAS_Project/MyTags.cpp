@@ -201,6 +201,8 @@ namespace MyTags
 		// ----- UI 메시지 채널 (GameplayMessageSubsystem) -----
 		UE_DEFINE_GAMEPLAY_TAG(Message_Finisher_Prompt, "Souls.Message.Finisher.Prompt")
 		UE_DEFINE_GAMEPLAY_TAG(Message_TargetLock, "Souls.Message.TargetLock")
+		UE_DEFINE_GAMEPLAY_TAG(Message_Death_YouDied, "Souls.Message.Death.YouDied")
+		UE_DEFINE_GAMEPLAY_TAG(Message_Death_Respawn, "Souls.Message.Death.Respawn")
 
 		// ----- 데미지 판정 결과 (ExecCalc → Spec DynamicAssetTags) -----
 		UE_DEFINE_GAMEPLAY_TAG(DamageResult_HitReact, "Souls.DamageResult.HitReact")

@@ -28,6 +28,11 @@ protected:
 	UFUNCTION(BlueprintCallable, Category="Lee|Ability")
 	void FinishDeath();
 
+	// 26.10.29 추가 - HealthComponent의 사망 완료(FinishDeath) 시 어빌리티를 종료한다
+	// 종료하지 않으면 Exclusive_Blocking 그룹이 PlayerState ASC에 남아 부활한 Pawn의 어빌리티를 막는다
+	UFUNCTION()
+	void HandleDeathFinished(AActor* OwningActor);
+
 protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Lee|Death")
 	bool bAutoStartDeath;

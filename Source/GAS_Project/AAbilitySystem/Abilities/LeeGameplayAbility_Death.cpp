@@ -49,9 +49,29 @@ void ULeeGameplayAbility_Death::ActivateAbility(const FGameplayAbilitySpecHandle
 		UE_LOG(LogLee, Error, TEXT("ULeeGameplayAbility_Death::ActivateAbility: Ability [%s] failed to change activation group to blocking."), *GetName());
 	}
 
+	// 26.10.29 추가 - 사망 완료 시 이 어빌리티가 종료되도록 구독 (SetCanBeCanceled(false)라 Cancel로는 끝나지 않음)
+	if (ULeeHealthComponent* HealthComponent = ULeeHealthComponent::FindHealthComponent(GetAvatarActorFromActorInfo()))
+	{
+		HealthComponent->OnDeathFinished.AddUniqueDynamic(this, &ThisClass::HandleDeathFinished);
+	}
+
 	if (bAutoStartDeath)
 	{
 		StartDeath();
+	}
+}
+
+// 사망 완료 이벤트 수신 → 구독 해제 후 어빌리티 종료
+void ULeeGameplayAbility_Death::HandleDeathFinished(AActor* OwningActor)
+{
+	if (ULeeHealthComponent* HealthComponent = ULeeHealthComponent::FindHealthComponent(OwningActor))
+	{
+		HealthComponent->OnDeathFinished.RemoveDynamic(this, &ThisClass::HandleDeathFinished);
+	}
+
+	if (IsActive())
+	{
+		EndAbility(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo, true, false);
 	}
 }
 

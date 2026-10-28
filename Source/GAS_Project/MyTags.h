@@ -195,6 +195,9 @@ namespace MyTags
 		// ----- UI 메시지 채널 (GameplayMessageSubsystem) -----
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Message_Finisher_Prompt);
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Message_TargetLock);
+		// 26.10.29 추가 - 플레이어 사망/부활 UI 메시지 (ULeeBonfireSubsystem → ULeeDeathScreenWidget)
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Message_Death_YouDied);
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Message_Death_Respawn);
 
 		// ----- 데미지 판정 결과 (ExecCalc → Spec DynamicAssetTags) -----
 		// 데미지 판정 결과 — ULeeExecCalc_Damage가 Spec DynamicAssetTags에 기록,

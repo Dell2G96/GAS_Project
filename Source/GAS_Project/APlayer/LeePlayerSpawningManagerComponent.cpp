@@ -8,6 +8,7 @@
 #include "Engine/PlayerStartPIE.h"
 #include "GameFramework/PlayerState.h"
 #include "Slate/SGameLayerManager.h"
+#include "GAS_Project/AAI/LeePlayerBotController.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogPlayerSpawning, Log, All);
 
@@ -69,6 +70,17 @@ AActor* ULeePlayerSpawningManagerComponent::ChoosePlayerStart(AController* Playe
 {
 	if (Player)
 	{
+		// 26.10.29 추가 - 봇은 처음 배정된 자리(HomePlayerStart)가 있으면 리셋 후에도 항상 그 자리에서 재시작
+		ALeePlayerBotController* BotController = Cast<ALeePlayerBotController>(Player);
+		if (BotController)
+		{
+			if (ALeePlayerStart* HomeStart = BotController->HomePlayerStart.Get())
+			{
+				HomeStart->TryClaim(Player);
+				return HomeStart;
+			}
+		}
+
 #if WITH_EDITOR
 		if (APlayerStart* PlayerStart = FindPlayFromHereStart(Player))
 		{
@@ -112,6 +124,12 @@ AActor* ULeePlayerSpawningManagerComponent::ChoosePlayerStart(AController* Playe
 		if (ALeePlayerStart* LeeStart = Cast<ALeePlayerStart>(PlayerStart))
 		{
 			LeeStart->TryClaim(Player);
+
+			// 26.10.29 추가 - 봇의 첫 스폰 자리를 기억해 둔다 (몹마다 자기 자리 고정)
+			if (BotController)
+			{
+				BotController->HomePlayerStart = LeeStart;
+			}
 		}
 		return PlayerStart;
 	}

@@ -122,7 +122,16 @@ void ULeePawnExtensionComponent::InitializeAbilitySystem(class ULeeAbilitySystem
 
 	APawn* Pawn =GetPawnChecked<APawn>();
 	AActor* ExistingAvater = InASC->GetAvatarActor();
-	check(!ExistingAvater);
+
+	// 26.10.29 수정 - 리스폰 시 ASC(PlayerState 소유)에 이전 Pawn이 Avatar로 남아 있으면 check에서 멈췄다
+	// 이전 Pawn이 아직 Avatar라면 그 Pawn의 ASC 연결을 먼저 해제한다 (Lyra 원본과 동일)
+	if ((ExistingAvater != nullptr) && (ExistingAvater != Pawn))
+	{
+		if (ULeePawnExtensionComponent* OtherExtensionComponent = FindPawnExtensionComponent(ExistingAvater))
+		{
+			OtherExtensionComponent->UnInitializeAbilitySystem();
+		}
+	}
 
 	AbilitySystemComponent = InASC;
 	AbilitySystemComponent->InitAbilityActorInfo(InOwnerActor, Pawn);
@@ -138,6 +147,24 @@ void ULeePawnExtensionComponent::UnInitializeAbilitySystem()
 	}
 	if (AbilitySystemComponent->GetAvatarActor() == GetOwner())
 	{
+		// 26.10.29 수정 - ASC는 PlayerState에 남아 다음 Pawn이 재사용하므로, 이 Pawn과의 연결을 실제로 끊어야 한다
+		// 이전에는 포인터만 비우고 ASC의 AvatarActor를 그대로 두어, 리스폰한 Pawn이 InitializeAbilitySystem에서 멈췄다
+		FGameplayTagContainer AbilityTypesToIgnore;
+		AbilityTypesToIgnore.AddTag(MyTags::Souls::Ability_Behavior_SurvivesDeath);
+
+		AbilitySystemComponent->CancelAbilities(nullptr, &AbilityTypesToIgnore);
+		AbilitySystemComponent->RemoveAllGameplayCues();
+
+		if (AbilitySystemComponent->GetOwnerActor() != nullptr)
+		{
+			AbilitySystemComponent->SetAvatarActor(nullptr);
+		}
+		else
+		{
+			// Owner가 없으면 Avatar뿐 아니라 ActorInfo 전체를 비운다
+			AbilitySystemComponent->ClearActorInfo();
+		}
+
 		OnAbilitySystemUnInitialized.Broadcast();
 	}
 	AbilitySystemComponent = nullptr;

@@ -77,6 +77,9 @@ public:
 	// Sets default values for this character's properties
 	ALeeCharacter(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
+	// 26.10.29 수정 - protected → public. 화톳불 휴식/사망 리셋 시 ULeeBonfireSubsystem이 Pawn을 정리하기 위해 호출
+	void UninitAndDestroy();
+
 
 	UFUNCTION(BlueprintCallable, Category = "Lee|Character")
 	class ALeePlayerController* GetLeePlayerController() const;
@@ -146,7 +149,6 @@ protected:
 
 	void DisableMovementAndCollision();
 	void DestroyDueToDeath();
-	void UninitAndDestroy();
 
 	UFUNCTION(BlueprintImplementableEvent, meta=(DisplayName="OnDeathFinished"))
 	void K2_OnDeathFinished();
