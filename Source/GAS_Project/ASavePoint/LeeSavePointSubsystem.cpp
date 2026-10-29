@@ -156,7 +156,7 @@ void ULeeSavePointSubsystem::RespawnPlayer(APlayerController* PlayerController)
 	GameMode->RequestPlayerRestartNextFrame(PlayerController, false);
 }
 
-// 모든 봇의 Pawn을 정리하고 다음 프레임에 재시작한다. 봇은 HomePlayerStart(처음 자리)에서 다시 생성된다
+// 모든 봇의 Pawn을 정리하고 다음 프레임에 재시작한다. 봇은 HomeSpawnPoint(스폰 지점) 또는 HomePlayerStart(레거시, 처음 자리)에서 다시 생성된다
 void ULeeSavePointSubsystem::ResetEnemies()
 {
 	UWorld* World = GetWorld();

@@ -371,10 +371,19 @@ const class ULeePawnData* ALeeGameModeBase::GetPawnDataForController(const ACont
 		}
 		else if (const ALeePlayerBotController* BotController = Cast<ALeePlayerBotController>(InController))
 		{
-			const ULeePawnData* LeeEnemyPawnData = Experience->EnemyPawnClasses[BotController->BotIdentifier];
-			if (LeeEnemyPawnData != nullptr)
+			// 26.10.29 추가 - Controller BP에 지정된 PawnData를 우선 사용 (새 스폰 지점 방식)
+			if (BotController->EnemyPawnData)
 			{
-				return LeeEnemyPawnData;
+				return BotController->EnemyPawnData;
+			}
+
+			// 레거시: Experience의 EnemyPawnClasses[BotIdentifier] (26.10.29 수정 - 키가 없을 때 크래시 나지 않도록 Find 사용)
+			if (const TObjectPtr<const ULeePawnData>* LeeEnemyPawnData = Experience->EnemyPawnClasses.Find(BotController->BotIdentifier))
+			{
+				if (*LeeEnemyPawnData != nullptr)
+				{
+					return *LeeEnemyPawnData;
+				}
 			}
 		}
 		

@@ -8,6 +8,7 @@
 #include "Engine/PlayerStartPIE.h"
 #include "GameFramework/PlayerState.h"
 #include "Slate/SGameLayerManager.h"
+#include "GAS_Project/AAI/LeeEnemySpawnPoint.h"
 #include "GAS_Project/AAI/LeePlayerBotController.h"
 #include "GAS_Project/ASavePoint/LeeSavePointActor.h"
 #include "GAS_Project/ASavePoint/LeeSavePointSubsystem.h"
@@ -77,6 +78,12 @@ AActor* ULeePlayerSpawningManagerComponent::ChoosePlayerStart(AController* Playe
 		ALeePlayerBotController* BotController = Cast<ALeePlayerBotController>(Player);
 		if (BotController)
 		{
+			// 26.10.29 추가 - 스폰 지점(ALeeEnemySpawnPoint)으로 생성된 봇은 항상 그 자리 (태그/BP 선택을 거치지 않음)
+			if (ALeeEnemySpawnPoint* SpawnPoint = BotController->HomeSpawnPoint.Get())
+			{
+				return SpawnPoint;
+			}
+
 			if (ALeePlayerStart* HomeStart = BotController->HomePlayerStart.Get())
 			{
 				HomeStart->TryClaim(Player);
