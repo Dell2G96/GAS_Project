@@ -33,6 +33,9 @@ protected:
 	UFUNCTION()
 	void HandleDeathFinished(AActor* OwningActor);
 
+	// 26.10.29 추가 - 사망 이벤트(OptionalObject2)에 실린 사망 몽타주를 ASC로 재생 (멀티에서 다른 클라이언트에도 복제됨)
+	void PlayDeathMontage(const FGameplayEventData* TriggerEventData);
+
 protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Lee|Death")
 	bool bAutoStartDeath;

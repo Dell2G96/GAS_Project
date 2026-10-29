@@ -3,6 +3,8 @@
 
 #include "LeeGameplayAbility_Death.h"
 
+#include "Abilities/Tasks/AbilityTask_PlayMontageAndWait.h"
+#include "Animation/AnimMontage.h"
 #include "GAS_Project/LeeLogChannels.h"
 #include "GAS_Project/MyTags.h"
 #include "GAS_Project/AAbilitySystem/LeeAbilitySystemComponent.h"
@@ -59,6 +61,25 @@ void ULeeGameplayAbility_Death::ActivateAbility(const FGameplayAbilitySpecHandle
 	{
 		StartDeath();
 	}
+
+	PlayDeathMontage(TriggerEventData);
+}
+
+// 사망 몽타주 재생 — 어빌리티가 먼저 끝나도(GA_Hero_Death는 바로 EndAbility) 몽타주는 계속 재생되도록 bStopWhenAbilityEnds=false
+void ULeeGameplayAbility_Death::PlayDeathMontage(const FGameplayEventData* TriggerEventData)
+{
+	// 이벤트 데이터의 OptionalObject2는 const 포인터 — 몽타주 에셋을 읽기만 하므로 const를 떼서 태스크에 넘긴다
+	UAnimMontage* DeathMontage = TriggerEventData
+		? const_cast<UAnimMontage*>(Cast<UAnimMontage>(TriggerEventData->OptionalObject2))
+		: nullptr;
+	if (!DeathMontage)
+	{
+		return;
+	}
+
+	UAbilityTask_PlayMontageAndWait* MontageTask = UAbilityTask_PlayMontageAndWait::CreatePlayMontageAndWaitProxy(
+		this, NAME_None, DeathMontage, /*Rate*/1.0f, /*StartSection*/NAME_None, /*bStopWhenAbilityEnds*/false);
+	MontageTask->ReadyForActivation();
 }
 
 // 사망 완료 이벤트 수신 → 구독 해제 후 어빌리티 종료

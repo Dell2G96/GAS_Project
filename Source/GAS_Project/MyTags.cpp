@@ -183,6 +183,7 @@ namespace MyTags
 		UE_DEFINE_GAMEPLAY_TAG(Event_Combat_Parried, "Souls.Events.Combat.Parried")
 		UE_DEFINE_GAMEPLAY_TAG(Event_Combat_GuardBreak, "Souls.Events.Combat.GuardBreak")
 		UE_DEFINE_GAMEPLAY_TAG(Event_Combat_PostureBreak, "Souls.Events.Combat.PostureBreak")
+		UE_DEFINE_GAMEPLAY_TAG(Event_Combat_Knockback, "Souls.Events.Combat.Knockback")
 
 		// ----- 이벤트 - 처형/암살 (피니셔) -----
 		UE_DEFINE_GAMEPLAY_TAG(Event_Execution_Start, "Souls.Events.Execution.Start")

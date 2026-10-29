@@ -5,6 +5,8 @@
 
 #include "GameplayEffectExtension.h"
 #include "GameFramework/GameplayMessageSubsystem.h"
+#include "LeeCharacter.h"
+#include "Animation/AnimMontage.h"
 #include "GAS_Project/LeeLogChannels.h"
 #include "GAS_Project/MyTags.h"
 #include "GAS_Project/AAbilitySystem/LeeAbilitySystemComponent.h"
@@ -199,6 +201,14 @@ void ULeeHealthComponent::HandleOutOfHealth(AActor* DamageInstigator, AActor* Da
 			Payload.InstigatorTags = *DamageEffectSpec->CapturedSourceTags.GetAggregatedTags();
 			Payload.TargetTags = *DamageEffectSpec->CapturedTargetTags.GetAggregatedTags();
 			Payload.EventMagnitude = DamageMagnitude;
+
+			// 26.10.29 추가 - 사망 몽타주를 서버에서 한 번만 골라 실어 보낸다.
+			// Death 어빌리티(ServerInitiated)는 서버와 소유 클라이언트에서 각각 실행되는데,
+			// 각자 랜덤으로 고르면 서로 다른 몽타주가 재생되므로 이벤트 데이터로 통일한다.
+			if (const ALeeCharacter* LeeCharacter = Cast<ALeeCharacter>(AbilitySystemComponent->GetAvatarActor()))
+			{
+				Payload.OptionalObject2 = LeeCharacter->GetRandomDeathMontage();
+			}
 
 			FScopedPredictionWindow NewScopedWindow(AbilitySystemComponent, true);
 			AbilitySystemComponent->HandleGameplayEvent(Payload.EventTag, &Payload);

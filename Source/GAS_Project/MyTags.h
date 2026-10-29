@@ -177,6 +177,8 @@ namespace MyTags
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Event_Combat_Parried);
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Event_Combat_GuardBreak);
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Event_Combat_PostureBreak);
+		// 26.10.29 추가 - 넉백 이벤트 (공격 어빌리티 → 피해자 ULeeGameplayAbility_Knockback)
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Event_Combat_Knockback);
 
 		// ----- 이벤트 - 처형/암살 (피니셔) -----
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Event_Execution_Start);
