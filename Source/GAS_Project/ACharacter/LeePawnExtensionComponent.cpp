@@ -123,8 +123,10 @@ void ULeePawnExtensionComponent::InitializeAbilitySystem(class ULeeAbilitySystem
 	APawn* Pawn =GetPawnChecked<APawn>();
 	AActor* ExistingAvater = InASC->GetAvatarActor();
 
-	// 26.10.29 수정 - 리스폰 시 ASC(PlayerState 소유)에 이전 Pawn이 Avatar로 남아 있으면 check에서 멈췄다
-	// 이전 Pawn이 아직 Avatar라면 그 Pawn의 ASC 연결을 먼저 해제한다 (Lyra 원본과 동일)
+	/*
+	26.10.29 수정 - 리스폰 시 ASC(PlayerState 소유)에 이전 Pawn이 Avatar로 남아 있으면 check에서 멈추는 문제 발생
+	 이전 Pawn이 아직 Avatar라면 그 Pawn의 ASC 연결을 먼저 해제 (Lyra 방식)
+	*/
 	if ((ExistingAvater != nullptr) && (ExistingAvater != Pawn))
 	{
 		if (ULeePawnExtensionComponent* OtherExtensionComponent = FindPawnExtensionComponent(ExistingAvater))

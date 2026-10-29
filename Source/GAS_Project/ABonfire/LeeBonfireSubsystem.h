@@ -10,8 +10,8 @@
 struct FLeeVerbMessage;
 
 // 화톳불/사망 관련 월드 규칙 담당 (서버 전용)
-// 플레이어 사망 → YOU DIED 메시지 → 일정 시간 뒤 Enemy 리셋 + 플레이어 부활
-UCLASS(Config = Game)
+// 플레이어 사망 → YOU DIED 메시지 → 플레이어가 '예'로 부활 요청 → Enemy 리셋 + 플레이어 부활
+UCLASS()
 class GAS_PROJECT_API ULeeBonfireSubsystem : public UWorldSubsystem
 {
 	GENERATED_BODY()
@@ -26,17 +26,20 @@ public:
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category = "Lee|Bonfire")
 	void ResetEnemies();
 
+	// 사망 대기 중인 플레이어의 부활 요청 처리 (ALeePlayerController::ServerRequestRespawn에서 호출)
+	void RequestRespawn(APlayerController* PlayerController);
+
 protected:
 	//~USubsystem interface
 	virtual bool DoesSupportWorldType(const EWorldType::Type WorldType) const override;
 	//~End of USubsystem interface
 
 private:
-	// 사망 메시지(Lyra.Elimination.Message) 수신 → 플레이어면 YOU DIED 전송 + 부활 타이머 시작
+	// 사망 메시지(Lyra.Elimination.Message) 수신 → 플레이어면 YOU DIED 전송 + 부활 대기 등록
 	void HandleEliminationMessage(FGameplayTag Channel, const FLeeVerbMessage& Message);
 
-	// 부활 타이머 만료 → 이전 Pawn 정리, Enemy 리셋, 플레이어 재시작
-	void RespawnPlayer(TWeakObjectPtr<APlayerController> WeakPlayerController);
+	// 이전 Pawn 정리, Enemy 리셋, 플레이어 재시작
+	void RespawnPlayer(APlayerController* PlayerController);
 
 	// 해당 플레이어에게만 UI 메시지 전송 (로컬 플레이어는 직접, 원격 플레이어는 Client RPC)
 	void SendMessageToPlayer(APlayerController* PlayerController, FGameplayTag MessageTag) const;
@@ -44,11 +47,7 @@ private:
 	// Pawn을 리셋용으로 정리한다 (ASC 연결 해제 + 파괴)
 	static void DestroyPawnForReset(APawn* Pawn);
 
-	// 사망 후 부활까지 대기 시간(초). DefaultGame.ini의 [/Script/GAS_Project.LeeBonfireSubsystem]에서 조절
-	UPROPERTY(Config)
-	float RespawnDelay = 4.0f;
-
-	// 부활 대기 중인 플레이어 (중복 사망 메시지로 타이머가 두 번 걸리는 것 방지)
+	// 부활 대기 중인 플레이어 (죽은 플레이어만 부활 요청 가능, 중복 요청 방지)
 	TSet<TWeakObjectPtr<APlayerController>> PendingRespawnPlayers;
 
 	FGameplayMessageListenerHandle EliminationListenerHandle;

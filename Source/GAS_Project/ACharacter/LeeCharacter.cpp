@@ -7,6 +7,7 @@
 #include "LeeHealthComponent.h"
 #include "LeeHeroComponent.h"
 #include "LeePawnExtensionComponent.h"
+#include "Animation/AnimMontage.h"
 #include "Components/CapsuleComponent.h"
 #include "GAS_Project/LeeLogChannels.h"
 #include "GAS_Project/MyTags.h"
@@ -383,6 +384,16 @@ class ULeeAbilitySystemComponent* ALeeCharacter::GetLeeAbilitySystemComponent() 
 UAbilitySystemComponent* ALeeCharacter::GetAbilitySystemComponent() const
 {
 	return PawnExtComponent->GetLeeAbilitySystemComponent();
+}
+
+// DeathMontages 중 하나를 랜덤 선택 (서버에서 한 번만 골라 사망 이벤트에 실어 보낸다)
+UAnimMontage* ALeeCharacter::GetRandomDeathMontage() const
+{
+	if (DeathMontages.IsEmpty())
+	{
+		return nullptr;
+	}
+	return DeathMontages[FMath::RandRange(0, DeathMontages.Num() - 1)];
 }
 
 void ALeeCharacter::OnDeathStarted(AActor* OwningActor)

@@ -4,6 +4,7 @@
 
 #include "AbilitySystemBlueprintLibrary.h"
 #include "AbilitySystemComponent.h"
+#include "Abilities/GameplayAbilityTargetTypes.h"
 #include "Abilities/Tasks/AbilityTask_PlayMontageAndWait.h"
 #include "Abilities/Tasks/AbilityTask_WaitGameplayEvent.h"
 #include "AIController.h"
@@ -533,6 +534,54 @@ void ULeeGameplayAbility_AttackMelee::OnTraceEventReceived(FGameplayEventData Pa
 
 		HitASC->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
 	}
+
+	// [넉백] 서버에서만 보낸다. 데미지 적용 중 패리를 당하면 이 공격 어빌리티가 취소되므로(IsActive=false) 넉백도 생략된다
+	if (GetActorInfo().IsNetAuthority() && IsActive())
+	{
+		SendKnockbackEvent(AttackerActor, HitActor, HitASC);
+	}
+}
+
+// [넉백][서버] 공격자 기준 오프셋(X 전방, Y 오른쪽, Z 위)을 월드 오프셋으로 변환해 피해자에게 이벤트 전송
+void ULeeGameplayAbility_AttackMelee::SendKnockbackEvent(const AActor* AttackerActor, AActor* HitActor, const UAbilitySystemComponent* HitASC) const
+{
+	if (CurrentAttackData.KnockbackOffset.IsNearlyZero() || CurrentAttackData.KnockbackDuration <= 0.0f)
+	{
+		return;
+	}
+
+	// 사망 중인 대상은 밀지 않는다 (사망 몽타주 우선)
+	if (HitASC->HasMatchingGameplayTag(MyTags::Souls::Status_Death_Dying))
+	{
+		return;
+	}
+
+	// 가드 중이면 가드 배율 적용
+	const float Scale = HitASC->HasMatchingGameplayTag(MyTags::Souls::Status_Guard_Active)
+		? CurrentAttackData.GuardKnockbackScale
+		: 1.0f;
+	if (Scale <= 0.0f)
+	{
+		return;
+	}
+
+	// 공격자의 수평 방향(Yaw)만 사용 — 공격자가 위/아래를 보고 있어도 X/Y는 지면과 평행
+	const FRotator AttackerYaw(0.0f, AttackerActor->GetActorRotation().Yaw, 0.0f);
+	const FVector WorldOffset = AttackerYaw.RotateVector(CurrentAttackData.KnockbackOffset * Scale);
+
+	// 월드 오프셋은 TargetData(LocationInfo)의 TargetLocation에, 이동 시간은 EventMagnitude에 싣는다
+	FGameplayAbilityTargetData_LocationInfo* OffsetData = new FGameplayAbilityTargetData_LocationInfo();
+	OffsetData->TargetLocation.LocationType = EGameplayAbilityTargetingLocationType::LiteralTransform;
+	OffsetData->TargetLocation.LiteralTransform = FTransform(WorldOffset);
+
+	FGameplayEventData Payload;
+	Payload.EventTag = MyTags::Souls::Event_Combat_Knockback;
+	Payload.Instigator = AttackerActor;
+	Payload.Target = HitActor;
+	Payload.EventMagnitude = CurrentAttackData.KnockbackDuration;
+	Payload.TargetData.Add(OffsetData);
+
+	UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(HitActor, MyTags::Souls::Event_Combat_Knockback, Payload);
 }
 
 // SetByCaller Duration 방식 GE 적용 헬퍼 — BP 애셋의 Duration이 SetByCaller(Souls.SetByCaller.Duration)여야 한다

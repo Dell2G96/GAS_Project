@@ -43,7 +43,7 @@ void ULeeBonfireSubsystem::Deinitialize()
 	Super::Deinitialize();
 }
 
-// 사망한 대상이 플레이어면 YOU DIED를 보내고 RespawnDelay 뒤 부활시킨다 (Enemy 사망은 무시 → 리셋 때 정리)
+// 사망한 대상이 플레이어면 YOU DIED를 보내고 부활 대기 목록에 넣는다 (Enemy 사망은 무시 → 리셋 때 정리)
 void ULeeBonfireSubsystem::HandleEliminationMessage(FGameplayTag Channel, const FLeeVerbMessage& Message)
 {
 	const APlayerState* DeadPlayerState = Cast<APlayerState>(Message.Target);
@@ -60,24 +60,23 @@ void ULeeBonfireSubsystem::HandleEliminationMessage(FGameplayTag Channel, const 
 
 	PendingRespawnPlayers.Add(PlayerController);
 	SendMessageToPlayer(PlayerController, MyTags::Souls::Message_Death_YouDied);
-
-	FTimerHandle RespawnTimerHandle;
-	const FTimerDelegate RespawnDelegate = FTimerDelegate::CreateUObject(
-		this, &ThisClass::RespawnPlayer, TWeakObjectPtr<APlayerController>(PlayerController));
-	GetWorld()->GetTimerManager().SetTimer(RespawnTimerHandle, RespawnDelegate, RespawnDelay, false);
 }
 
-// 이전 Pawn(시체)을 정리하고 Enemy를 리셋한 뒤 플레이어를 다음 프레임에 재시작한다
-void ULeeBonfireSubsystem::RespawnPlayer(TWeakObjectPtr<APlayerController> WeakPlayerController)
+// 부활 대기 중인 플레이어만 부활시킨다 (살아있는 플레이어의 요청·중복 요청은 무시)
+void ULeeBonfireSubsystem::RequestRespawn(APlayerController* PlayerController)
 {
-	PendingRespawnPlayers.Remove(WeakPlayerController);
-
-	APlayerController* PlayerController = WeakPlayerController.Get();
-	if (!PlayerController)
+	if (!PlayerController || !PendingRespawnPlayers.Contains(PlayerController))
 	{
 		return;
 	}
 
+	PendingRespawnPlayers.Remove(PlayerController);
+	RespawnPlayer(PlayerController);
+}
+
+// 이전 Pawn(시체)을 정리하고 Enemy를 리셋한 뒤 플레이어를 다음 프레임에 재시작한다
+void ULeeBonfireSubsystem::RespawnPlayer(APlayerController* PlayerController)
+{
 	ALeeGameModeBase* GameMode = GetWorld()->GetAuthGameMode<ALeeGameModeBase>();
 	if (!GameMode)
 	{

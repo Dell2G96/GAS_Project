@@ -81,6 +81,9 @@ public:
 	void UninitAndDestroy();
 
 
+	// 26.10.29 추가 - DeathMontages 중 하나를 랜덤으로 반환 (비어 있으면 nullptr)
+	class UAnimMontage* GetRandomDeathMontage() const;
+
 	UFUNCTION(BlueprintCallable, Category = "Lee|Character")
 	class ALeePlayerController* GetLeePlayerController() const;
 
@@ -152,6 +155,10 @@ protected:
 
 	UFUNCTION(BlueprintImplementableEvent, meta=(DisplayName="OnDeathFinished"))
 	void K2_OnDeathFinished();
+
+	// 26.10.29 추가 - 사망 시작 시 Death 어빌리티가 재생할 몽타주 후보 (캐릭터 BP Class Defaults에서 지정)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Lee|Death")
+	TArray<TObjectPtr<class UAnimMontage>> DeathMontages;
 
 	virtual void OnMovementModeChanged(EMovementMode PrevMovementMode, uint8 PreviousCustomMode) override;
 	void SetMovementModeTag(EMovementMode MovementMode, uint8 CustomMovementMode, bool bTagEnabled);

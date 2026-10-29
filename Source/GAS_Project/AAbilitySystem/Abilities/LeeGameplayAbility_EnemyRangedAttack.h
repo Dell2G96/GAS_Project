@@ -38,6 +38,18 @@ struct FLeeRangedAttackData
 	/** 발사 원점 소켓 이름. 메시에 없으면 액터 위치를 그대로 쓴다 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FName MuzzleSocketName = TEXT("Muzzle");
+
+	/** [넉백] 명중 시 피해자를 미는 거리(cm). 투사체 비행 방향 기준 X=앞, Y=오른쪽, Z=위. 0이면 넉백 없음 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Lee|Ranged|Knockback")
+	FVector KnockbackOffset = FVector::ZeroVector;
+
+	/** [넉백] 밀려나는 데 걸리는 시간(초) */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Lee|Ranged|Knockback", meta = (ClampMin = "0.01"))
+	float KnockbackDuration = 0.2f;
+
+	/** [넉백] 피해자가 일반 가드 중일 때 오프셋 배율 (퍼펙트 가드는 넉백 없음) */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Lee|Ranged|Knockback", meta = (ClampMin = "0.0"))
+	float GuardKnockbackScale = 0.5f;
 };
 
 /**

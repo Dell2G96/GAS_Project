@@ -63,6 +63,21 @@ struct FLeeMeleeAttackData
 	/** 이 몽타주 전용 쿨다운 태그 (예: Souls.Cooldown.Morgana.SandAttack). 몽타주마다 달라야 서로 독립된 쿨타임이 된다 */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Lee|Attack|Cooldown", meta = (Categories = "Souls.Cooldown"))
 	FGameplayTag CooldownTag;
+
+	/**
+	 * [넉백] 피해자를 밀어낼 거리(cm) — 공격자 기준 방향. X=공격자 전방(밀어내기), Y=공격자 오른쪽, Z=위
+	 * 예: (300, 0, 0) → 공격자 반대편으로 3m, (0, 0, 150) → 위로 1.5m 띄움. 0이면 넉백 없음
+	 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Lee|Attack|Knockback")
+	FVector KnockbackOffset = FVector::ZeroVector;
+
+	/** [넉백] 위 거리를 이동하는 데 걸리는 시간(초) */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Lee|Attack|Knockback", meta = (ClampMin = "0.01"))
+	float KnockbackDuration = 0.2f;
+
+	/** [넉백] 피해자가 가드 중일 때 거리 배율 (0이면 가드 시 넉백 없음). 패리 성공 시에는 항상 넉백 없음 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Lee|Attack|Knockback", meta = (ClampMin = "0.0"))
+	float GuardKnockbackScale = 0.5f;
 };
 
 /**
@@ -273,4 +288,7 @@ private:
 	/** ANS_ToggleTrace로부터 HitResult 이벤트를 수신하여 데미지 GE 적용 */
 	UFUNCTION()
 	void OnTraceEventReceived(FGameplayEventData Payload);
+
+	/** [넉백][서버] CurrentAttackData의 넉백 값을 월드 방향으로 바꿔 피해자에게 Knockback 이벤트로 보낸다 */
+	void SendKnockbackEvent(const AActor* AttackerActor, AActor* HitActor, const UAbilitySystemComponent* HitASC) const;
 };

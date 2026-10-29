@@ -192,6 +192,7 @@ void ULeeGameplayAbility_EnemyRangedAttack::FireOnce()
 	if (Projectile)
 	{
 		Projectile->InitProjectile(SpecHandle, Avatar);
+		Projectile->InitKnockback(CurrentAttackData.KnockbackOffset, CurrentAttackData.KnockbackDuration, CurrentAttackData.GuardKnockbackScale);
 		Projectile->FinishSpawning(FTransform(AimRotation, MuzzleLocation));
 	}
 
