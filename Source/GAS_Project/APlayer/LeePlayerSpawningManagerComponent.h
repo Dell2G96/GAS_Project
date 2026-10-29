@@ -43,7 +43,10 @@ private:
 private:
 	void OnLevelAdded(ULevel* InLevel, UWorld* InWorld);
 	void HandleOnActorSpawned(AActor* SpawnedActor);
-	
+
+	// 마지막으로 휴식한 세이브 포인트의 부활 PlayerStart (없으면 nullptr)
+	ALeePlayerStart* FindRestedSavePointStart(AController* Player) const;
+
 #if WITH_EDITOR
 	APlayerStart* FindPlayFromHereStart(AController* Player);
 #endif

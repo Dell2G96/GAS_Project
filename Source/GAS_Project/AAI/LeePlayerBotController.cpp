@@ -13,7 +13,9 @@ ALeePlayerBotController::ALeePlayerBotController(const FObjectInitializer& Objec
 	:Super(ObjectInitializer)
 {
 	bWantsPlayerState = true;
-	bStopAILogicOnUnposses = false;
+	// [26.10.29] Lyra는 false지만, 이 프로젝트는 Enemy 리셋 시 Pawn 없이 StateTree가 Tick해 ensure가 나므로 true.
+	// 재빙의 시 BP(On Possess)가 StartLogic을 다시 호출한다.
+	bStopAILogicOnUnposses = true;
 }
 
 void ALeePlayerBotController::SetGenericTeamId(const FGenericTeamId& NewTeamID)

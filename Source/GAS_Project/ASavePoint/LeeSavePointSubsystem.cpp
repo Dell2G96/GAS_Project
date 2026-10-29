@@ -1,8 +1,10 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "LeeBonfireSubsystem.h"
+#include "LeeSavePointSubsystem.h"
 
+#include "LeeSavePointActor.h"
+#include "GAS_Project/APlayer/LeePlayerStart.h"
 #include "EngineUtils.h"
 #include "GameFramework/PlayerState.h"
 #include "GAS_Project/LeeLogChannels.h"
@@ -15,13 +17,13 @@
 #include "GAS_Project/GameModes/LeeGameModeBase.h"
 
 // 게임/PIE 월드에서만 생성한다 (에디터 프리뷰 월드 등 제외)
-bool ULeeBonfireSubsystem::DoesSupportWorldType(const EWorldType::Type WorldType) const
+bool ULeeSavePointSubsystem::DoesSupportWorldType(const EWorldType::Type WorldType) const
 {
 	return WorldType == EWorldType::Game || WorldType == EWorldType::PIE;
 }
 
 // 서버에서만 사망 메시지를 구독한다 (사망 메시지는 서버에서만 방송됨)
-void ULeeBonfireSubsystem::OnWorldBeginPlay(UWorld& InWorld)
+void ULeeSavePointSubsystem::OnWorldBeginPlay(UWorld& InWorld)
 {
 	Super::OnWorldBeginPlay(InWorld);
 
@@ -36,7 +38,7 @@ void ULeeBonfireSubsystem::OnWorldBeginPlay(UWorld& InWorld)
 }
 
 // 메시지 구독 해제
-void ULeeBonfireSubsystem::Deinitialize()
+void ULeeSavePointSubsystem::Deinitialize()
 {
 	EliminationListenerHandle.Unregister();
 
@@ -44,7 +46,7 @@ void ULeeBonfireSubsystem::Deinitialize()
 }
 
 // 사망한 대상이 플레이어면 YOU DIED를 보내고 부활 대기 목록에 넣는다 (Enemy 사망은 무시 → 리셋 때 정리)
-void ULeeBonfireSubsystem::HandleEliminationMessage(FGameplayTag Channel, const FLeeVerbMessage& Message)
+void ULeeSavePointSubsystem::HandleEliminationMessage(FGameplayTag Channel, const FLeeVerbMessage& Message)
 {
 	const APlayerState* DeadPlayerState = Cast<APlayerState>(Message.Target);
 	if (!DeadPlayerState)
@@ -63,7 +65,7 @@ void ULeeBonfireSubsystem::HandleEliminationMessage(FGameplayTag Channel, const 
 }
 
 // 부활 대기 중인 플레이어만 부활시킨다 (살아있는 플레이어의 요청·중복 요청은 무시)
-void ULeeBonfireSubsystem::RequestRespawn(APlayerController* PlayerController)
+void ULeeSavePointSubsystem::RequestRespawn(APlayerController* PlayerController)
 {
 	if (!PlayerController || !PendingRespawnPlayers.Contains(PlayerController))
 	{
@@ -74,13 +76,73 @@ void ULeeBonfireSubsystem::RequestRespawn(APlayerController* PlayerController)
 	RespawnPlayer(PlayerController);
 }
 
+// SavePointId로 등록한다. ID가 비었거나 겹치면 경고만 남기고 등록하지 않는다
+void ULeeSavePointSubsystem::RegisterSavePoint(ALeeSavePointActor* SavePoint)
+{
+	if (!SavePoint)
+	{
+		return;
+	}
+
+	const FName SavePointId = SavePoint->GetSavePointId();
+	if (SavePointId.IsNone())
+	{
+		UE_LOG(LogLee, Warning, TEXT("[SavePointSubsystem] %s의 SavePointId가 비어 있음. 레벨에서 지정해주세요."), *GetNameSafe(SavePoint));
+		return;
+	}
+
+	const TWeakObjectPtr<ALeeSavePointActor>* Existing = SavePoints.Find(SavePointId);
+	if (Existing && Existing->IsValid() && Existing->Get() != SavePoint)
+	{
+		UE_LOG(LogLee, Warning, TEXT("[SavePointSubsystem] SavePointId [%s]가 %s와 %s에서 겹침."), *SavePointId.ToString(), *GetNameSafe(Existing->Get()), *GetNameSafe(SavePoint));
+		return;
+	}
+
+	SavePoints.Add(SavePointId, SavePoint);
+}
+
+// 자기 자신으로 등록된 경우에만 제거한다
+void ULeeSavePointSubsystem::UnregisterSavePoint(ALeeSavePointActor* SavePoint)
+{
+	if (SavePoint && FindSavePointById(SavePoint->GetSavePointId()) == SavePoint)
+	{
+		SavePoints.Remove(SavePoint->GetSavePointId());
+	}
+}
+
+// SavePointId로 세이브 포인트을 찾는다
+ALeeSavePointActor* ULeeSavePointSubsystem::FindSavePointById(FName SavePointId) const
+{
+	const TWeakObjectPtr<ALeeSavePointActor>* Found = SavePoints.Find(SavePointId);
+	return Found ? Found->Get() : nullptr;
+}
+
+// 등록된 세이브 포인트 중 이 PlayerStart를 부활 지점으로 쓰는 곳이 있는지 확인한다
+bool ULeeSavePointSubsystem::IsSavePointRespawnStart(const ALeePlayerStart* PlayerStart) const
+{
+	if (!PlayerStart)
+	{
+		return false;
+	}
+
+	for (const TPair<FName, TWeakObjectPtr<ALeeSavePointActor>>& Pair : SavePoints)
+	{
+		const ALeeSavePointActor* SavePoint = Pair.Value.Get();
+		if (SavePoint && SavePoint->GetRespawnPlayerStart() == PlayerStart)
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
 // 이전 Pawn(시체)을 정리하고 Enemy를 리셋한 뒤 플레이어를 다음 프레임에 재시작한다
-void ULeeBonfireSubsystem::RespawnPlayer(APlayerController* PlayerController)
+void ULeeSavePointSubsystem::RespawnPlayer(APlayerController* PlayerController)
 {
 	ALeeGameModeBase* GameMode = GetWorld()->GetAuthGameMode<ALeeGameModeBase>();
 	if (!GameMode)
 	{
-		UE_LOG(LogLee, Warning, TEXT("[BonfireSubsystem] RespawnPlayer: ALeeGameModeBase가 아니라서 부활할 수 없음"));
+		UE_LOG(LogLee, Warning, TEXT("[SavePointSubsystem] RespawnPlayer: ALeeGameModeBase가 아니라서 부활할 수 없음"));
 		return;
 	}
 
@@ -95,7 +157,7 @@ void ULeeBonfireSubsystem::RespawnPlayer(APlayerController* PlayerController)
 }
 
 // 모든 봇의 Pawn을 정리하고 다음 프레임에 재시작한다. 봇은 HomePlayerStart(처음 자리)에서 다시 생성된다
-void ULeeBonfireSubsystem::ResetEnemies()
+void ULeeSavePointSubsystem::ResetEnemies()
 {
 	UWorld* World = GetWorld();
 	ALeeGameModeBase* GameMode = World ? World->GetAuthGameMode<ALeeGameModeBase>() : nullptr;
@@ -113,7 +175,7 @@ void ULeeBonfireSubsystem::ResetEnemies()
 }
 
 // 로컬 플레이어는 이 머신에서 바로 방송, 원격 플레이어는 PlayerState의 Client RPC로 전달
-void ULeeBonfireSubsystem::SendMessageToPlayer(APlayerController* PlayerController, FGameplayTag MessageTag) const
+void ULeeSavePointSubsystem::SendMessageToPlayer(APlayerController* PlayerController, FGameplayTag MessageTag) const
 {
 	FLeeVerbMessage Message;
 	Message.Verb = MessageTag;
@@ -131,7 +193,7 @@ void ULeeBonfireSubsystem::SendMessageToPlayer(APlayerController* PlayerControll
 }
 
 // 죽어 있으면 사망을 완료시켜(GA_Death 종료) 정리하고, ALeeCharacter면 ASC 연결 해제(장비 회수 포함) 후 파괴
-void ULeeBonfireSubsystem::DestroyPawnForReset(APawn* Pawn)
+void ULeeSavePointSubsystem::DestroyPawnForReset(APawn* Pawn)
 {
 	if (!Pawn)
 	{

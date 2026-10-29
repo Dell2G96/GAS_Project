@@ -23,7 +23,7 @@ public:
 	class ALeePlayerState* GetLeePlayerState() const;
 	class ULeeAbilitySystemComponent* GetLeeAbilitySystemComponent() const;
 
-	// 사망 화면에서 '예'를 눌렀을 때 서버에 부활 요청 (실제 처리는 ULeeBonfireSubsystem::RequestRespawn)
+	// 사망 화면에서 '예'를 눌렀을 때 서버에 부활 요청 (실제 처리는 ULeeSavePointSubsystem::RequestRespawn)
 	UFUNCTION(Server, Reliable, BlueprintCallable, Category = "Lee|Death")
 	void ServerRequestRespawn();
 

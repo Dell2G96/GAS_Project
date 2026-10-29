@@ -5,7 +5,7 @@
 
 #include "LeePlayerState.h"
 #include "GAS_Project/AAbilitySystem/LeeAbilitySystemComponent.h"
-#include "GAS_Project/ABonfire/LeeBonfireSubsystem.h"
+#include "GAS_Project/ASavePoint/LeeSavePointSubsystem.h"
 #include "GAS_Project/ACamera/LeePlayerCameraManager.h"
 
 ALeePlayerController::ALeePlayerController(const FObjectInitializer& ObjectInitializer)
@@ -33,11 +33,11 @@ class ULeeAbilitySystemComponent* ALeePlayerController::GetLeeAbilitySystemCompo
 	return (LeePlayerState ? LeePlayerState->GetLeeAbilitySystemComponent() : nullptr);
 }
 
-// [서버] 부활 요청을 BonfireSubsystem에 전달 (사망 대기 중인지 검사는 Subsystem이 담당)
+// [서버] 부활 요청을 SavePointSubsystem에 전달 (사망 대기 중인지 검사는 Subsystem이 담당)
 void ALeePlayerController::ServerRequestRespawn_Implementation()
 {
-	if (ULeeBonfireSubsystem* BonfireSubsystem = GetWorld()->GetSubsystem<ULeeBonfireSubsystem>())
+	if (ULeeSavePointSubsystem* SavePointSubsystem = GetWorld()->GetSubsystem<ULeeSavePointSubsystem>())
 	{
-		BonfireSubsystem->RequestRespawn(this);
+		SavePointSubsystem->RequestRespawn(this);
 	}
 }

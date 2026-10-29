@@ -114,6 +114,10 @@ public:
 	// 복제된 뷰 회전값을 설정 (서버에서만 유효하다)
 	void SetReplicatedViewRotation(const FRotator& NewRotation);
 
+	// 마지막으로 휴식한 세이브 포인트 ID (서버 전용, 사망 시 이 세이브 포인트 옆에서 부활)
+	FName GetLastRestedSavePointId() const { return LastRestedSavePointId; }
+	void SetLastRestedSavePointId(FName NewSavePointId) { LastRestedSavePointId = NewSavePointId; }
+
 private:
 	void OnExperienceLoaded(const class ULeeExperienceDefinition* CurrentExperience);
 
@@ -150,6 +154,10 @@ private:
 
 	UPROPERTY(Replicated)
 	FRotator ReplicatedViewRotation;
+
+	// 마지막으로 휴식한 세이브 포인트 ID (복제 안 함 — 부활 위치는 서버만 결정한다)
+	UPROPERTY(VisibleInstanceOnly, Category="Lee|PlayerState")
+	FName LastRestedSavePointId;
 	
 
 

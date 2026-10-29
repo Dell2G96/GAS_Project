@@ -9,6 +9,9 @@
 #include "GameFramework/PlayerState.h"
 #include "Slate/SGameLayerManager.h"
 #include "GAS_Project/AAI/LeePlayerBotController.h"
+#include "GAS_Project/ASavePoint/LeeSavePointActor.h"
+#include "GAS_Project/ASavePoint/LeeSavePointSubsystem.h"
+#include "LeePlayerState.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogPlayerSpawning, Log, All);
 
@@ -81,6 +84,14 @@ AActor* ULeePlayerSpawningManagerComponent::ChoosePlayerStart(AController* Playe
 			}
 		}
 
+		// 26.10.29 추가 - 세이브 포인트에서 휴식한 플레이어는 그 세이브 포인트의 부활 지점에서 재시작 (Play From Here보다 우선)
+		ULeeSavePointSubsystem* SavePointSubsystem = GetWorld()->GetSubsystem<ULeeSavePointSubsystem>();
+		if (ALeePlayerStart* SavePointStart = FindRestedSavePointStart(Player))
+		{
+			SavePointStart->TryClaim(Player);
+			return SavePointStart;
+		}
+
 #if WITH_EDITOR
 		if (APlayerStart* PlayerStart = FindPlayFromHereStart(Player))
 		{
@@ -93,6 +104,11 @@ AActor* ULeePlayerSpawningManagerComponent::ChoosePlayerStart(AController* Playe
 		{
 			if (ALeePlayerStart* Start = (*StartIt).Get())
 			{
+				// 26.10.29 추가 - 세이브 포인트 부활 지점은 일반 스폰 후보에서 제외 (휴식한 플레이어 전용)
+				if (SavePointSubsystem && SavePointSubsystem->IsSavePointRespawnStart(Start))
+				{
+					continue;
+				}
 				StarterPoints.Add(Start);
 			}
 			else
@@ -135,6 +151,20 @@ AActor* ULeePlayerSpawningManagerComponent::ChoosePlayerStart(AController* Playe
 	}
 
 	return nullptr;
+}
+
+// 플레이어가 마지막으로 휴식한 세이브 포인트의 부활 PlayerStart를 찾는다 (휴식 기록이 없거나 지정 안 됐으면 nullptr)
+ALeePlayerStart* ULeePlayerSpawningManagerComponent::FindRestedSavePointStart(AController* Player) const
+{
+	const ALeePlayerState* LeePlayerState = Player ? Player->GetPlayerState<ALeePlayerState>() : nullptr;
+	if (!LeePlayerState || LeePlayerState->GetLastRestedSavePointId().IsNone())
+	{
+		return nullptr;
+	}
+
+	const ULeeSavePointSubsystem* SavePointSubsystem = GetWorld()->GetSubsystem<ULeeSavePointSubsystem>();
+	const ALeeSavePointActor* SavePoint = SavePointSubsystem ? SavePointSubsystem->FindSavePointById(LeePlayerState->GetLastRestedSavePointId()) : nullptr;
+	return SavePoint ? SavePoint->GetRespawnPlayerStart() : nullptr;
 }
 
 #if WITH_EDITOR
