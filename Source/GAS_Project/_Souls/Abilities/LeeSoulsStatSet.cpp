@@ -13,6 +13,9 @@ ULeeSoulsStatSet::ULeeSoulsStatSet()
 	, MaxHealth(100.f)
 	, Stamina(100.f)
 	, MaxStamina(100.f)
+	, EstusCharges(3.f)
+	, MaxEstusCharges(3.f)
+	, EstusHealAmount(40.f)
 {
 	bOutOfHealth = false;
 	bOutOfStamina = false;
@@ -20,6 +23,7 @@ ULeeSoulsStatSet::ULeeSoulsStatSet()
 	HealthBeforeAttributeChange = 0.0f;
 	MaxStaminaBeforeAttributeChange = 0.0f;
 	StaminaBeforeAttributeChange = 0.0f;
+	EstusChargesBeforeAttributeChange = 0.0f;
 }
 
 bool ULeeSoulsStatSet::PreGameplayEffectExecute(FGameplayEffectModCallbackData& Data)
@@ -46,6 +50,8 @@ bool ULeeSoulsStatSet::PreGameplayEffectExecute(FGameplayEffectModCallbackData& 
 
 	StaminaBeforeAttributeChange = GetStamina();
 	MaxStaminaBeforeAttributeChange = GetMaxStamina();
+
+	EstusChargesBeforeAttributeChange = GetEstusCharges();
 	return true;}
 
 void ULeeSoulsStatSet::PostGameplayEffectExecute(const FGameplayEffectModCallbackData& Data)
@@ -74,6 +80,17 @@ void ULeeSoulsStatSet::PostGameplayEffectExecute(const FGameplayEffectModCallbac
 		if (CurrentStamina != ClampedStamina)
 		{
 			SetStamina(ClampedStamina);
+		}
+	}
+	// 26.10.30 추가 - 에스트 횟수를 0 ~ MaxEstusCharges로 제한 (휴식 GE가 Max보다 크게 넣어도 안전)
+	if (Data.EvaluatedData.Attribute == GetEstusChargesAttribute())
+	{
+		SetEstusCharges(FMath::Clamp(GetEstusCharges(), 0.0f, GetMaxEstusCharges()));
+
+		if (GetEstusCharges() != EstusChargesBeforeAttributeChange)
+		{
+			OnEstusChargesChanged.Broadcast(Data.EffectSpec.GetEffectContext().GetOriginalInstigator(), Data.EffectSpec.GetEffectContext().GetEffectCauser(),
+				&Data.EffectSpec, Data.EvaluatedData.Magnitude, EstusChargesBeforeAttributeChange, GetEstusCharges());
 		}
 	}
 	const bool bIsDamageFromSelfDestruct = Data.EffectSpec.GetDynamicAssetTags().HasTagExact(MyTags::Souls::Gameplay_DamageSelfDestruct);

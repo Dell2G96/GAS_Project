@@ -135,6 +135,12 @@ float ULeeCharacterMovementComponent::GetMaxSpeed() const
 		{
 			return Super::GetMaxSpeed() * GetEquippedGuardSpeedMultiplier();
 		}
+
+		// 26.10.30 추가 - 에스트 마시는 중이면 느리게 걷는다
+		if (ASC->HasMatchingGameplayTag(MyTags::Souls::Status_Estus_Drinking))
+		{
+			return Super::GetMaxSpeed() * EstusMoveSpeedMultiplier;
+		}
 	}
 
 	return Super::GetMaxSpeed();

@@ -64,6 +64,13 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Lee|Health")
 	float GetStaminaNormalized() const;
 
+	// 26.10.30 추가 - 에스트 남은 횟수 / 최대 횟수 (HUD 표시용)
+	UFUNCTION(BlueprintCallable, Category = "Lee|Health")
+	float GetEstusCharges() const;
+
+	UFUNCTION(BlueprintCallable, Category = "Lee|Health")
+	float GetMaxEstusCharges() const;
+
 	UFUNCTION(BlueprintCallable, Category = "Lee|Health")
 	ELeeDeathState GetDeathState() const { return DeathState; }
 
@@ -103,6 +110,10 @@ public:
 	UPROPERTY(BlueprintAssignable)
 	FLeeHealth_AttributeChanged OnMaxStaminaChanged;
 
+	// 26.10.30 추가 - 에스트 횟수가 바뀌었을 때 (마시기 / 휴식 / 부활). HUD 위젯이 바인딩
+	UPROPERTY(BlueprintAssignable)
+	FLeeHealth_AttributeChanged OnEstusChargesChanged;
+
 	// Delegate fired when the death sequence has started.
 	UPROPERTY(BlueprintAssignable)
 	FLeeHealth_DeathEvent OnDeathStarted;
@@ -121,6 +132,7 @@ protected:
 	virtual void HandleMaxHealthChanged(AActor* DamageInstigator, AActor* DamageCauser, const FGameplayEffectSpec* DamageEffectSpec, float DamageMagnitude, float OldValue, float NewValue);
 	virtual void HandleStaminaChanged(AActor* DamageInstigator, AActor* DamageCauser, const FGameplayEffectSpec* DamageEffectSpec, float DamageMagnitude, float OldValue, float NewValue);
 	virtual void HandleMaxStaminaChanged(AActor* DamageInstigator, AActor* DamageCauser, const FGameplayEffectSpec* DamageEffectSpec, float DamageMagnitude, float OldValue, float NewValue);
+	virtual void HandleEstusChargesChanged(AActor* DamageInstigator, AActor* DamageCauser, const FGameplayEffectSpec* DamageEffectSpec, float DamageMagnitude, float OldValue, float NewValue);
 	virtual void HandleOutOfHealth(AActor* DamageInstigator, AActor* DamageCauser, const FGameplayEffectSpec* DamageEffectSpec, float DamageMagnitude, float OldValue, float NewValue);
 	
 protected:

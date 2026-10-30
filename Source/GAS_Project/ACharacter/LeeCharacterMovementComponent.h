@@ -63,4 +63,8 @@ protected:
 
 	UPROPERTY(Transient)
 	bool bHasReplicatedAcceleration = false;
+
+	// 26.10.30 추가 - 에스트 마시는 중(Status.Estus.Drinking) 최대 속도 배수
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Lee|Estus", meta = (ClampMin = "0.0", ClampMax = "1.0"))
+	float EstusMoveSpeedMultiplier = 0.3f;
 };

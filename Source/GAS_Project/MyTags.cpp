@@ -95,6 +95,8 @@ namespace MyTags
 		UE_DEFINE_GAMEPLAY_TAG(InputTag_TargetLock,"InputTag.TargetLock")
 		UE_DEFINE_GAMEPLAY_TAG(InputTag_TargetLock_SwitchLeft,"InputTag.TargetLock.SwitchLeft")
 		UE_DEFINE_GAMEPLAY_TAG(InputTag_TargetLock_SwitchRight,"InputTag.TargetLock.SwitchRight")
+		// 26.10.30 추가 - 에스트 입력 태그
+		UE_DEFINE_GAMEPLAY_TAG(InputTag_Estus,"InputTag.Estus")
 
 		// ----- 어빌리티 식별 태그 (AbilityTags / CancelAbilities 매칭용) -----
 		// 약공격/강공격 어빌리티 식별 태그 (각 BP의 AbilityTags에서 사용)
@@ -110,6 +112,7 @@ namespace MyTags
 		UE_DEFINE_GAMEPLAY_TAG(Ability_Assassination, "Souls.Abilities.Assassination")
 		UE_DEFINE_GAMEPLAY_TAG(Ability_AssassinationVictim, "Souls.Abilities.AssassinationVictim")
 		UE_DEFINE_GAMEPLAY_TAG(Ability_TargetLock, "Souls.Abilities.TargetLock")
+		UE_DEFINE_GAMEPLAY_TAG(Ability_Estus, "Souls.Abilities.Estus")
 		UE_DEFINE_GAMEPLAY_TAG(Ability_Type_Action_BowAim, "Souls.Ability.Type.Action.BowAim")
 		UE_DEFINE_GAMEPLAY_TAG(Ability_Type_Action_BowFire, "Souls.Ability.Type_Action.BowFire")
 		UE_DEFINE_GAMEPLAY_TAG(Ability_Behavior_SurvivesDeath, "Souls.Ability.Behavior.SurvivesDeath")
@@ -133,6 +136,8 @@ namespace MyTags
 		UE_DEFINE_GAMEPLAY_TAG(Status_Guard_Active, "Souls.Status.Guard.Active")
 		UE_DEFINE_GAMEPLAY_TAG(Status_Guard_Perfect, "Souls.Status.Guard.Perfect")
 		UE_DEFINE_GAMEPLAY_TAG(Status_Dodge_Active, "Souls.Status.Dodge.Active")
+		// 26.10.30 추가 - 에스트 마시는 중
+		UE_DEFINE_GAMEPLAY_TAG(Status_Estus_Drinking, "Souls.Status.Estus.Drinking")
 		UE_DEFINE_GAMEPLAY_TAG(Status_Dodge_Perfect, "Souls.Status.Dodge.Perfect")
 		UE_DEFINE_GAMEPLAY_TAG(Status_CounterWindow, "Souls.Status.CounterWindow")
 		UE_DEFINE_GAMEPLAY_TAG(Status_Stamina_RegenBlocked, "Souls.Status.Stamina.RegenBlocked")
@@ -184,6 +189,8 @@ namespace MyTags
 		UE_DEFINE_GAMEPLAY_TAG(Event_Combat_GuardBreak, "Souls.Events.Combat.GuardBreak")
 		UE_DEFINE_GAMEPLAY_TAG(Event_Combat_PostureBreak, "Souls.Events.Combat.PostureBreak")
 		UE_DEFINE_GAMEPLAY_TAG(Event_Combat_Knockback, "Souls.Events.Combat.Knockback")
+		// 26.10.30 추가 - 에스트 회복 시점 이벤트 (AnimNotify → GA_DrinkEstus)
+		UE_DEFINE_GAMEPLAY_TAG(Event_Estus_Heal, "Souls.Events.Estus.Heal")
 
 		// ----- 이벤트 - 처형/암살 (피니셔) -----
 		UE_DEFINE_GAMEPLAY_TAG(Event_Execution_Start, "Souls.Events.Execution.Start")

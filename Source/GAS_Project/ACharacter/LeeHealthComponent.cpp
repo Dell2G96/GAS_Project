@@ -69,10 +69,13 @@ void ULeeHealthComponent::InitializeWithAbilitySystem(class ULeeAbilitySystemCom
 	HealthSet->OnMaxStaminaChanged.AddUObject(this, &ThisClass::HandleMaxStaminaChanged);
 	HealthSet->OnStaminaChanged.AddUObject(this, &ThisClass::HandleStaminaChanged);
 	HealthSet->OnOutOfHealth.AddUObject(this, &ThisClass::HandleOutOfHealth);
+	HealthSet->OnEstusChargesChanged.AddUObject(this, &ThisClass::HandleEstusChargesChanged);
 
 
 	AbilitySystemComponent->SetNumericAttributeBase(ULeeSoulsStatSet::GetHealthAttribute(), HealthSet->GetMaxHealth());
 	AbilitySystemComponent->SetNumericAttributeBase(ULeeSoulsStatSet::GetStaminaAttribute(), HealthSet->GetMaxStamina());
+	// 26.10.30 추가 - 부활(새 Pawn 초기화) 시 에스트도 최대 횟수로 충전
+	AbilitySystemComponent->SetNumericAttributeBase(ULeeSoulsStatSet::GetEstusChargesAttribute(), HealthSet->GetMaxEstusCharges());
 
 	ClearGameplayTags();
 
@@ -80,6 +83,7 @@ void ULeeHealthComponent::InitializeWithAbilitySystem(class ULeeAbilitySystemCom
 	OnMaxHealthChanged.Broadcast(this, HealthSet->GetMaxHealth(), HealthSet->GetMaxHealth(), nullptr);
 	OnStaminaChanged.Broadcast(this, HealthSet->GetStamina(), HealthSet->GetStamina(), nullptr);
 	OnMaxStaminaChanged.Broadcast(this, HealthSet->GetMaxStamina(), HealthSet->GetMaxStamina(), nullptr);
+	OnEstusChargesChanged.Broadcast(this, HealthSet->GetEstusCharges(), HealthSet->GetEstusCharges(), nullptr);
 }
 
 
@@ -94,6 +98,7 @@ void ULeeHealthComponent::UninitializeFromAbilitySystem()
 		HealthSet->OnStaminaChanged.RemoveAll(this);
 		HealthSet->OnMaxStaminaChanged.RemoveAll(this);
 		HealthSet->OnOutOfHealth.RemoveAll(this);
+		HealthSet->OnEstusChargesChanged.RemoveAll(this);
 	}
 
 	HealthSet = nullptr;
@@ -156,7 +161,24 @@ float ULeeHealthComponent::GetStaminaNormalized() const
 	return 0.0f;
 }
 
+// 에스트 남은 횟수 반환 (스탯셋이 없으면 0)
+float ULeeHealthComponent::GetEstusCharges() const
+{
+	return (HealthSet ? HealthSet->GetEstusCharges() : 0.0f);
+}
 
+// 에스트 최대 횟수 반환 (스탯셋이 없으면 0)
+float ULeeHealthComponent::GetMaxEstusCharges() const
+{
+	return (HealthSet ? HealthSet->GetMaxEstusCharges() : 0.0f);
+}
+
+// 스탯셋의 에스트 횟수 변경을 BP 델리게이트로 전달 (HUD 갱신용)
+void ULeeHealthComponent::HandleEstusChargesChanged(AActor* DamageInstigator, AActor* DamageCauser,
+	const FGameplayEffectSpec* DamageEffectSpec, float DamageMagnitude, float OldValue, float NewValue)
+{
+	OnEstusChargesChanged.Broadcast(this, OldValue, NewValue, DamageInstigator);
+}
 
 
 void ULeeHealthComponent::HandleHealthChanged(AActor* DamageInstigator, AActor* DamageCauser,

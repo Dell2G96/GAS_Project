@@ -22,6 +22,9 @@ public:
 	ATTRIBUTE_ACCESSORS(ULeeSoulsStatSet, MaxHealth);
 	ATTRIBUTE_ACCESSORS(ULeeSoulsStatSet, Stamina);
 	ATTRIBUTE_ACCESSORS(ULeeSoulsStatSet, MaxStamina);
+	ATTRIBUTE_ACCESSORS(ULeeSoulsStatSet, EstusCharges);
+	ATTRIBUTE_ACCESSORS(ULeeSoulsStatSet, MaxEstusCharges);
+	ATTRIBUTE_ACCESSORS(ULeeSoulsStatSet, EstusHealAmount);
 
 
 
@@ -40,10 +43,24 @@ public:
 	UPROPERTY(BlueprintReadOnly, Category = "Lee|SoulsStats")
 	FGameplayAttributeData MaxStamina;
 
+	// 26.10.30 추가 - 에스트 남은 횟수 (GA_DrinkEstus의 Cost GE가 1씩 소모, 휴식/부활 시 Max로 충전)
+	UPROPERTY(BlueprintReadOnly, Category = "Lee|SoulsStats")
+	FGameplayAttributeData EstusCharges;
+
+	// 26.10.30 추가 - 에스트 최대 횟수 (기본 3)
+	UPROPERTY(BlueprintReadOnly, Category = "Lee|SoulsStats")
+	FGameplayAttributeData MaxEstusCharges;
+
+	// 26.10.30 추가 - 에스트 1회 회복량 (고정값, 기본 40). 병 강화 시 GE로 이 값을 올린다
+	UPROPERTY(BlueprintReadOnly, Category = "Lee|SoulsStats")
+	FGameplayAttributeData EstusHealAmount;
+
 	mutable FLeeAttributeEvent OnHealthChanged;
 	mutable FLeeAttributeEvent OnStaminaChanged;
 	mutable FLeeAttributeEvent OnMaxHealthChanged;
 	mutable FLeeAttributeEvent OnMaxStaminaChanged;
+	// 26.10.30 추가 - 에스트 횟수 변경 (HUD 표시용)
+	mutable FLeeAttributeEvent OnEstusChargesChanged;
 	
 	// Delegate to broadcast when the health attribute reaches zero
 	mutable FLeeAttributeEvent OnOutOfHealth;
@@ -70,6 +87,9 @@ public:
 	// 변경 전에 스태미나를 저장
 	float MaxStaminaBeforeAttributeChange;
 	float StaminaBeforeAttributeChange;
+
+	// 변경 전에 에스트 횟수를 저장
+	float EstusChargesBeforeAttributeChange;
 
 protected:
 	virtual bool PreGameplayEffectExecute(FGameplayEffectModCallbackData& Data) override;

@@ -84,6 +84,8 @@ namespace MyTags
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(InputTag_TargetLock)
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(InputTag_TargetLock_SwitchLeft)
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(InputTag_TargetLock_SwitchRight)
+		// 26.10.30 추가 - 에스트(회복약) 마시기 입력 — InputConfig에서 IA_SelfHeal과 연결
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(InputTag_Estus)
 
 		// ----- 어빌리티 식별 태그 (AbilityTags / CancelAbilities 매칭용) -----
 		// 약공격 어빌리티 식별 태그 — 약공격 BP의 AbilityTags에서 사용
@@ -103,6 +105,8 @@ namespace MyTags
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Ability_AssassinationVictim);
 		// 타겟 락온 — 어빌리티 식별 태그, 상태 태그(레거시 MyTags::Status::TargetLock과 별개 네임스페이스), UI 메시지 채널
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Ability_TargetLock);
+		// 26.10.30 추가 - 에스트 마시기 어빌리티 식별 태그
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Ability_Estus);
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Ability_Type_Action_BowAim)
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Ability_Type_Action_BowFire)
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Ability_Behavior_SurvivesDeath)
@@ -130,6 +134,8 @@ namespace MyTags
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Status_CounterWindow);
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Status_Stamina_RegenBlocked);
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Status_Invincible);
+		// 26.10.30 추가 - 에스트 마시는 중 (ActivationOwnedTags, 이동 감속 판정)
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Status_Estus_Drinking);
 
 		// ----- 상태 - 처형/암살 (피니셔) -----
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Status_Groggy);
@@ -179,6 +185,10 @@ namespace MyTags
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Event_Combat_PostureBreak);
 		// 26.10.29 추가 - 넉백 이벤트 (공격 어빌리티 → 피해자 ULeeGameplayAbility_Knockback)
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Event_Combat_Knockback);
+
+		// ----- 이벤트 - 에스트 -----
+		// 26.10.30 추가 - 회복 시점 — 에스트 몽타주의 AnimNotify가 발사, GA_DrinkEstus가 수신해 회복 GE 적용
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Event_Estus_Heal);
 
 		// ----- 이벤트 - 처형/암살 (피니셔) -----
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Event_Execution_Start);
