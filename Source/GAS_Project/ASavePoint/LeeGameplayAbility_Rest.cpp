@@ -45,8 +45,9 @@ void ULeeGameplayAbility_Rest::ActivateAbility(const FGameplayAbilitySpecHandle 
 	Super::ActivateAbility(Handle, ActorInfo, ActivationInfo, TriggerEventData);
 
 	// 상호작용 이벤트: Instigator = 플레이어 Pawn, Target = 세이브 포인트
+	// (26.10.30 수정 - 점화 상태를 바꿔야 해서 const를 뗀다. 이벤트 데이터의 Target이 const AActor라서 필요)
 	const APawn* PlayerPawn = TriggerEventData ? Cast<APawn>(TriggerEventData->Instigator.Get()) : nullptr;
-	const ALeeSavePointActor* SavePoint = TriggerEventData ? Cast<ALeeSavePointActor>(TriggerEventData->Target.Get()) : nullptr;
+	ALeeSavePointActor* SavePoint = TriggerEventData ? const_cast<ALeeSavePointActor*>(Cast<ALeeSavePointActor>(TriggerEventData->Target.Get())) : nullptr;
 	UAbilitySystemComponent* AbilitySystem = GetAbilitySystemComponentFromActorInfo();
 
 	if (!PlayerPawn || !SavePoint || !AbilitySystem || !CommitAbility(Handle, ActorInfo, ActivationInfo))
@@ -70,6 +71,9 @@ void ULeeGameplayAbility_Rest::ActivateAbility(const FGameplayAbilitySpecHandle 
 	{
 		AbilitySystem->RemoveActiveEffectsWithGrantedTags(EffectTagsToRemoveOnRest);
 	}
+
+	// 26.10.30 추가 - 처음 휴식이면 점화 (촛불 켜짐). 회복/리셋은 일반 휴식과 동일하게 적용
+	SavePoint->Ignite();
 
 	// 3. 다음 부활 위치로 쓸 세이브 포인트 기록 (PlayerState는 부활해도 유지된다)
 	if (ALeePlayerState* LeePlayerState = PlayerPawn->GetPlayerState<ALeePlayerState>())

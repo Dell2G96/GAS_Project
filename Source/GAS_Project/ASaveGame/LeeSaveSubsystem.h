@@ -24,13 +24,16 @@ public:
 	// 저장된 마지막 휴식 세이브 포인트 ID (다른 맵의 기록이면 None)
 	FName GetLastRestedSavePointId(const UWorld* World) const;
 
+	// 이 세이브 포인트가 점화된 적이 있는지 (다른 맵의 기록이면 false)
+	bool IsSavePointLit(const UWorld* World, FName SavePointId) const;
+
 	// 이 스폰 지점의 몹이 처치되어 다시 생성되면 안 되는지 (다른 맵의 기록이면 false)
 	bool IsSpawnPointDefeated(const UWorld* World, FName SpawnPointId) const;
 
 	// 게임 시작 후 첫 스폰에만 저장된 에스트 횟수를 돌려준다 (이후 호출이나 저장값이 없으면 false)
 	bool ConsumeSavedEstusCharges(float& OutEstusCharges);
 
-	// 휴식 기록 후 디스크에 저장
+	// 휴식 기록(마지막 휴식 지점 + 점화 목록) 후 디스크에 저장
 	void RecordRest(const UWorld* World, FName SavePointId);
 
 	// 정예 몹 처치 기록 후 디스크에 저장

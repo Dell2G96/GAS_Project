@@ -44,6 +44,12 @@ FName ULeeSaveSubsystem::GetLastRestedSavePointId(const UWorld* World) const
 	return IsSameMap(World) ? SaveGame->LastRestedSavePointId : NAME_None;
 }
 
+// 같은 맵의 기록이고 점화 목록에 있으면 true
+bool ULeeSaveSubsystem::IsSavePointLit(const UWorld* World, FName SavePointId) const
+{
+	return IsSameMap(World) && !SavePointId.IsNone() && SaveGame->LitSavePointIds.Contains(SavePointId);
+}
+
 // 같은 맵의 기록이고 처치 목록에 있으면 true
 bool ULeeSaveSubsystem::IsSpawnPointDefeated(const UWorld* World, FName SpawnPointId) const
 {
@@ -63,11 +69,12 @@ bool ULeeSaveSubsystem::ConsumeSavedEstusCharges(float& OutEstusCharges)
 	return true;
 }
 
-// 마지막 휴식 세이브 포인트를 기록하고 바로 저장한다
+// 마지막 휴식 세이브 포인트와 점화 목록을 기록하고 바로 저장한다 (휴식한 곳은 항상 점화된 상태)
 void ULeeSaveSubsystem::RecordRest(const UWorld* World, FName SavePointId)
 {
 	PrepareWorldState(World);
 	SaveGame->LastRestedSavePointId = SavePointId;
+	SaveGame->LitSavePointIds.Add(SavePointId);
 	SaveToDisk();
 }
 
@@ -118,5 +125,6 @@ void ULeeSaveSubsystem::PrepareWorldState(const UWorld* World)
 
 	SaveGame->SavedMapName = UGameplayStatics::GetCurrentLevelName(World, true);
 	SaveGame->LastRestedSavePointId = NAME_None;
+	SaveGame->LitSavePointIds.Empty();
 	SaveGame->DefeatedSpawnPointIds.Empty();
 }
