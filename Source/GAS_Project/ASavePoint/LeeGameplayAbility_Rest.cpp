@@ -12,6 +12,7 @@
 #include "GAS_Project/MyTags.h"
 #include "GAS_Project/AAI/LeeTargetSelectionComponent.h"
 #include "GAS_Project/APlayer/LeePlayerState.h"
+#include "GAS_Project/ASaveGame/LeeSaveSubsystem.h"
 
 // 서버 전용 + 상호작용 활성화 이벤트(Ability.Interaction.Activate)로 트리거
 ULeeGameplayAbility_Rest::ULeeGameplayAbility_Rest(const FObjectInitializer& ObjectInitializer)
@@ -74,6 +75,15 @@ void ULeeGameplayAbility_Rest::ActivateAbility(const FGameplayAbilitySpecHandle 
 	if (ALeePlayerState* LeePlayerState = PlayerPawn->GetPlayerState<ALeePlayerState>())
 	{
 		LeePlayerState->SetLastRestedSavePointId(SavePoint->GetSavePointId());
+	}
+
+	// 26.10.30 추가 - 로컬 플레이어면 휴식 세이브 포인트를 디스크에 저장 (자기 PC의 자기 진행만 저장)
+	if (PlayerPawn->IsLocallyControlled())
+	{
+		if (ULeeSaveSubsystem* SaveSubsystem = GetWorld()->GetGameInstance()->GetSubsystem<ULeeSaveSubsystem>())
+		{
+			SaveSubsystem->RecordRest(GetWorld(), SavePoint->GetSavePointId());
+		}
 	}
 
 	// 4. 모든 Enemy를 처음 자리로 리셋

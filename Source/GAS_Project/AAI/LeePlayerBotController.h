@@ -33,19 +33,20 @@ public:
 
 	virtual void OnUnPossess() override;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=BotIdentifier)
-	int32 BotIdentifier;
-
-	// 26.10.29 추가 - 처음 스폰된 PlayerStart. 리셋(휴식/사망) 후 재시작 시 항상 이 자리에서 다시 생성된다
-	// (레거시: 기존 몹별 스포너(ULeeBotCreationComponent)로 생성된 봇만 사용. 새 방식은 HomeSpawnPoint)
-	UPROPERTY(Transient)
-	TWeakObjectPtr<class ALeePlayerStart> HomePlayerStart;
+	// 26.10.30 사용 안함 - 레거시 봇 스포너(BotIdentifier → EnemyPawnClasses/PlayerStart 태그) 방식. EnemyPawnData + HomeSpawnPoint로 교체됨
+	// UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=BotIdentifier)
+	// int32 BotIdentifier;
+	//
+	// // 26.10.29 추가 - 처음 스폰된 PlayerStart. 리셋(휴식/사망) 후 재시작 시 항상 이 자리에서 다시 생성된다
+	// // (레거시: 기존 몹별 스포너(ULeeBotCreationComponent)로 생성된 봇만 사용. 새 방식은 HomeSpawnPoint)
+	// UPROPERTY(Transient)
+	// TWeakObjectPtr<class ALeePlayerStart> HomePlayerStart;
 
 	// 26.10.29 추가 - 이 봇을 생성한 스폰 지점. 처음 스폰과 리셋 후 재시작 모두 이 자리에서 생성된다
 	UPROPERTY(Transient)
 	TWeakObjectPtr<class ALeeEnemySpawnPoint> HomeSpawnPoint;
 
-	// 26.10.29 추가 - 이 Controller가 조종할 몹의 PawnData (메시·어빌리티). 비어 있으면 레거시 Experience EnemyPawnClasses[BotIdentifier] 사용
+	// 26.10.29 추가 - 이 Controller가 조종할 몹의 PawnData (메시·어빌리티). 비어 있으면 Experience의 DefaultPawnData 사용
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Lee|Enemy")
 	TObjectPtr<const class ULeePawnData> EnemyPawnData;
 

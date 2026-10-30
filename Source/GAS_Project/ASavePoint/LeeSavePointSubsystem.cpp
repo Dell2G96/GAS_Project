@@ -10,6 +10,7 @@
 #include "GAS_Project/LeeLogChannels.h"
 #include "GAS_Project/MyTags.h"
 #include "GAS_Project/AAI/LeePlayerBotController.h"
+#include "GAS_Project/AAI/LeeEnemySpawnSubsystem.h"
 #include "GAS_Project/ACharacter/LeeCharacter.h"
 #include "GAS_Project/ACharacter/LeeHealthComponent.h"
 #include "GAS_Project/AMessage/LeeVerbMessage.h"
@@ -156,7 +157,7 @@ void ULeeSavePointSubsystem::RespawnPlayer(APlayerController* PlayerController)
 	GameMode->RequestPlayerRestartNextFrame(PlayerController, false);
 }
 
-// 모든 봇의 Pawn을 정리하고 다음 프레임에 재시작한다. 봇은 HomeSpawnPoint(스폰 지점) 또는 HomePlayerStart(레거시, 처음 자리)에서 다시 생성된다
+// 모든 봇의 Pawn을 정리하고 다음 프레임에 재시작한다. 봇은 HomeSpawnPoint(스폰 지점)에서 다시 생성된다 (처치된 정예 몹은 제외)
 void ULeeSavePointSubsystem::ResetEnemies()
 {
 	UWorld* World = GetWorld();
@@ -166,10 +167,20 @@ void ULeeSavePointSubsystem::ResetEnemies()
 		return;
 	}
 
+	const ULeeEnemySpawnSubsystem* EnemySpawnSubsystem = World->GetSubsystem<ULeeEnemySpawnSubsystem>();
+
 	for (TActorIterator<ALeePlayerBotController> It(World); It; ++It)
 	{
 		ALeePlayerBotController* BotController = *It;
 		DestroyPawnForReset(BotController->GetPawn());
+
+		// 26.10.30 추가 - 처치된 정예 몹은 다시 생성하지 않고 Controller도 정리한다
+		if (EnemySpawnSubsystem && EnemySpawnSubsystem->IsSpawnPointDefeated(BotController->HomeSpawnPoint.Get()))
+		{
+			BotController->Destroy();
+			continue;
+		}
+
 		GameMode->RequestPlayerRestartNextFrame(BotController, false);
 	}
 }

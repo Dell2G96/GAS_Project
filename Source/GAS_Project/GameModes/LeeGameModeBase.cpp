@@ -377,14 +377,15 @@ const class ULeePawnData* ALeeGameModeBase::GetPawnDataForController(const ACont
 				return BotController->EnemyPawnData;
 			}
 
-			// 레거시: Experience의 EnemyPawnClasses[BotIdentifier] (26.10.29 수정 - 키가 없을 때 크래시 나지 않도록 Find 사용)
-			if (const TObjectPtr<const ULeePawnData>* LeeEnemyPawnData = Experience->EnemyPawnClasses.Find(BotController->BotIdentifier))
-			{
-				if (*LeeEnemyPawnData != nullptr)
-				{
-					return *LeeEnemyPawnData;
-				}
-			}
+			// 26.10.30 사용 안함 - 레거시 봇 스포너 방식. Controller BP의 EnemyPawnData로 교체됨
+			// // 레거시: Experience의 EnemyPawnClasses[BotIdentifier] (26.10.29 수정 - 키가 없을 때 크래시 나지 않도록 Find 사용)
+			// if (const TObjectPtr<const ULeePawnData>* LeeEnemyPawnData = Experience->EnemyPawnClasses.Find(BotController->BotIdentifier))
+			// {
+			// 	if (*LeeEnemyPawnData != nullptr)
+			// 	{
+			// 		return *LeeEnemyPawnData;
+			// 	}
+			// }
 		}
 		
 		if (Experience->DefaultPawnData)

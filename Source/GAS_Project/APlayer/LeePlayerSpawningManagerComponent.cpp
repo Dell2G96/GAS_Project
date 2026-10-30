@@ -12,6 +12,7 @@
 #include "GAS_Project/AAI/LeePlayerBotController.h"
 #include "GAS_Project/ASavePoint/LeeSavePointActor.h"
 #include "GAS_Project/ASavePoint/LeeSavePointSubsystem.h"
+#include "GAS_Project/ASaveGame/LeeSaveSubsystem.h"
 #include "LeePlayerState.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogPlayerSpawning, Log, All);
@@ -84,11 +85,12 @@ AActor* ULeePlayerSpawningManagerComponent::ChoosePlayerStart(AController* Playe
 				return SpawnPoint;
 			}
 
-			if (ALeePlayerStart* HomeStart = BotController->HomePlayerStart.Get())
-			{
-				HomeStart->TryClaim(Player);
-				return HomeStart;
-			}
+			// 26.10.30 사용 안함 - 레거시 봇 스포너 방식(처음 배정된 PlayerStart 기억). 스폰 지점 방식으로 교체됨
+			// if (ALeePlayerStart* HomeStart = BotController->HomePlayerStart.Get())
+			// {
+			// 	HomeStart->TryClaim(Player);
+			// 	return HomeStart;
+			// }
 		}
 
 		// 26.10.29 추가 - 세이브 포인트에서 휴식한 플레이어는 그 세이브 포인트의 부활 지점에서 재시작 (Play From Here보다 우선)
@@ -148,11 +150,12 @@ AActor* ULeePlayerSpawningManagerComponent::ChoosePlayerStart(AController* Playe
 		{
 			LeeStart->TryClaim(Player);
 
-			// 26.10.29 추가 - 봇의 첫 스폰 자리를 기억해 둔다 (몹마다 자기 자리 고정)
-			if (BotController)
-			{
-				BotController->HomePlayerStart = LeeStart;
-			}
+			// 26.10.30 사용 안함 - 레거시 봇 스포너 방식(봇의 첫 스폰 자리 기억). 스폰 지점 방식으로 교체됨
+			// // 26.10.29 추가 - 봇의 첫 스폰 자리를 기억해 둔다 (몹마다 자기 자리 고정)
+			// if (BotController)
+			// {
+			// 	BotController->HomePlayerStart = LeeStart;
+			// }
 		}
 		return PlayerStart;
 	}
@@ -163,8 +166,23 @@ AActor* ULeePlayerSpawningManagerComponent::ChoosePlayerStart(AController* Playe
 // 플레이어가 마지막으로 휴식한 세이브 포인트의 부활 PlayerStart를 찾는다 (휴식 기록이 없거나 지정 안 됐으면 nullptr)
 ALeePlayerStart* ULeePlayerSpawningManagerComponent::FindRestedSavePointStart(AController* Player) const
 {
-	const ALeePlayerState* LeePlayerState = Player ? Player->GetPlayerState<ALeePlayerState>() : nullptr;
-	if (!LeePlayerState || LeePlayerState->GetLastRestedSavePointId().IsNone())
+	ALeePlayerState* LeePlayerState = Player ? Player->GetPlayerState<ALeePlayerState>() : nullptr;
+	if (!LeePlayerState)
+	{
+		return nullptr;
+	}
+
+	// 26.10.30 추가 - 이번 실행에서 휴식한 적이 없는 로컬 플레이어는 세이브에 저장된 세이브 포인트를 가져온다 (같은 맵일 때만)
+	const APlayerController* PlayerController = Cast<APlayerController>(Player);
+	if (LeePlayerState->GetLastRestedSavePointId().IsNone() && PlayerController && PlayerController->IsLocalController())
+	{
+		if (const ULeeSaveSubsystem* SaveSubsystem = GetWorld()->GetGameInstance()->GetSubsystem<ULeeSaveSubsystem>())
+		{
+			LeePlayerState->SetLastRestedSavePointId(SaveSubsystem->GetLastRestedSavePointId(GetWorld()));
+		}
+	}
+
+	if (LeePlayerState->GetLastRestedSavePointId().IsNone())
 	{
 		return nullptr;
 	}

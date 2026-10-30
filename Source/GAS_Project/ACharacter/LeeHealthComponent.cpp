@@ -17,6 +17,7 @@
 #include "GAS_Project/System/LeeGameData.h"
 #include "GameFramework/PlayerState.h"
 #include "GAS_Project/_Souls/Abilities/LeeSoulsStatSet.h"
+#include "GAS_Project/ASaveGame/LeeSaveSubsystem.h"
 
 ULeeHealthComponent::ULeeHealthComponent(const FObjectInitializer& ObjectInitializer)
 	:Super(ObjectInitializer)
@@ -75,7 +76,18 @@ void ULeeHealthComponent::InitializeWithAbilitySystem(class ULeeAbilitySystemCom
 	AbilitySystemComponent->SetNumericAttributeBase(ULeeSoulsStatSet::GetHealthAttribute(), HealthSet->GetMaxHealth());
 	AbilitySystemComponent->SetNumericAttributeBase(ULeeSoulsStatSet::GetStaminaAttribute(), HealthSet->GetMaxStamina());
 	// 26.10.30 추가 - 부활(새 Pawn 초기화) 시 에스트도 최대 횟수로 충전
-	AbilitySystemComponent->SetNumericAttributeBase(ULeeSoulsStatSet::GetEstusChargesAttribute(), HealthSet->GetMaxEstusCharges());
+	// 26.10.30 수정 - 게임 시작 후 첫 스폰만 세이브에 저장된 횟수 사용, 시작 값은 세이브 캐시에도 기록
+	float StartEstusCharges = HealthSet->GetMaxEstusCharges();
+	ULeeSaveSubsystem* SaveSubsystem = GetSaveSubsystemForLocalPlayer();
+	if (SaveSubsystem && SaveSubsystem->ConsumeSavedEstusCharges(StartEstusCharges))
+	{
+		StartEstusCharges = FMath::Clamp(StartEstusCharges, 0.0f, HealthSet->GetMaxEstusCharges());
+	}
+	AbilitySystemComponent->SetNumericAttributeBase(ULeeSoulsStatSet::GetEstusChargesAttribute(), StartEstusCharges);
+	if (SaveSubsystem)
+	{
+		SaveSubsystem->UpdateEstusCharges(StartEstusCharges);
+	}
 
 	ClearGameplayTags();
 
@@ -178,6 +190,25 @@ void ULeeHealthComponent::HandleEstusChargesChanged(AActor* DamageInstigator, AA
 	const FGameplayEffectSpec* DamageEffectSpec, float DamageMagnitude, float OldValue, float NewValue)
 {
 	OnEstusChargesChanged.Broadcast(this, OldValue, NewValue, DamageInstigator);
+
+	// 26.10.30 추가 - 플레이어의 에스트 횟수를 세이브 캐시에 기록 (게임 종료 시 저장)
+	if (ULeeSaveSubsystem* SaveSubsystem = GetSaveSubsystemForLocalPlayer())
+	{
+		SaveSubsystem->UpdateEstusCharges(NewValue);
+	}
+}
+
+// 서버(Standalone/Listen 호스트)에서 로컬 플레이어가 조종하는 Pawn일 때만 세이브 Subsystem을 돌려준다
+ULeeSaveSubsystem* ULeeHealthComponent::GetSaveSubsystemForLocalPlayer() const
+{
+	const APawn* Pawn = Cast<APawn>(GetOwner());
+	if (!Pawn || !Pawn->HasAuthority() || !Pawn->IsPlayerControlled() || !Pawn->IsLocallyControlled())
+	{
+		return nullptr;
+	}
+
+	const UGameInstance* GameInstance = Pawn->GetGameInstance();
+	return GameInstance ? GameInstance->GetSubsystem<ULeeSaveSubsystem>() : nullptr;
 }
 
 

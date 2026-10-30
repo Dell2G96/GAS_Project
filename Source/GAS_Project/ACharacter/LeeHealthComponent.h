@@ -134,7 +134,10 @@ protected:
 	virtual void HandleMaxStaminaChanged(AActor* DamageInstigator, AActor* DamageCauser, const FGameplayEffectSpec* DamageEffectSpec, float DamageMagnitude, float OldValue, float NewValue);
 	virtual void HandleEstusChargesChanged(AActor* DamageInstigator, AActor* DamageCauser, const FGameplayEffectSpec* DamageEffectSpec, float DamageMagnitude, float OldValue, float NewValue);
 	virtual void HandleOutOfHealth(AActor* DamageInstigator, AActor* DamageCauser, const FGameplayEffectSpec* DamageEffectSpec, float DamageMagnitude, float OldValue, float NewValue);
-	
+
+	// 26.10.30 추가 - 이 Pawn이 서버의 로컬 플레이어일 때만 세이브 Subsystem 반환 (자기 PC의 자기 진행만 저장, 몹/원격 플레이어는 nullptr)
+	class ULeeSaveSubsystem* GetSaveSubsystemForLocalPlayer() const;
+
 protected:
 	
 	UPROPERTY()

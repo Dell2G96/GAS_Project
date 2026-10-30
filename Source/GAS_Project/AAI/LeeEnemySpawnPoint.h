@@ -22,8 +22,18 @@ public:
 
 	TSubclassOf<ALeePlayerBotController> GetBotControllerClass() const { return BotControllerClass; }
 	const FText& GetDisplayNameOverride() const { return DisplayNameOverride; }
+	FName GetSpawnPointId() const { return SpawnPointId; }
+	bool ShouldRespawnOnReset() const { return bRespawnOnReset; }
 
 protected:
+	// 26.10.30 추가 - 스폰 지점 고유 ID (레벨 안에서 겹치면 안 됨). 세이브에서 "처치한 정예 몹" 기록에 사용
+	UPROPERTY(EditInstanceOnly, BlueprintReadOnly, Category = "Lee|EnemySpawn")
+	FName SpawnPointId;
+
+	// 26.10.30 추가 - false면 정예 몹: 한 번 처치하면 휴식/사망 리셋 후에도 다시 생성되지 않는다 (SpawnPointId 필수)
+	UPROPERTY(EditInstanceOnly, BlueprintReadOnly, Category = "Lee|EnemySpawn")
+	bool bRespawnOnReset = true;
+
 	// 생성할 몹의 AI Controller BP (몹의 PawnData는 Controller BP의 EnemyPawnData에서 정함)
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Lee|EnemySpawn")
 	TSubclassOf<ALeePlayerBotController> BotControllerClass;
