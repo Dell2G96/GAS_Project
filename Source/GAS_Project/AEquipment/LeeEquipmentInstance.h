@@ -19,6 +19,9 @@ class GAS_PROJECT_API ULeeEquipmentInstance : public UObject
 public:
 	ULeeEquipmentInstance(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
+	// 26.11.01 추가 - 서브오브젝트로 클라이언트에 복제될 수 있도록 허용
+	virtual bool IsSupportedForNetworking() const override { return true; }
+
 	UFUNCTION(BlueprintImplementableEvent, Category= Equipment, meta=(DisplayName = "OnEquipped"))
 	void K2_OnEquipped();
 
@@ -43,10 +46,10 @@ public:
 	virtual void OnEquipped();
 	virtual void OnUnEquipped();
 
-	UPROPERTY()
+	UPROPERTY(Replicated)
 	TObjectPtr<UObject> Instigator;
 
-	UPROPERTY()
+	UPROPERTY(Replicated)
 	TArray<TObjectPtr<AActor>> SpawnedActors;
 	
 	// UPROPERTY(EditAnywhere, Category= Lee)

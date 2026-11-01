@@ -4,6 +4,7 @@
 #include "LeeEquipmentInstance.h"
 
 #include "GameFramework/Character.h"
+#include "Net/UnrealNetwork.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(LeeInventoryFragment_EquippableItem)
 
@@ -11,6 +12,15 @@ ULeeEquipmentInstance::ULeeEquipmentInstance(const FObjectInitializer& ObjectIni
 :Super(ObjectInitializer)
 
 {
+}
+
+// 복제할 프로퍼티 등록 (클라이언트 BP에서 GetInstigator / GetSpawnedActors를 쓸 수 있도록)
+void ULeeEquipmentInstance::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME(ThisClass, Instigator);
+	DOREPLIFETIME(ThisClass, SpawnedActors);
 }
 
 APawn* ULeeEquipmentInstance::GetPawn() const

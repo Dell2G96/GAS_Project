@@ -28,31 +28,31 @@ public:
 
 
 
-	UPROPERTY(BlueprintReadOnly, Category = "Lee|SoulsStats")
+	UPROPERTY(BlueprintReadOnly, ReplicatedUsing = OnRep_Health, Category = "Lee|SoulsStats")
 	FGameplayAttributeData Health;
 
 
-	UPROPERTY(BlueprintReadOnly, Category = "Lee|SoulsStats")
+	UPROPERTY(BlueprintReadOnly, ReplicatedUsing = OnRep_MaxHealth, Category = "Lee|SoulsStats")
 	FGameplayAttributeData MaxHealth;
 
 
-	UPROPERTY(BlueprintReadOnly, Category = "Lee|SoulsStats")
+	UPROPERTY(BlueprintReadOnly, ReplicatedUsing = OnRep_Stamina, Category = "Lee|SoulsStats")
 	FGameplayAttributeData Stamina;
 
 
-	UPROPERTY(BlueprintReadOnly, Category = "Lee|SoulsStats")
+	UPROPERTY(BlueprintReadOnly, ReplicatedUsing = OnRep_MaxStamina, Category = "Lee|SoulsStats")
 	FGameplayAttributeData MaxStamina;
 
 	// 26.10.30 추가 - 에스트 남은 횟수 (GA_DrinkEstus의 Cost GE가 1씩 소모, 휴식/부활 시 Max로 충전)
-	UPROPERTY(BlueprintReadOnly, Category = "Lee|SoulsStats")
+	UPROPERTY(BlueprintReadOnly, ReplicatedUsing = OnRep_EstusCharges, Category = "Lee|SoulsStats")
 	FGameplayAttributeData EstusCharges;
 
 	// 26.10.30 추가 - 에스트 최대 횟수 (기본 3)
-	UPROPERTY(BlueprintReadOnly, Category = "Lee|SoulsStats")
+	UPROPERTY(BlueprintReadOnly, ReplicatedUsing = OnRep_MaxEstusCharges, Category = "Lee|SoulsStats")
 	FGameplayAttributeData MaxEstusCharges;
 
 	// 26.10.30 추가 - 에스트 1회 회복량 (고정값, 기본 40). 병 강화 시 GE로 이 값을 올린다
-	UPROPERTY(BlueprintReadOnly, Category = "Lee|SoulsStats")
+	UPROPERTY(BlueprintReadOnly, ReplicatedUsing = OnRep_EstusHealAmount, Category = "Lee|SoulsStats")
 	FGameplayAttributeData EstusHealAmount;
 
 	mutable FLeeAttributeEvent OnHealthChanged;
@@ -92,6 +92,22 @@ public:
 	float EstusChargesBeforeAttributeChange;
 
 protected:
+	// 26.11.02 추가 - 서버 값이 클라이언트에 복제될 때 호출. ASC에 변경을 알리고 HUD용 이벤트를 브로드캐스트한다
+	UFUNCTION()
+	void OnRep_Health(const FGameplayAttributeData& OldValue);
+	UFUNCTION()
+	void OnRep_MaxHealth(const FGameplayAttributeData& OldValue);
+	UFUNCTION()
+	void OnRep_Stamina(const FGameplayAttributeData& OldValue);
+	UFUNCTION()
+	void OnRep_MaxStamina(const FGameplayAttributeData& OldValue);
+	UFUNCTION()
+	void OnRep_EstusCharges(const FGameplayAttributeData& OldValue);
+	UFUNCTION()
+	void OnRep_MaxEstusCharges(const FGameplayAttributeData& OldValue);
+	UFUNCTION()
+	void OnRep_EstusHealAmount(const FGameplayAttributeData& OldValue);
+
 	virtual bool PreGameplayEffectExecute(FGameplayEffectModCallbackData& Data) override;
 	virtual void PostGameplayEffectExecute(const FGameplayEffectModCallbackData& Data) override;
 

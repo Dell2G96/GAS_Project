@@ -17,6 +17,8 @@
 #include "GAS_Project/APlayer/LeePlayerController.h"
 #include "GAS_Project/APlayer/LeePlayerState.h"
 #include "GAS_Project/ATeam/LeeTeamCreationComponent.h"
+#include "GAS_Project/AInteraction/InteractionQuery.h"
+#include "GAS_Project/APhysics/LeeCollisionChannels.h"
 #include "GameFramework/GameStateBase.h"
 #include "Net/UnrealNetwork.h"
 
@@ -35,6 +37,8 @@ ALeeCharacter::ALeeCharacter(const FObjectInitializer& ObjectInitializer)
 	check(CapsuleComp);
 	CapsuleComp->InitCapsuleSize(40.0f, 90.0f);
 	CapsuleComp->SetCollisionProfileName(NAME_LeeCharacterCollisionProfile_Capsule);
+	// 26.11.02 추가 - 넉다운된 캐릭터를 상호작용 스캔(부활)이 찾을 수 있도록 Interaction 채널에 Overlap 응답
+	CapsuleComp->SetCollisionResponseToChannel(Lee_TraceChannel_Interaction, ECR_Overlap);
 	
 	USkeletalMeshComponent* MeshComp = GetMesh();
 	check(MeshComp);
@@ -294,7 +298,9 @@ void ALeeCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompon
 	// Pawn->InputComponent가 null이어서 InitializePlayerInput이 호출되지 못한 경우의 보완 처리
 	if (ULeeHeroComponent* HeroComp = ULeeHeroComponent::FindHeroComponent(this))
 	{
-		if (!HeroComp->GetReadyToBindInputs())
+		// 26.11.01 수정 - DataInitialized 도달 전이면 HandleChangeInitState가 처리한다
+		// (원격 클라이언트는 PlayerState보다 이 함수가 먼저 와서 InitializePlayerInput이 두 번 호출되던 문제)
+		if (!HeroComp->GetReadyToBindInputs() && HeroComp->HasReachedInitState(MyTags::InitState::DataInitialized))
 		{
 			HeroComp->InitializePlayerInput(PlayerInputComponent);
 		}
@@ -394,6 +400,30 @@ UAnimMontage* ALeeCharacter::GetRandomDeathMontage() const
 		return nullptr;
 	}
 	return DeathMontages[FMath::RandRange(0, DeathMontages.Num() - 1)];
+}
+
+// 26.11.02 추가 - 내가 넉다운 상태이고, 요청자가 서 있는 아군 캐릭터일 때만 부활 옵션을 준다
+void ALeeCharacter::GatherInteractionOptions(const FInteractionQuery& InteractQuery, FInteractionOptionBuilder& OptionBuilder)
+{
+	if (!HasMatchingGameplayTag(MyTags::Souls::Status_Downed))
+	{
+		return;
+	}
+
+	const ALeeCharacter* Requester = Cast<ALeeCharacter>(InteractQuery.RequestingAvatar.Get());
+	if (!Requester || Requester == this
+		|| Requester->HasMatchingGameplayTag(MyTags::Souls::Status_Downed)
+		|| Requester->HasMatchingGameplayTag(MyTags::Souls::Status_Death_Dying))
+	{
+		return;
+	}
+
+	if (GetTeamAttitudeTowards(*Requester) != ETeamAttitude::Friendly)
+	{
+		return;
+	}
+
+	OptionBuilder.AddInteractionOption(ReviveInteractionOption);
 }
 
 void ALeeCharacter::OnDeathStarted(AActor* OwningActor)

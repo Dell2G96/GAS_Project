@@ -9,6 +9,7 @@
 #include "GameFramework/PlayerState.h"
 #include "GAS_Project/LeeLogChannels.h"
 #include "GAS_Project/MyTags.h"
+#include "GAS_Project/GameModes/LeeBossPartySubsystem.h"
 #include "GAS_Project/AAI/LeePlayerBotController.h"
 #include "GAS_Project/AAI/LeeEnemySpawnSubsystem.h"
 #include "GAS_Project/ACharacter/LeeCharacter.h"
@@ -49,6 +50,12 @@ void ULeeSavePointSubsystem::Deinitialize()
 // 사망한 대상이 플레이어면 YOU DIED를 보내고 부활 대기 목록에 넣는다 (Enemy 사망은 무시 → 리셋 때 정리)
 void ULeeSavePointSubsystem::HandleEliminationMessage(FGameplayTag Channel, const FLeeVerbMessage& Message)
 {
+	// 26.11.02 추가 - 보스전은 개인 YOU DIED/부활 대신 관전·전멸 흐름(ULeeBossPartySubsystem)을 쓴다
+	if (ULeeBossPartySubsystem::IsBossMultiplayer(this))
+	{
+		return;
+	}
+
 	const APlayerState* DeadPlayerState = Cast<APlayerState>(Message.Target);
 	if (!DeadPlayerState)
 	{

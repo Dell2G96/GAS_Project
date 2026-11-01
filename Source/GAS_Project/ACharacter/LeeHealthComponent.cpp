@@ -18,6 +18,7 @@
 #include "GameFramework/PlayerState.h"
 #include "GAS_Project/_Souls/Abilities/LeeSoulsStatSet.h"
 #include "GAS_Project/ASaveGame/LeeSaveSubsystem.h"
+#include "GAS_Project/GameModes/LeeBossPartySubsystem.h"
 
 ULeeHealthComponent::ULeeHealthComponent(const FObjectInitializer& ObjectInitializer)
 	:Super(ObjectInitializer)
@@ -243,6 +244,12 @@ void ULeeHealthComponent::HandleOutOfHealth(AActor* DamageInstigator, AActor* Da
 #if WITH_SERVER_CODE
 	if (AbilitySystemComponent && DamageEffectSpec)
 	{
+		// 26.11.02 추가 - 보스전에서 서 있는 동료가 있으면 사망 대신 넉다운 (이미 넉다운이면 사망)
+		if (TryEnterDowned(DamageInstigator))
+		{
+			return;
+		}
+
 		// Send the "GameplayEvent.Death" gameplay event through the owner's ability system.  This can be used to trigger a death gameplay ability.
 		{
 			FGameplayEventData Payload;
@@ -289,6 +296,68 @@ void ULeeHealthComponent::HandleOutOfHealth(AActor* DamageInstigator, AActor* Da
 }
 
 
+// 넉다운 가능 판정은 보스 파티 Subsystem에 맡기고, 가능하면 GA_Downed를 트리거하는 이벤트를 보낸다
+bool ULeeHealthComponent::TryEnterDowned(AActor* DamageInstigator)
+{
+	if (!AbilitySystemComponent || AbilitySystemComponent->HasMatchingGameplayTag(MyTags::Souls::Status_Downed))
+	{
+		return false;
+	}
+
+	const ULeeBossPartySubsystem* BossPartySubsystem = GetWorld()->GetSubsystem<ULeeBossPartySubsystem>();
+	if (!BossPartySubsystem || !BossPartySubsystem->CanEnterDowned(Cast<APawn>(GetOwner())))
+	{
+		return false;
+	}
+
+	FGameplayEventData Payload;
+	Payload.EventTag = MyTags::Souls::GameplayEvent_Downed;
+	Payload.Instigator = DamageInstigator;
+	Payload.Target = AbilitySystemComponent->GetAvatarActor();
+
+	FScopedPredictionWindow NewScopedWindow(AbilitySystemComponent, true);
+	AbilitySystemComponent->HandleGameplayEvent(Payload.EventTag, &Payload);
+	return true;
+}
+
+// 데미지 Spec 없이 Death 어빌리티를 트리거한다 (사망 몽타주는 HandleOutOfHealth와 같이 서버에서 골라 싣는다)
+void ULeeHealthComponent::TriggerDeathWithoutDamage()
+{
+	if (!AbilitySystemComponent || DeathState != ELeeDeathState::NotDead || !GetOwner()->HasAuthority())
+	{
+		return;
+	}
+
+	FGameplayEventData Payload;
+	Payload.EventTag = MyTags::Souls::GameplayEvent_Death;
+	Payload.Target = AbilitySystemComponent->GetAvatarActor();
+	if (const ALeeCharacter* LeeCharacter = Cast<ALeeCharacter>(AbilitySystemComponent->GetAvatarActor()))
+	{
+		Payload.OptionalObject2 = LeeCharacter->GetRandomDeathMontage();
+	}
+
+	FScopedPredictionWindow NewScopedWindow(AbilitySystemComponent, true);
+	AbilitySystemComponent->HandleGameplayEvent(Payload.EventTag, &Payload);
+}
+
+// Health를 바로 덮어쓴다. GE를 거치지 않으므로 OutOfHealth 플래그와 서버 HUD 이벤트를 직접 맞춰 준다
+void ULeeHealthComponent::SetHealthDirect(float NewHealth)
+{
+	if (!AbilitySystemComponent || !HealthSet || !GetOwner()->HasAuthority())
+	{
+		return;
+	}
+
+	const float OldHealth = HealthSet->GetHealth();
+	AbilitySystemComponent->ApplyModToAttribute(ULeeSoulsStatSet::GetHealthAttribute(), EGameplayModOp::Override, NewHealth);
+
+	// 다음 피격으로 다시 0이 되면 OnOutOfHealth가 불리도록 플래그를 현재 값에 맞춘다
+	const_cast<ULeeSoulsStatSet*>(HealthSet.Get())->bOutOfHealth = (HealthSet->GetHealth() <= 0.0f);
+
+	// 서버(호스트) HUD 갱신용 — 클라이언트는 OnRep_Health에서 같은 이벤트를 받는다
+	HealthSet->OnHealthChanged.Broadcast(nullptr, nullptr, nullptr, HealthSet->GetHealth() - OldHealth, OldHealth, HealthSet->GetHealth());
+}
+
 void ULeeHealthComponent::StartDeath()
 {
 	if (DeathState != ELeeDeathState::NotDead)
@@ -309,6 +378,15 @@ void ULeeHealthComponent::StartDeath()
 	OnDeathStarted.Broadcast(Owner);
 
 	Owner->ForceNetUpdate();
+
+	// 26.11.02 추가 - 보스전이면 관전 시작 / 전멸 판정 (서버)
+	if (Owner->HasAuthority())
+	{
+		if (ULeeBossPartySubsystem* BossPartySubsystem = GetWorld()->GetSubsystem<ULeeBossPartySubsystem>())
+		{
+			BossPartySubsystem->HandlePlayerDeathStarted(Cast<APawn>(Owner));
+		}
+	}
 }
 
 

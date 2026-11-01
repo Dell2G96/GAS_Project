@@ -142,6 +142,7 @@ namespace MyTags
 		UE_DEFINE_GAMEPLAY_TAG(Status_CounterWindow, "Souls.Status.CounterWindow")
 		UE_DEFINE_GAMEPLAY_TAG(Status_Stamina_RegenBlocked, "Souls.Status.Stamina.RegenBlocked")
 		UE_DEFINE_GAMEPLAY_TAG(Status_Invincible, "Souls.Status.Invincible")
+		UE_DEFINE_GAMEPLAY_TAG(Status_Downed, "Souls.Status.Downed")
 
 		// ----- 상태 - 처형/암살 (피니셔) -----
 		UE_DEFINE_GAMEPLAY_TAG(Status_Groggy, "Souls.Status.Groggy")
@@ -161,6 +162,8 @@ namespace MyTags
 
 		// ----- 이벤트 - 사망 / 이동 -----
 		UE_DEFINE_GAMEPLAY_TAG(GameplayEvent_Death, "Souls.GameplayEvent.Death")
+		UE_DEFINE_GAMEPLAY_TAG(GameplayEvent_Downed, "Souls.GameplayEvent.Downed")
+		UE_DEFINE_GAMEPLAY_TAG(GameplayEvent_Revive, "Souls.GameplayEvent.Revive")
 		UE_DEFINE_GAMEPLAY_TAG(GameplayEvent_Bow_SpawnArrow, "Souls.GameplayEvent.Bow.SpawnArrow")
 		UE_DEFINE_GAMEPLAY_TAG(Event_Movement_BowAnim, "Souls.Event.Movement.BowAnim")
 
@@ -211,6 +214,7 @@ namespace MyTags
 		UE_DEFINE_GAMEPLAY_TAG(Message_TargetLock, "Souls.Message.TargetLock")
 		UE_DEFINE_GAMEPLAY_TAG(Message_Death_YouDied, "Souls.Message.Death.YouDied")
 		UE_DEFINE_GAMEPLAY_TAG(Message_Death_Respawn, "Souls.Message.Death.Respawn")
+		UE_DEFINE_GAMEPLAY_TAG(Message_Death_PartyWiped, "Souls.Message.Death.PartyWiped")
 
 		// ----- 데미지 판정 결과 (ExecCalc → Spec DynamicAssetTags) -----
 		UE_DEFINE_GAMEPLAY_TAG(DamageResult_HitReact, "Souls.DamageResult.HitReact")

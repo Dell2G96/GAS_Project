@@ -5,6 +5,7 @@
 
 #include "Abilities/LeeGameplayAbility.h"
 #include "GAS_Project/LeeLogChannels.h"
+#include "GAS_Project/MyTags.h"
 #include "GAS_Project/AAnimation/LeeAnimInstance.h"
 
 ULeeAbilitySystemComponent::ULeeAbilitySystemComponent(const FObjectInitializer& ObjectInitializer)
@@ -200,6 +201,14 @@ void ULeeAbilitySystemComponent::AbilityInputTagReleased(const FGameplayTag& Inp
 
 void ULeeAbilitySystemComponent::ProcessAbilityInput(float DeltaTime, bool bGamePaused)
 {
+	// 26.11.02 추가 - 넉다운 중에는 입력으로 어빌리티(공격·구르기·가드·포션·상호작용)를 실행하지 않는다 (이동만 허용)
+	if (HasMatchingGameplayTag(MyTags::Souls::Status_Downed))
+	{
+		InputPressedSpecHandles.Reset();
+		InputReleasedSpecHandles.Reset();
+		InputHeldSpecHandles.Reset();
+		return;
+	}
 	
 	static TArray<FGameplayAbilitySpecHandle> AbilitiesToActivate;
 	AbilitiesToActivate.Reset();

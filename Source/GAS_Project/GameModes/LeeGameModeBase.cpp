@@ -146,6 +146,9 @@ bool ALeeGameModeBase::UpdatePlayerStartSpot(AController* Player, const FString&
 void ALeeGameModeBase::GenericPlayerInitialization(AController* NewPlayer)
 {
 	Super::GenericPlayerInitialization(NewPlayer);
+
+	// 26.11.02 추가 - 새로 접속한 플레이어를 알린다 (LeeTeamCreationComponent가 팀 배정). Lyra 원본과 동일
+	OnGameModePlayerInitialized.Broadcast(this, NewPlayer);
 }
 
 // 스폰에 실패하면 Pawn 클래스가 있고 재시작이 가능한 경우 다음 프레임에 다시 시도

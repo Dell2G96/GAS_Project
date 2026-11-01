@@ -67,4 +67,8 @@ protected:
 	// 26.10.30 추가 - 에스트 마시는 중(Status.Estus.Drinking) 최대 속도 배수
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Lee|Estus", meta = (ClampMin = "0.0", ClampMax = "1.0"))
 	float EstusMoveSpeedMultiplier = 0.3f;
+
+	// 26.11.02 추가 - 보스전 넉다운(Status.Downed) 중 최대 속도 배수 (기어가기)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Lee|Downed", meta = (ClampMin = "0.0", ClampMax = "1.0"))
+	float DownedMoveSpeedMultiplier = 0.2f;
 };

@@ -4,10 +4,19 @@
 #include "LeeInventoryItemInstance.h"
 
 #include "LeeInventoryItemDefinition.h"
+#include "Net/UnrealNetwork.h"
 
 ULeeInventoryItemInstance::ULeeInventoryItemInstance(const FObjectInitializer& ObjectInitializer)
 	:Super(ObjectInitializer)
 {
+}
+
+// 복제할 프로퍼티 등록 (클라이언트가 아이템 정의 → 아이콘/Fragment를 알 수 있도록)
+void ULeeInventoryItemInstance::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME(ThisClass, ItemDef);
 }
 
 const ULeeInventoryItemFragment* ULeeInventoryItemInstance::FindFragmentByClass(

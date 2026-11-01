@@ -43,6 +43,14 @@ public:
 	UPROPERTY(EditDefaultsOnly, Category="PlayMode", meta=(ClampMin=1, EditCondition="PlayMode==ELeePlayMode::MultiplayerBoss"))
 	int32 MaxPlayers = 3;
 
+	// 26.11.02 추가 - 보스전 전멸 시 전원이 이동할 로비 맵 (로비 맵의 Experience도 MultiplayerBoss여야 접속이 유지된다)
+	UPROPERTY(EditDefaultsOnly, Category="PlayMode", meta=(EditCondition="PlayMode==ELeePlayMode::MultiplayerBoss"))
+	TSoftObjectPtr<UWorld> BossLobbyMap;
+
+	// 26.11.02 추가 - 전멸 후 YOU DIED를 보여주고 로비로 이동하기까지 대기 시간(초)
+	UPROPERTY(EditDefaultsOnly, Category="PlayMode", meta=(ClampMin=0, EditCondition="PlayMode==ELeePlayMode::MultiplayerBoss"))
+	float WipeTravelDelay = 5.0f;
+
 	// 26.10.30 사용 안함 - 레거시 봇 스포너 방식(BotIdentifier → PawnData). Controller BP의 EnemyPawnData로 교체됨
 	// // EnemyPawn Data 추가
 	// UPROPERTY(EditDefaultsOnly, Category= Gameplay)

@@ -129,6 +129,12 @@ float ULeeCharacterMovementComponent::GetMaxSpeed() const
 			return 0;
 		}
 
+		// 26.11.02 추가 - 넉다운 중이면 기어가는 속도로 제한 (Status.Downed는 복제 태그라 서버·클라 예측 일치)
+		if (ASC->HasMatchingGameplayTag(MyTags::Souls::Status_Downed))
+		{
+			return Super::GetMaxSpeed() * DownedMoveSpeedMultiplier;
+		}
+
 		// 가드 유지 중이면 장착 무기별 배수를 최대 속도에 곱한다 (무기별 연속값).
 		// Status_Guard_Active 태그는 ASC로 복제되고, 무기 배수는 정적 데이터라 서버·클라 동일 → 예측 desync 없음
 		if (ASC->HasMatchingGameplayTag(MyTags::Souls::Status_Guard_Active))

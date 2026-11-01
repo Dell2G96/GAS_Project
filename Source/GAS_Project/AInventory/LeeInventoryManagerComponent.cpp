@@ -39,8 +39,8 @@ void FLeeInventoryList::RemoveEntry(ULeeInventoryItemInstance* Instance)
 		{
 			EntryIt.RemoveCurrent();
 
-			// NetWorkCOde
-			//MarkArrayDirty();
+			// 26.11.01 수정 - 항목 제거를 클라이언트로 복제하도록 표시
+			MarkArrayDirty();
 		}
 	}
 	
@@ -89,6 +89,9 @@ ULeeInventoryItemInstance* FLeeInventoryList::AddEntry(TSubclassOf<class ULeeInv
 	}
 	NewEntry.StackCount = StackCount;
 	Result = NewEntry.Instance;
+
+	// 26.11.01 추가 - 새 항목을 클라이언트로 복제하도록 표시
+	MarkItemDirty(NewEntry);
 	
 	
 	return Result;
@@ -102,6 +105,26 @@ ULeeInventoryManagerComponent::ULeeInventoryManagerComponent(const FObjectInitia
 	:Super(InObjectInitializer)
 	,InventoryList(this) 
 {
+	// 26.11.01 추가 - 인벤토리 목록과 아이템 인스턴스(서브오브젝트)를 클라이언트로 복제
+	SetIsReplicatedByDefault(true);
+	bReplicateUsingRegisteredSubObjectList = true;
+}
+
+// 복제 준비가 끝난 시점에, 이미 들고 있는 아이템 인스턴스를 서브오브젝트로 등록한다
+void ULeeInventoryManagerComponent::ReadyForReplication()
+{
+	Super::ReadyForReplication();
+
+	if (IsUsingRegisteredSubObjectList())
+	{
+		for (const FLeeInventoryEntry& Entry : InventoryList.Entries)
+		{
+			if (ULeeInventoryItemInstance* Instance = Entry.Instance)
+			{
+				AddReplicatedSubObject(Instance);
+			}
+		}
+	}
 }
 
 void ULeeInventoryManagerComponent::GetLifetimeReplicatedProps(TArray< FLifetimeProperty >& OutLifetimeProps) const

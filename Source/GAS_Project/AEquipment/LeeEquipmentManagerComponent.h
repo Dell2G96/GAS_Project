@@ -5,14 +5,16 @@
 #include "CoreMinimal.h"
 #include "Components/PawnComponent.h"
 #include "GAS_Project/AAbilitySystem/LeeAbilitySet.h"
+#include "Net/Serialization/FastArraySerializer.h"
 #include "UObject/Object.h"
 #include "LeeEquipmentManagerComponent.generated.h"
 
 
 //		FLeeAppliedEquipmentEntry	//
 
+// 26.11.01 수정 - 장착된 장비 1개. FastArray 항목으로 바꿔 클라이언트로 복제된다
 USTRUCT(BlueprintType)
-struct FLeeAppliedEquipmentEntry
+struct FLeeAppliedEquipmentEntry : public FFastArraySerializerItem
 {
 	GENERATED_BODY()
 
@@ -22,13 +24,15 @@ struct FLeeAppliedEquipmentEntry
 	UPROPERTY()
 	TObjectPtr<class ULeeEquipmentInstance> Instance = nullptr;
 
-	UPROPERTY()
+	// 어빌리티 핸들은 서버에서만 의미가 있으므로 복제하지 않는다
+	UPROPERTY(NotReplicated)
 	FLeeAbilitySet_GrantedHandles GrantedHandles;
-	
+
 };
 
+// 26.11.01 수정 - 장착 장비 목록. FastArray로 복제하고, 클라이언트에서 추가/제거될 때 OnEquipped/OnUnEquipped를 호출한다
 USTRUCT(BlueprintType)
-struct FLeeEquipmentList
+struct FLeeEquipmentList : public FFastArraySerializer
 {
 	GENERATED_BODY()
 
@@ -41,12 +45,28 @@ struct FLeeEquipmentList
 
 	ULeeAbilitySystemComponent* GetAbilitySystemComponent() const;
 
+	//~FFastArraySerializer contract
+	void PreReplicatedRemove(const TArrayView<int32> RemovedIndices, int32 FinalSize);
+	void PostReplicatedAdd(const TArrayView<int32> AddedIndices, int32 FinalSize);
+	//~End of FFastArraySerializer contract
+
+	bool NetDeltaSerialize(FNetDeltaSerializeInfo& DeltaParms)
+	{
+		return FFastArraySerializer::FastArrayDeltaSerialize<FLeeAppliedEquipmentEntry, FLeeEquipmentList>(Entries, DeltaParms, *this);
+	}
+
 	UPROPERTY()
 	TArray<FLeeAppliedEquipmentEntry> Entries;
-	
-	UPROPERTY()
+
+	UPROPERTY(NotReplicated)
 	TObjectPtr<UActorComponent> OwnerComponent;
-	
+
+};
+
+template<>
+struct TStructOpsTypeTraits<FLeeEquipmentList> : public TStructOpsTypeTraitsBase2<FLeeEquipmentList>
+{
+	enum { WithNetDeltaSerializer = true };
 };
 
 
@@ -55,7 +75,7 @@ UCLASS()
 class GAS_PROJECT_API ULeeEquipmentManagerComponent : public UPawnComponent
 {
 	GENERATED_BODY()
-	
+
 public:
 	ULeeEquipmentManagerComponent(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
@@ -76,6 +96,7 @@ public:
 	//~UActorComponent interface
 	virtual void InitializeComponent() override;
 	virtual void UninitializeComponent() override;
+	virtual void ReadyForReplication() override;
 	//~End of UActorComponent interface
 
 	// 26.10.29 추가 - 장착 중인 모든 장비 해제 (Pawn이 ASC를 잃거나 사라질 때 사용)
@@ -86,6 +107,6 @@ protected:
 	void HandleAbilitySystemUnInitialized();
 
 public:
-	UPROPERTY()
+	UPROPERTY(Replicated)
 	FLeeEquipmentList EquipmentList;
 };

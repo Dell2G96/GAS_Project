@@ -42,6 +42,9 @@ private:
 	void HandleYouDiedMessage(FGameplayTag Channel, const FLeeVerbMessage& Message);
 	void HandleRespawnMessage(FGameplayTag Channel, const FLeeVerbMessage& Message);
 
+	// 26.11.02 추가 - 보스전 전멸: YOU DIED만 표시 (부활 질문 없이 서버가 로비로 이동시킨다)
+	void HandlePartyWipedMessage(FGameplayTag Channel, const FLeeVerbMessage& Message);
+
 	// 부활 질문 위젯을 UI.Layer.Menu에 Push
 	void ShowRespawnPrompt();
 
@@ -50,6 +53,7 @@ private:
 
 	FGameplayMessageListenerHandle YouDiedListenerHandle;
 	FGameplayMessageListenerHandle RespawnListenerHandle;
+	FGameplayMessageListenerHandle PartyWipedListenerHandle;
 
 	FTimerHandle RespawnPromptTimerHandle;
 

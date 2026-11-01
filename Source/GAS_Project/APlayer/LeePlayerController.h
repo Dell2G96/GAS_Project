@@ -27,4 +27,14 @@ public:
 	UFUNCTION(Server, Reliable, BlueprintCallable, Category = "Lee|Death")
 	void ServerRequestRespawn();
 
+	// 26.11.02 추가 - 보스전 관전 중 다음 생존 동료로 카메라 전환 요청 (좌클릭 / BP에서도 호출 가능)
+	UFUNCTION(Server, Reliable, BlueprintCallable, Category = "Lee|Spectate")
+	void ServerSpectateNextTeammate();
+
+protected:
+	virtual void SetupInputComponent() override;
+
+	// 좌클릭: 사망 중일 때만 관전 대상 전환을 요청
+	void HandleSpectateNextInput();
+
 };

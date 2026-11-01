@@ -10,6 +10,7 @@
 #include "ModularCharacter.h"
 #include "GameFramework/Character.h"
 #include "GAS_Project/ATeam/LeeTeamAgentInterface.h"
+#include "GAS_Project/AInteraction/IInteractableTarget.h"
 #include "LeeCharacter.generated.h"
 
 
@@ -69,7 +70,7 @@ struct TStructOpsTypeTraits<FSharedRepMovement> : public TStructOpsTypeTraitsBas
 };
 
 UCLASS(Config = Game, Meta = (ShortTooltip = "The base character pawn class used by this project."))
-class GAS_PROJECT_API ALeeCharacter : public AModularCharacter, public  IAbilitySystemInterface , public IGameplayCueInterface, public IGameplayTagAssetInterface, public ILeeTeamAgentInterface
+class GAS_PROJECT_API ALeeCharacter : public AModularCharacter, public  IAbilitySystemInterface , public IGameplayCueInterface, public IGameplayTagAssetInterface, public ILeeTeamAgentInterface, public IInteractableTarget
 {
 	GENERATED_BODY()
 
@@ -83,6 +84,15 @@ public:
 
 	// 26.10.29 추가 - DeathMontages 중 하나를 랜덤으로 반환 (비어 있으면 nullptr)
 	class UAnimMontage* GetRandomDeathMontage() const;
+
+	// 26.11.02 추가 - 보스전 넉다운 진입 시 GA_Downed가 재생할 몽타주 (캐릭터 BP Class Defaults에서 지정, 비우면 생략)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Lee|Downed")
+	TObjectPtr<class UAnimMontage> DownedMontage;
+
+	//~IInteractableTarget interface
+	// 26.11.02 추가 - 넉다운 상태일 때 살아 있는 아군에게 "부활" 상호작용 옵션을 제공
+	virtual void GatherInteractionOptions(const FInteractionQuery& InteractQuery, FInteractionOptionBuilder& OptionBuilder) override;
+	//~End of IInteractableTarget interface
 
 	UFUNCTION(BlueprintCallable, Category = "Lee|Character")
 	class ALeePlayerController* GetLeePlayerController() const;
@@ -159,6 +169,10 @@ protected:
 	// 26.10.29 추가 - 사망 시작 시 Death 어빌리티가 재생할 몽타주 후보 (캐릭터 BP Class Defaults에서 지정)
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Lee|Death")
 	TArray<TObjectPtr<class UAnimMontage>> DeathMontages;
+
+	// 26.11.02 추가 - 넉다운 중 동료에게 보여줄 부활 상호작용 (BP에서 InteractionAbilityToGrant=GA_Revive, Text, 위젯 지정)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Lee|Downed")
+	FInteractionOption ReviveInteractionOption;
 
 	virtual void OnMovementModeChanged(EMovementMode PrevMovementMode, uint8 PreviousCustomMode) override;
 	void SetMovementModeTag(EMovementMode MovementMode, uint8 CustomMovementMode, bool bTagEnabled);

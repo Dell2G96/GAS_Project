@@ -79,6 +79,12 @@ public:
 
 	virtual void StartDeath();
 
+	// 26.11.02 추가 - 데미지 없이 사망 이벤트를 보낸다 (넉다운 시간 초과 / 전멸 처리, 서버 전용)
+	void TriggerDeathWithoutDamage();
+
+	// 26.11.02 추가 - Health를 지정 값으로 바로 설정한다 (넉다운 임시 HP / 부활 HP, 서버 전용)
+	void SetHealthDirect(float NewHealth);
+
 	// Ends the death sequence for the owner.
 	virtual void FinishDeath();
 	
@@ -134,6 +140,9 @@ protected:
 	virtual void HandleMaxStaminaChanged(AActor* DamageInstigator, AActor* DamageCauser, const FGameplayEffectSpec* DamageEffectSpec, float DamageMagnitude, float OldValue, float NewValue);
 	virtual void HandleEstusChargesChanged(AActor* DamageInstigator, AActor* DamageCauser, const FGameplayEffectSpec* DamageEffectSpec, float DamageMagnitude, float OldValue, float NewValue);
 	virtual void HandleOutOfHealth(AActor* DamageInstigator, AActor* DamageCauser, const FGameplayEffectSpec* DamageEffectSpec, float DamageMagnitude, float OldValue, float NewValue);
+
+	// 26.11.02 추가 - 보스전에서 넉다운이 가능하면 넉다운 이벤트를 보내고 true (사망 처리를 건너뜀)
+	bool TryEnterDowned(AActor* DamageInstigator);
 
 	// 26.10.30 추가 - 이 Pawn이 서버의 로컬 플레이어일 때만 세이브 Subsystem 반환 (자기 PC의 자기 진행만 저장, 몹/원격 플레이어는 nullptr)
 	class ULeeSaveSubsystem* GetSaveSubsystemForLocalPlayer() const;

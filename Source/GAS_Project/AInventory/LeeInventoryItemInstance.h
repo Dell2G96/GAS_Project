@@ -19,6 +19,9 @@ class GAS_PROJECT_API ULeeInventoryItemInstance : public UObject
 public:
 	ULeeInventoryItemInstance(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
+	// 26.11.01 추가 - 서브오브젝트로 클라이언트에 복제될 수 있도록 허용
+	virtual bool IsSupportedForNetworking() const override { return true; }
+
 	UFUNCTION(BlueprintCallable, blueprintPure = false, meta=(DeterminesOutputType = FragmentClass))
 	const ULeeInventoryItemFragment* FindFragmentByClass(TSubclassOf<ULeeInventoryItemFragment> FragmentClass) const;
 
@@ -51,6 +54,6 @@ public:
 	UPROPERTY()
 	FLeeGameplayTagStackContainer StatTags;
 
-	UPROPERTY()
+	UPROPERTY(Replicated)
 	TSubclassOf<class ULeeInventoryItemDefinition> ItemDef;
 };

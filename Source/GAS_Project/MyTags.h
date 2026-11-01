@@ -136,6 +136,8 @@ namespace MyTags
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Status_Invincible);
 		// 26.10.30 추가 - 에스트 마시는 중 (ActivationOwnedTags, 이동 감속 판정)
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Status_Estus_Drinking);
+		// 26.11.02 추가 - 보스전 넉다운 상태 (이동만 가능, 동료가 부활 가능)
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Status_Downed);
 
 		// ----- 상태 - 처형/암살 (피니셔) -----
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Status_Groggy);
@@ -155,6 +157,9 @@ namespace MyTags
 
 		// ----- 이벤트 - 사망 / 이동 -----
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(GameplayEvent_Death)
+		// 26.11.02 추가 - 넉다운 진입 / 동료에게 부활됨
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(GameplayEvent_Downed)
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(GameplayEvent_Revive)
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(GameplayEvent_Bow_SpawnArrow)
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Event_Movement_BowAnim)
 
@@ -210,6 +215,8 @@ namespace MyTags
 		// 26.10.29 추가 - 플레이어 사망/부활 UI 메시지 (ULeeSavePointSubsystem → ULeeDeathScreenWidget)
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Message_Death_YouDied);
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Message_Death_Respawn);
+		// 26.11.02 추가 - 보스전 전멸 (YOU DIED만 표시, 부활 질문 없음 → 로비로 이동)
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Message_Death_PartyWiped);
 
 		// ----- 데미지 판정 결과 (ExecCalc → Spec DynamicAssetTags) -----
 		// 데미지 판정 결과 — ULeeExecCalc_Damage가 Spec DynamicAssetTags에 기록,

@@ -18,6 +18,8 @@ void ULeeDeathScreenWidget::NativeConstruct()
 		MyTags::Souls::Message_Death_YouDied, this, &ThisClass::HandleYouDiedMessage);
 	RespawnListenerHandle = MessageSystem.RegisterListener(
 		MyTags::Souls::Message_Death_Respawn, this, &ThisClass::HandleRespawnMessage);
+	PartyWipedListenerHandle = MessageSystem.RegisterListener(
+		MyTags::Souls::Message_Death_PartyWiped, this, &ThisClass::HandlePartyWipedMessage);
 }
 
 // 구독 해제 + 부활 질문 위젯 정리
@@ -25,6 +27,7 @@ void ULeeDeathScreenWidget::NativeDestruct()
 {
 	YouDiedListenerHandle.Unregister();
 	RespawnListenerHandle.Unregister();
+	PartyWipedListenerHandle.Unregister();
 	HideRespawnPrompt();
 
 	Super::NativeDestruct();
@@ -37,6 +40,12 @@ void ULeeDeathScreenWidget::HandleYouDiedMessage(FGameplayTag Channel, const FLe
 
 	GetWorld()->GetTimerManager().SetTimer(
 		RespawnPromptTimerHandle, this, &ThisClass::ShowRespawnPrompt, RespawnPromptDelay, false);
+}
+
+// 전멸 메시지 수신 → YOU DIED 표시만 (부활 질문 없음)
+void ULeeDeathScreenWidget::HandlePartyWipedMessage(FGameplayTag Channel, const FLeeVerbMessage& Message)
+{
+	OnYouDied();
 }
 
 // 부활 메시지 수신 → 부활 질문 닫기 + BP OnRespawn

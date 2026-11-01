@@ -7,6 +7,7 @@
 #include "GameFramework/GameplayMessageSubsystem.h"
 #include "GAS_Project/MyTags.h"
 #include "GAS_Project/AMessage/LeeVerbMessage.h"
+#include "Net/UnrealNetwork.h"
 
 ULeeSoulsStatSet::ULeeSoulsStatSet()
 	:Health(100.f)
@@ -24,6 +25,77 @@ ULeeSoulsStatSet::ULeeSoulsStatSet()
 	MaxStaminaBeforeAttributeChange = 0.0f;
 	StaminaBeforeAttributeChange = 0.0f;
 	EstusChargesBeforeAttributeChange = 0.0f;
+}
+
+// 26.11.02 추가 - 클라이언트로 복제할 어트리뷰트 등록 (값이 같아도 항상 OnRep 호출 → 예측 값 보정)
+void ULeeSoulsStatSet::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME_CONDITION_NOTIFY(ULeeSoulsStatSet, Health, COND_None, REPNOTIFY_Always);
+	DOREPLIFETIME_CONDITION_NOTIFY(ULeeSoulsStatSet, MaxHealth, COND_None, REPNOTIFY_Always);
+	DOREPLIFETIME_CONDITION_NOTIFY(ULeeSoulsStatSet, Stamina, COND_None, REPNOTIFY_Always);
+	DOREPLIFETIME_CONDITION_NOTIFY(ULeeSoulsStatSet, MaxStamina, COND_None, REPNOTIFY_Always);
+	DOREPLIFETIME_CONDITION_NOTIFY(ULeeSoulsStatSet, EstusCharges, COND_None, REPNOTIFY_Always);
+	DOREPLIFETIME_CONDITION_NOTIFY(ULeeSoulsStatSet, MaxEstusCharges, COND_None, REPNOTIFY_Always);
+	DOREPLIFETIME_CONDITION_NOTIFY(ULeeSoulsStatSet, EstusHealAmount, COND_None, REPNOTIFY_Always);
+}
+
+// 클라이언트: Health 복제 수신 → HUD 갱신 이벤트 (사망 판정은 서버의 PostGameplayEffectExecute가 담당)
+void ULeeSoulsStatSet::OnRep_Health(const FGameplayAttributeData& OldValue)
+{
+	GAMEPLAYATTRIBUTE_REPNOTIFY(ULeeSoulsStatSet, Health, OldValue);
+
+	const float OldHealth = OldValue.GetCurrentValue();
+	OnHealthChanged.Broadcast(nullptr, nullptr, nullptr, GetHealth() - OldHealth, OldHealth, GetHealth());
+}
+
+// 클라이언트: MaxHealth 복제 수신 → HUD 갱신 이벤트
+void ULeeSoulsStatSet::OnRep_MaxHealth(const FGameplayAttributeData& OldValue)
+{
+	GAMEPLAYATTRIBUTE_REPNOTIFY(ULeeSoulsStatSet, MaxHealth, OldValue);
+
+	const float OldMaxHealth = OldValue.GetCurrentValue();
+	OnMaxHealthChanged.Broadcast(nullptr, nullptr, nullptr, GetMaxHealth() - OldMaxHealth, OldMaxHealth, GetMaxHealth());
+}
+
+// 클라이언트: Stamina 복제 수신 → HUD 갱신 이벤트 (그로기 판정은 서버 담당)
+void ULeeSoulsStatSet::OnRep_Stamina(const FGameplayAttributeData& OldValue)
+{
+	GAMEPLAYATTRIBUTE_REPNOTIFY(ULeeSoulsStatSet, Stamina, OldValue);
+
+	const float OldStamina = OldValue.GetCurrentValue();
+	OnStaminaChanged.Broadcast(nullptr, nullptr, nullptr, GetStamina() - OldStamina, OldStamina, GetStamina());
+}
+
+// 클라이언트: MaxStamina 복제 수신 → HUD 갱신 이벤트
+void ULeeSoulsStatSet::OnRep_MaxStamina(const FGameplayAttributeData& OldValue)
+{
+	GAMEPLAYATTRIBUTE_REPNOTIFY(ULeeSoulsStatSet, MaxStamina, OldValue);
+
+	const float OldMaxStamina = OldValue.GetCurrentValue();
+	OnMaxStaminaChanged.Broadcast(nullptr, nullptr, nullptr, GetMaxStamina() - OldMaxStamina, OldMaxStamina, GetMaxStamina());
+}
+
+// 클라이언트: 에스트 횟수 복제 수신 → 포션 개수 HUD 갱신 이벤트
+void ULeeSoulsStatSet::OnRep_EstusCharges(const FGameplayAttributeData& OldValue)
+{
+	GAMEPLAYATTRIBUTE_REPNOTIFY(ULeeSoulsStatSet, EstusCharges, OldValue);
+
+	const float OldCharges = OldValue.GetCurrentValue();
+	OnEstusChargesChanged.Broadcast(nullptr, nullptr, nullptr, GetEstusCharges() - OldCharges, OldCharges, GetEstusCharges());
+}
+
+// 클라이언트: 에스트 최대 횟수 복제 수신
+void ULeeSoulsStatSet::OnRep_MaxEstusCharges(const FGameplayAttributeData& OldValue)
+{
+	GAMEPLAYATTRIBUTE_REPNOTIFY(ULeeSoulsStatSet, MaxEstusCharges, OldValue);
+}
+
+// 클라이언트: 에스트 회복량 복제 수신
+void ULeeSoulsStatSet::OnRep_EstusHealAmount(const FGameplayAttributeData& OldValue)
+{
+	GAMEPLAYATTRIBUTE_REPNOTIFY(ULeeSoulsStatSet, EstusHealAmount, OldValue);
 }
 
 bool ULeeSoulsStatSet::PreGameplayEffectExecute(FGameplayEffectModCallbackData& Data)

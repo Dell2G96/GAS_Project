@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "LeeInventoryItemInstance.h"
 #include "Components/ActorComponent.h"
+#include "Net/Serialization/FastArraySerializer.h"
 #include "LeeInventoryManagerComponent.generated.h"
 
 
@@ -27,8 +28,9 @@ struct FLeeInventoryChangeMessage
 };
 
 
+// 26.11.01 수정 - 인벤토리 항목 1개. FastArray 항목으로 바꿔 클라이언트로 복제된다
 USTRUCT(BlueprintType)
-struct FLeeInventoryEntry
+struct FLeeInventoryEntry : public FFastArraySerializerItem
 {
 	GENERATED_BODY()
 
@@ -52,8 +54,9 @@ private:
 
 
 //					FLeeInventoryList
+// 26.11.01 수정 - 인벤토리 목록. FastArray로 소유 클라이언트에 복제된다
 USTRUCT(BlueprintType)
-struct FLeeInventoryList
+struct FLeeInventoryList : public FFastArraySerializer
 {
 	GENERATED_BODY()
 
@@ -68,15 +71,26 @@ struct FLeeInventoryList
 
 	void RemoveEntry(ULeeInventoryItemInstance* Instance);
 
+	bool NetDeltaSerialize(FNetDeltaSerializeInfo& DeltaParms)
+	{
+		return FFastArraySerializer::FastArrayDeltaSerialize<FLeeInventoryEntry, FLeeInventoryList>(Entries, DeltaParms, *this);
+	}
+
 public:
 	friend ULeeInventoryManagerComponent;
 	
 	UPROPERTY()
 	TArray<FLeeInventoryEntry> Entries;
 
-	UPROPERTY()
+	UPROPERTY(NotReplicated)
 	TObjectPtr<UActorComponent> OwnerComponent;
 	
+};
+
+template<>
+struct TStructOpsTypeTraits<FLeeInventoryList> : public TStructOpsTypeTraitsBase2<FLeeInventoryList>
+{
+	enum { WithNetDeltaSerializer = true };
 };
 
 
@@ -108,6 +122,10 @@ public:
 
 	UFUNCTION(BlueprintCallable,BlueprintPure=false ,Category=Inventory)
 	TArray<ULeeInventoryItemInstance*> GetAllItems() const;
+
+	//~UActorComponent interface
+	virtual void ReadyForReplication() override;
+	//~End of UActorComponent interface
 
 	UPROPERTY(Replicated)
 	FLeeInventoryList InventoryList;
