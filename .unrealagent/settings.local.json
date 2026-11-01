@@ -1,0 +1,7 @@
+{
+  "mcpServers": {
+    "unreal": {
+      "url": "http://localhost:55559/mcp"
+    }
+  }
+}

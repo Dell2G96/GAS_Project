@@ -15,7 +15,7 @@ public class UnrealAgent : ModuleRules
 			"CoreUObject",
 			"Engine"
 		]);
-		
+
 		PrivateDependencyModuleNames.AddRange([
 			"Slate",
 			"SlateCore",

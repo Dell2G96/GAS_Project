@@ -1,7 +1,4 @@
-// Copyright Epic Games, Inc. All Rights Reserved.
-
 #include "UnrealAgent.h"
-
 #include "Chat/AgentChatCommands.h"
 #include "Chat/AgentChatInputProcessor.h"
 #include "Chat/AgentChatBrowser.h"
@@ -14,33 +11,33 @@
 
 #define LOCTEXT_NAMESPACE "FUnrealAgentModule"
 
-const FName FUnrealAgentModule::ChatTabName(TEXT("AgentChatTab"));
-
+const FName FUnrealAgentModule::ChatTabName(TEXT("UnrealAgentChat"));
 
 //-----------------------------------------------------------------------------
 // IModuleInterface 오버라이드
 //-----------------------------------------------------------------------------
+
 void FUnrealAgentModule::StartupModule()
 {
-	// 1. 커맨드 등록
+	// 1. 커맨드 등록 (Alt+F2 단축키 정의)
 	FAgentChatCommands::Register();
 	
-	// 2. 커맨드 리스트 생성 및 바인딩
+	// 2. 커맨드 리스트 생성 및 액션 바인딩
 	CommandList = MakeShareable(new FUICommandList);
 	
 	CommandList->MapAction(
-		FAgentChatCommands::Get().ToggleChatPanel, 
-		FExecuteAction::CreateRaw(this, &ThisClass::OnToggleChatPannel));
+		FAgentChatCommands::Get().ToggleChatPanel,
+		FExecuteAction::CreateRaw(this, &ThisClass::OnToggleChatPanel));
 	
 	// 3. 탭 스포너 등록
 	FGlobalTabmanager::Get()->RegisterNomadTabSpawner(
-	ChatTabName,
-	FOnSpawnTab::CreateRaw(this, &ThisClass::OnSpawnChatTab))
-	.SetDisplayName(FText::GetEmpty())
-	.SetMenuType(ETabSpawnerMenuType::Hidden)
-	.SetCanSidebarTab(false);
+		ChatTabName,
+		FOnSpawnTab::CreateRaw(this, &ThisClass::OnSpawnChatTab))
+		.SetDisplayName(INVTEXT("Dellg-AI Agent"))	// UE 5.6은 일반 탭이라 이름이 보이므로 지정
+		.SetMenuType(ETabSpawnerMenuType::Hidden)
+		.SetCanSidebarTab(false);
 	
-	// 4. 글로벌 입력 프로세서 등록
+	// 4. 글로벌 입력 프로세서 등록 (포커스 위치와 무관하게 단축키 작동)
 	InputProcessor = MakeShared<FAgentChatInputProcessor>(CommandList);
 	if (FSlateApplication::IsInitialized())
 	{
@@ -50,73 +47,43 @@ void FUnrealAgentModule::StartupModule()
 
 void FUnrealAgentModule::ShutdownModule()
 {
-	// 입력 프로세서 해제
-	if (FSlateApplication::IsInitialized() && InputProcessor.IsValid())
+	if (FSlateApplication::IsInitialized())
 	{
 		FSlateApplication::Get().UnregisterInputPreProcessor(InputProcessor);
 	}
 	InputProcessor.Reset();
-	
-	// 탭 스포너 해제
-	if (FSlateApplication::IsInitialized())
-	{
-		FGlobalTabmanager::Get()->UnregisterNomadTabSpawner(ChatTabName);
-	}
-	
-	// 커맨드 해제
+
+	FGlobalTabmanager::Get()->UnregisterNomadTabSpawner(ChatTabName);
+
 	FAgentChatCommands::Unregister();
 }
-
 
 //-----------------------------------------------------------------------------
 // Chat UI
 //-----------------------------------------------------------------------------
+
 TSharedRef<SDockTab> FUnrealAgentModule::OnSpawnChatTab(const FSpawnTabArgs& SpawnTabArgs)
 {
 	TSharedRef<SDockTab> DockTab = SNew(SDockTab)
-		.TabRole(NomadTab)
-		.Label(INVTEXT(" "))
-		.OnTabClosed_Lambda([this](TSharedPtr<SDockTab>)
+		.TabRole(ETabRole::NomadTab)
+		.Label(INVTEXT("Dellg-AI Agent"))
+		.OnTabClosed_Lambda([this](TSharedRef<SDockTab>)
 		{
 			ChatBrowserWidget.Reset();
 		});
-	
-	ChatBrowserWidget = SNew(SAgentChatBrowser, DockTab).Clipping(EWidgetClipping::ClipToBounds);
-	
+
+	ChatBrowserWidget = SNew(SAgentChatBrowser, DockTab)
+		.Clipping(EWidgetClipping::ClipToBounds);
+
 	DockTab->SetContent(ChatBrowserWidget.ToSharedRef());
-	
+
 	return DockTab;
 }
 
-void FUnrealAgentModule::OnToggleChatPannel() const
+void FUnrealAgentModule::OnToggleChatPanel() const
 {
-	#pragma region 5.7버전 API 함수
-
-	
-	// // 커서 위치의 윈도우에서 패널 드로우를 토클
-	// TSharedPtr<FTabManager> TabManager;
-	//
-	// const TSharedPtr<SWidget> FocusedWidget = FSlateApplication::Get().GetKeyboardFocusedWidget();
-	// if (FocusedWidget.IsValid())
-	// {
-	// 	FWidgetPath WidgetPath;
-	// 	FSlateApplication::Get().FindPathToWidget(FocusedWidget.ToSharedRef(), WidgetPath);
-	// 	
-	// 	if (WidgetPath.IsValid())
-	// 	{
-	// 		TabManager = FGlobalTabmanager::Get()->GetSubTabManagerForWindow(WidgetPath.GetWindow());
-	// 	}
-	// }
-	//
-	// if (TabManager.IsValid())
-	// {
-	// 	PRAGMA_DISABLE_DEPRECATION_WARNINGS
-	// 	TabManager->TryToggleTabInPanelDrawer(ChatTabName, {});
-	// 	PRAGMA_ENABLE_DEPRECATION_WARNINGS
-	// }
-#pragma endregion 
-	
-	//5.6 버전 일반 도킹 탭
+	// UE 5.6에는 패널 드로어(TryToggleTabInPanelDrawer)가 없습니다 (5.7에서 추가됨)
+	// 대신 일반 도킹 탭을 열려 있으면 닫고, 닫혀 있으면 엽니다
 	const TSharedPtr<SDockTab> ExistingTab = FGlobalTabmanager::Get()->FindExistingLiveTab(ChatTabName);
 	if (ExistingTab.IsValid())
 	{
@@ -129,5 +96,6 @@ void FUnrealAgentModule::OnToggleChatPannel() const
 }
 
 #undef LOCTEXT_NAMESPACE
-	
+
 IMPLEMENT_MODULE(FUnrealAgentModule, UnrealAgent)
+

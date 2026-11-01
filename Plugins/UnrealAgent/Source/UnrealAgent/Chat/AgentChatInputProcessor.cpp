@@ -1,12 +1,14 @@
-#include "AgentChatInputProcessor.h"
+﻿#include "Chat/AgentChatInputProcessor.h"
+#include "Framework/Commands/UICommandList.h"
 
 FAgentChatInputProcessor::FAgentChatInputProcessor(const TSharedPtr<FUICommandList>& InCommands)
-	:Commands(InCommands)
+	: Commands(InCommands)
 {
 }
 
 void FAgentChatInputProcessor::Tick(const float DeltaTime, FSlateApplication& SlateApp, TSharedRef<ICursor> Cursor)
 {
+	
 }
 
 bool FAgentChatInputProcessor::HandleKeyDownEvent(FSlateApplication& SlateApp, const FKeyEvent& KeyEvent)
@@ -15,6 +17,6 @@ bool FAgentChatInputProcessor::HandleKeyDownEvent(FSlateApplication& SlateApp, c
 	{
 		return PinnedCommands->ProcessCommandBindings(KeyEvent);
 	}
-	
+
 	return false;
 }

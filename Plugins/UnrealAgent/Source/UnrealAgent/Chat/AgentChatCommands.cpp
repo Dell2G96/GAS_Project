@@ -1,4 +1,4 @@
-#include "AgentChatCommands.h"
+﻿#include "Chat/AgentChatCommands.h"
 #include "Styling/AppStyle.h"
 
 #define LOCTEXT_NAMESPACE "FAgentChatCommands"
@@ -12,14 +12,14 @@ FAgentChatCommands::FAgentChatCommands()
 {
 }
 
-
 void FAgentChatCommands::RegisterCommands()
 {
 	UI_COMMAND(ToggleChatPanel,
-	"Toggle Chat Panel",
-	"Toggle the UnrealAgent chat panel",
-	EUserInterfaceActionType::Button,
-	FInputChord(EModifierKey::Alt, EKeys::F2));
+		"Toggle Chat Panel",
+		"Toggle the UnrealAgent chat panel",
+		EUserInterfaceActionType::Button,
+		FInputChord(EModifierKey::Alt, EKeys::F2));
+
 }
 
 #undef LOCTEXT_NAMESPACE

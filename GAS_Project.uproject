@@ -107,7 +107,7 @@
 		},
 		{
 			"Name": "UnrealAgent",
-			"Enabled": false
+			"Enabled": true
 		},
 		{
 			"Name": "PIEAutoRecorder",

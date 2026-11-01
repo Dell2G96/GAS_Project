@@ -6,6 +6,14 @@
 #include "Engine/DataAsset.h"
 #include "LeeExperienceDefinition.generated.h"
 
+// Experience(맵)가 허용하는 플레이 방식. 필드는 1인 고정, 보스전만 외부 접속 허용
+UENUM(BlueprintType)
+enum class ELeePlayMode : uint8
+{
+	SingleField,		// 필드: 1인 고정, 외부 접속 거부
+	MultiplayerBoss		// 보스전: 세션 참가 허용 (MaxPlayers까지)
+};
+
 /**
  * 
  */
@@ -26,6 +34,14 @@ public:
 
 	UPROPERTY(EditDefaultsOnly, Category="Gameplay")
 	TArray<FString> GameFeaturesToEnable;
+
+	// 이 Experience의 플레이 방식 (GameSession::ApproveLogin에서 접속 허용 판단)
+	UPROPERTY(EditDefaultsOnly, Category="PlayMode")
+	ELeePlayMode PlayMode = ELeePlayMode::SingleField;
+
+	// MultiplayerBoss일 때 최대 인원 (호스트 포함)
+	UPROPERTY(EditDefaultsOnly, Category="PlayMode", meta=(ClampMin=1, EditCondition="PlayMode==ELeePlayMode::MultiplayerBoss"))
+	int32 MaxPlayers = 3;
 
 	// 26.10.30 사용 안함 - 레거시 봇 스포너 방식(BotIdentifier → PawnData). Controller BP의 EnemyPawnData로 교체됨
 	// // EnemyPawn Data 추가

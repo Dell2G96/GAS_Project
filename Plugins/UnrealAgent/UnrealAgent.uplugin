@@ -23,7 +23,7 @@
 	"Modules": [
 		{
 			"Name": "UnrealAgent",
-			"Type": "Runtime",
+			"Type": "Editor",
 			"LoadingPhase": "Default"
 		}
 	]
