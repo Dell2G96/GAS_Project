@@ -16,7 +16,10 @@ ULeeGameplayAbility_AttackMelee::ULeeGameplayAbility_AttackMelee(const FObjectIn
 	: Super(ObjectInitializer)
 {
 	InstancingPolicy  = EGameplayAbilityInstancingPolicy::InstancedPerActor;
-	NetExecutionPolicy = EGameplayAbilityNetExecutionPolicy::ServerInitiated;
+	// 26.11.02 수정 - ServerInitiated → LocalPredicted
+	// 클라이언트가 입력 즉시 몽타주(루트모션·워프)를 재생해야 서버 위치 보정으로 인한 끊김이 없다.
+	// 데미지(Trace)·스태미나 차감은 아래 각 함수에서 서버 전용으로 유지한다.
+	NetExecutionPolicy = EGameplayAbilityNetExecutionPolicy::LocalPredicted;
 	ActivationGroup   = ELeeAbilityActivationGroup::Exclusive_Blocking;
 
 	// 어빌리티가 활성 동안 ASC에 자동 부여될 태그 (EndAbility 시 GAS가 자동 제거)
@@ -345,8 +348,9 @@ void ULeeGameplayAbility_AttackMelee::UpdateAttackWarpTarget()
 // 다단 공격에서 두 번째+ Warp 구간이 몽타주 시작 때의 낡은 위치가 아니라 최신 위치를 향하게 한다.
 void ULeeGameplayAbility_AttackMelee::OnRefreshWarpTargetEventReceived(FGameplayEventData Payload)
 {
-	// 서버 전용 — Warp 등록은 어빌리티가 도는 서버 권위 인스턴스에서 처리 (초기 등록과 동일 규약)
-	if (!GetActorInfo().IsNetAuthority() || !IsActive())
+	// 26.11.02 수정 - 서버 + 로컬 클라이언트 양쪽에서 갱신 (LocalPredicted: 양쪽 몽타주의 워프 이동량을 맞춘다)
+	const bool bServerOrLocal = GetActorInfo().IsNetAuthority() || GetActorInfo().IsLocallyControlled();
+	if (!bServerOrLocal || !IsActive())
 	{
 		return;
 	}
@@ -476,6 +480,12 @@ void ULeeGameplayAbility_AttackMelee::OnAttackStepEventReceived(FGameplayEventDa
 
 void ULeeGameplayAbility_AttackMelee::OnTraceEventReceived(FGameplayEventData Payload)
 {
+	// 26.11.02 추가 - 데미지는 서버에서만 적용 (LocalPredicted로 클라이언트에서도 어빌리티가 돌기 때문)
+	if (!GetActorInfo().IsNetAuthority())
+	{
+		return;
+	}
+
 	// Payload.Instigator: ANS_ToggleTrace가 설정하는 공격자 (GetOwner() 아님)
 	AActor* AttackerActor = const_cast<AActor*>(Payload.Instigator.Get());
 	if (!AttackerActor)
