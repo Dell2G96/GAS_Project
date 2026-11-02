@@ -5,6 +5,8 @@
 #include "Abilities/Tasks/AbilityTask_WaitGameplayEvent.h"
 #include "Abilities/Tasks/AbilityTask_WaitInputPress.h"
 #include "Animation/AnimMontage.h"
+#include "GameFramework/Character.h"
+#include "GameFramework/CharacterMovementComponent.h"
 #include "GAS_Project/MyTags.h"
 #include "GAS_Project/ACharacter/LeeTargetLockComponent.h"
 
@@ -49,6 +51,21 @@ AActor* ULeeGameplayAbility_PlayerAttackMelee::GetWarpFacingTarget() const
 {
 	const ULeeTargetLockComponent* Lock = ULeeTargetLockComponent::FindTargetLockComponent(GetAvatarActorFromActorInfo());
 	return (Lock && Lock->IsLocked()) ? Lock->GetLockedTarget() : nullptr;
+}
+
+// [모션워핑] 락온이 아닐 때 공격 방향 = 현재 이동 입력 방향
+// 서버에서도 원격 클라이언트의 입력을 알 수 있도록 GetLastMovementInputVector 대신 가속도(ServerMove로 전달됨)를 사용
+bool ULeeGameplayAbility_PlayerAttackMelee::GetWarpFallbackDirection(FVector& OutDirection) const
+{
+	const ACharacter* Character = Cast<ACharacter>(GetAvatarActorFromActorInfo());
+	const UCharacterMovementComponent* MoveComp = Character ? Character->GetCharacterMovement() : nullptr;
+	if (!MoveComp)
+	{
+		return false;
+	}
+
+	OutDirection = MoveComp->GetCurrentAcceleration().GetSafeNormal2D();
+	return !OutDirection.IsNearlyZero();
 }
 
 // 콤보 상태 초기화
