@@ -38,6 +38,14 @@ bool ULeeExecCalc_Damage::IsAttackInsideGuardArc(const AActor* Defender, const A
 	return ArcDot >= FrontDotThreshold;
 }
 
+// 가드불가 공격이 "일반 회피" 무적을 관통하는지 — 퍼펙트 회피 윈도우 안이거나 회피가 아닌 무적(처형 등)이면 관통하지 않음
+bool ULeeExecCalc_Damage::ShouldPierceDodgeInvincibility(const FGameplayTagContainer& DamageTypeTags, const UAbilitySystemComponent& TargetASC)
+{
+	return DamageTypeTags.HasTagExact(MyTags::Souls::DamageType_Attack_Unblockable)
+		&& TargetASC.HasMatchingGameplayTag(MyTags::Souls::Status_Dodge_Active)
+		&& !TargetASC.HasMatchingGameplayTag(MyTags::Souls::Status_Dodge_Perfect);
+}
+
 // 데미지 판정 본체 — 방어자 태그 우선순위 검사 후 Modifier 출력 + 판정 결과 태그 기록 (서버 전용 실행)
 void ULeeExecCalc_Damage::Execute_Implementation(
 	const FGameplayEffectCustomExecutionParameters& ExecutionParams,
@@ -83,8 +91,12 @@ void ULeeExecCalc_Damage::Execute_Implementation(
 		return;
 	}
 
+	const FGameplayTagContainer& DamageTypeTags = Spec.GetDynamicAssetTags();
+
 	// ── 우선순위 1: 무적 ─────────────────────────────────────────────
-	if (TargetASC->HasMatchingGameplayTag(MyTags::Souls::Status_Invincible))
+	// 가드불가 공격은 일반 회피 무적을 관통한다 (퍼펙트 회피만 통함) → 아래 가드불가 분기로 진행
+	if (TargetASC->HasMatchingGameplayTag(MyTags::Souls::Status_Invincible)
+		&& !ShouldPierceDodgeInvincibility(DamageTypeTags, *TargetASC))
 	{
 		// 퍼펙트 회피 윈도우 안이면 결과 기록 (연출/카운터윈도우는 DefenseComponent → Dodge 어빌리티)
 		if (TargetASC->HasMatchingGameplayTag(MyTags::Souls::Status_Dodge_Perfect) && MutableSpec)
@@ -99,8 +111,9 @@ void ULeeExecCalc_Damage::Execute_Implementation(
 		return;
 	}
 
-	// 가드불가 공격 — 가드/퍼펙트가드 판정을 건너뛰고 무조건 일반 피격으로 강제한다 (무적/퍼펙트 회피는 위에서 이미 처리됨)
-	const bool bUnblockable = Spec.GetDynamicAssetTags().HasTagExact(MyTags::Souls::DamageType_Attack_Unblockable);
+	// 가드불가 공격 — 가드/퍼펙트가드 판정을 건너뛰고 무조건 일반 피격으로 강제한다
+	// (퍼펙트 회피는 위에서 이미 처리됨. 일반 회피 무적은 관통해서 여기로 내려온다)
+	const bool bUnblockable = DamageTypeTags.HasTagExact(MyTags::Souls::DamageType_Attack_Unblockable);
 	if (bUnblockable)
 	{
 		if (MutableSpec)
@@ -135,7 +148,9 @@ void ULeeExecCalc_Damage::Execute_Implementation(
 	}
 
 	// ── 우선순위 3: 일반 가드 (전방 원뿔 안) ────────────────────────
-	if (bInsideGuardArc && TargetASC->HasMatchingGameplayTag(MyTags::Souls::Status_Guard_Active))
+	// 퍼펙트 가드 전용 공격은 일반 가드로 막을 수 없다 → 아래 일반 피격으로 진행
+	const bool bPerfectGuardOnly = DamageTypeTags.HasTagExact(MyTags::Souls::DamageType_Attack_PerfectGuardOnly);
+	if (bInsideGuardArc && !bPerfectGuardOnly && TargetASC->HasMatchingGameplayTag(MyTags::Souls::Status_Guard_Active))
 	{
 		if (MutableSpec)
 		{

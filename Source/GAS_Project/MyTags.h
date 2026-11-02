@@ -229,8 +229,10 @@ namespace MyTags
 		// ----- 데미지 속성 / 원인 -----
 		// [신규] 강공격 속성 태그 — 공격 GE Spec의 DynamicAssetTag로 전달 (추후 강공격 피격 리액션에서 사용)
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(DamageType_Attack_Heavy);
-		// [신규] 가드 불가 속성 태그 — 정의만, 실제 판정 분기는 추후 구현
+		// 가드 불가 속성 태그 — 가드/퍼펙트 가드 무시 + 일반 회피 무적도 관통 → 퍼펙트 회피로만 회피 가능
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(DamageType_Attack_Unblockable);
+		// 퍼펙트 가드 전용 속성 태그 — 일반 가드로는 막을 수 없고 퍼펙트 가드로만 막힘 (회피 무적은 그대로 유효)
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(DamageType_Attack_PerfectGuardOnly);
 		// 스태미나 감소 원인 태그 — 스태미나 0 도달 시 GuardBreak/PostureBreak 분기 근거 (리뷰 P0-3)
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(DamageType_ParryCounter);
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(DamageType_DodgeCost);

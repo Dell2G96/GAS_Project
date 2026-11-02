@@ -233,9 +233,10 @@ void ULeeDefenseComponent::HandleDamageResolved(AActor* EffectInstigator, AActor
 				SandBlindEffect->GetDefaultObject<UGameplayEffect>(), /*Level*/1.0f, OwnerASC->MakeEffectContext());
 		}
 
-		// 가드불가 공격을 가드 중에 맞으면 → 상태 변화 없이 연출만 가드브레이크 몽타주로 대체
+		// 가드불가 / 퍼펙트 가드 전용 공격을 일반 가드 중에 맞으면 → 상태 변화 없이 연출만 가드브레이크 몽타주로 대체
 		// (그로기 GE·가드 어빌리티 강제종료는 하지 않음. 실제 가드브레이크는 스태미나 고갈 시 HandleOutOfStamina가 그대로 담당)
-		if (ResultTags.HasTagExact(MyTags::Souls::DamageType_Attack_Unblockable)
+		if ((ResultTags.HasTagExact(MyTags::Souls::DamageType_Attack_Unblockable)
+				|| ResultTags.HasTagExact(MyTags::Souls::DamageType_Attack_PerfectGuardOnly))
 			&& OwnerASC->HasMatchingGameplayTag(MyTags::Souls::Status_Guard_Active))
 		{
 			SendGameplayEventTo(Owner, MyTags::Souls::Event_Combat_GuardBreak, Attacker);

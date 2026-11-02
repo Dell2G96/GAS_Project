@@ -30,7 +30,9 @@ struct FLeeMeleeAttackData
 	/**
 	 * 이 몽타주에만 적용되는 공격 속성 태그.
 	 * 데미지 GE Spec에 DynamicAssetTag로 실려 하위 시스템(강공격 피격 리액션, 가드 불가 판정 등)이 읽는다.
-	 * 예: Souls.DamageType.Attack.Heavy, Souls.DamageType.Attack.Unblockable
+	 * 예: Souls.DamageType.Attack.Heavy,
+	 *     Souls.DamageType.Attack.Unblockable (퍼펙트 회피로만 회피),
+	 *     Souls.DamageType.Attack.PerfectGuardOnly (퍼펙트 가드로만 방어)
 	 */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
 	FGameplayTagContainer DamageTypeTags;

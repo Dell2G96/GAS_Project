@@ -6,6 +6,7 @@
 #include "GameplayEffectExtension.h"
 #include "GameFramework/GameplayMessageSubsystem.h"
 #include "GAS_Project/MyTags.h"
+#include "GAS_Project/AAbilitySystem/Executions/LeeExecCalc_Damage.h"
 #include "GAS_Project/AMessage/LeeVerbMessage.h"
 #include "Net/UnrealNetwork.h"
 
@@ -109,8 +110,9 @@ bool ULeeSoulsStatSet::PreGameplayEffectExecute(FGameplayEffectModCallbackData& 
 	// 처형/암살 시퀀스 중 GE_FinisherInvincible이 부여하는 태그 — 모든 데미지 경로가 여기를 거친다.
 	if (Data.EvaluatedData.Attribute == GetHealthAttribute() && Data.EvaluatedData.Magnitude < 0.0f)
 	{
-		// 무적 태그가 있으면 넘어감
-		if (Data.Target.HasMatchingGameplayTag(MyTags::Souls::Status_Invincible))
+		// 무적 태그가 있으면 넘어감 — 단, 가드불가 공격의 일반 회피 무적 관통은 허용 (퍼펙트 회피로만 회피 가능)
+		if (Data.Target.HasMatchingGameplayTag(MyTags::Souls::Status_Invincible)
+			&& !ULeeExecCalc_Damage::ShouldPierceDodgeInvincibility(Data.EffectSpec.GetDynamicAssetTags(), Data.Target))
 		{
 			return false;
 		}
