@@ -295,6 +295,30 @@ void ALeeGameModeBase::HandleMatchAssignmentIfNotExpectingOne()
 		{
 			ExperienceId = TypedWorldSettings->GetDefaultGameplayExperience();
 			ExperienceIdSource = TEXT("WorldSettings");
+
+			// 별도 프로세스(-game)에서는 GameFeature(SoulsCore)의 Experience 경로 스캔이 몇 틱 늦게 반영된다
+			// 맵에 Experience가 지정돼 있는데 아직 못 찾았다면, 기본 Experience로 넘어가지 않고 다음 틱에 다시 시도
+			if (!ExperienceId.IsValid() && TypedWorldSettings->HasDefaultGameplayExperience())
+			{
+				if (ExperienceResolveStartTime < 0.0)
+				{
+					ExperienceResolveStartTime = FPlatformTime::Seconds();
+				}
+
+				// 레지스트리 수집이 끝났는데도 못 찾으면, 모든 Primary Asset 타입을 한 번 강제로 다시 스캔한다 (Experience·HUD ActionSet 등)
+				if (!bForcedExperienceRescan && !UAssetManager::Get().GetAssetRegistry().IsGathering())
+				{
+					bForcedExperienceRescan = true;
+					RescanAllPrimaryAssetTypes();
+					ExperienceId = TypedWorldSettings->GetDefaultGameplayExperience();
+				}
+
+				if (!ExperienceId.IsValid() && FPlatformTime::Seconds() - ExperienceResolveStartTime < ExperienceResolveTimeout)
+				{
+					GetWorldTimerManager().SetTimerForNextTick(this, &ThisClass::HandleMatchAssignmentIfNotExpectingOne);
+					return;
+				}
+			}
 		}
 	}
 
@@ -311,6 +335,37 @@ void ALeeGameModeBase::HandleMatchAssignmentIfNotExpectingOne()
 		ExperienceIdSource = TEXT("Default");
 	}
 	OnMatchAssignmentGiven(ExperienceId);
+}
+
+// 별도 프로세스(-game)에서 누락된 Primary Asset 스캔을 보완한다 — 등록된 모든 타입의 경로를 동기 스캔으로 다시 읽는다
+void ALeeGameModeBase::RescanAllPrimaryAssetTypes()
+{
+	UAssetManager& AssetManager = UAssetManager::Get();
+
+	TArray<FPrimaryAssetTypeInfo> TypeInfos;
+	AssetManager.GetPrimaryAssetTypeInfoList(TypeInfos);
+
+	for (const FPrimaryAssetTypeInfo& TypeInfo : TypeInfos)
+	{
+		// 에디터 전용 타입은 -game 프로세스에서 스캔되지 않으므로 건너뛴다
+		if (TypeInfo.AssetScanPaths.IsEmpty() || (TypeInfo.bIsEditorOnly && !GIsEditor) || !TypeInfo.AssetBaseClassLoaded)
+		{
+			continue;
+		}
+
+		TArray<FPrimaryAssetId> IdsBefore;
+		AssetManager.GetPrimaryAssetIdList(TypeInfo.PrimaryAssetType, IdsBefore);
+
+		AssetManager.ScanPathsForPrimaryAssets(TypeInfo.PrimaryAssetType, TypeInfo.AssetScanPaths, TypeInfo.AssetBaseClassLoaded, TypeInfo.bHasBlueprintClasses, TypeInfo.bIsEditorOnly, true);
+
+		TArray<FPrimaryAssetId> IdsAfter;
+		AssetManager.GetPrimaryAssetIdList(TypeInfo.PrimaryAssetType, IdsAfter);
+
+		if (IdsAfter.Num() != IdsBefore.Num())
+		{
+			UE_LOG(LogLee, Warning, TEXT("[AssetRescan] %s : ID %d개 -> %d개"), *TypeInfo.PrimaryAssetType.ToString(), IdsBefore.Num(), IdsAfter.Num());
+		}
+	}
 }
 
 void ALeeGameModeBase::OnMatchAssignmentGiven(const FPrimaryAssetId& ExperienceId)

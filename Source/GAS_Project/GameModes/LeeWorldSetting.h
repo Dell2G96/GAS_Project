@@ -22,6 +22,9 @@ public:
 public:
 	 FPrimaryAssetId GetDefaultGameplayExperience() const;
 
+	// 맵에 기본 Experience가 지정돼 있는지 (ID 조회 성공 여부와 무관)
+	bool HasDefaultGameplayExperience() const { return !DefaultGameplayExperience.IsNull(); }
+
 protected:
 	UPROPERTY(EditAnywhere, Category=GameMode)
 	TSoftClassPtr<class ULeeExperienceDefinition> DefaultGameplayExperience;

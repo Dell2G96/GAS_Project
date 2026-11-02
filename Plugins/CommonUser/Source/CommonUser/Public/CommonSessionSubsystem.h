@@ -96,6 +96,10 @@ public:
     UPROPERTY(BlueprintReadWrite, Category=Session)
     int32 MaxPlayerCount = 16;
 
+    /** 26.11.02 추가 - 세션에 함께 광고할 문자열 설정 (예: 방 이름, 보스 이름). 검색 쪽은 UCommonSession_SearchResult::GetStringSetting으로 읽는다 */
+    UPROPERTY(BlueprintReadWrite, Category=Session)
+    TMap<FName, FString> SessionStringSettings;
+
 public:
     /** 실제로 사용해야 할 최대 플레이어 수를 반환합니다. 자식 클래스에서 재정의할 수 있습니다 */
     COMMONUSER_API virtual int32 GetMaxPlayers() const;
