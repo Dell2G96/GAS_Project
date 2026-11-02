@@ -53,6 +53,7 @@ void ALeeBossLobbyManager::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>&
 
 	DOREPLIFETIME(ThisClass, ReadyPlayers);
 	DOREPLIFETIME(ThisClass, CountdownEndTime);
+	DOREPLIFETIME(ThisClass, ArrivingPlayerCount);
 }
 
 // 서버: 입장 요청 HostObject 생성·등록 + 접속/퇴장 구독 / 로컬 플레이어: 로비 HUD 표시
@@ -63,6 +64,10 @@ void ALeeBossLobbyManager::BeginPlay()
 	if (HasAuthority())
 	{
 		JoinHostObject = GetWorld()->SpawnActor<ALeeBossJoinBeaconHostObject>();
+		if (JoinHostObject)
+		{
+			JoinHostObject->OnRequestApproved.AddUObject(this, &ThisClass::HandleJoinApproved);
+		}
 		TryRegisterJoinHost();
 
 		PostLoginHandle = FGameModeEvents::GameModePostLoginEvent.AddUObject(this, &ThisClass::HandlePostLogin);
@@ -81,6 +86,7 @@ void ALeeBossLobbyManager::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	GetWorldTimerManager().ClearTimer(RegisterRetryTimerHandle);
 	GetWorldTimerManager().ClearTimer(ShowHUDRetryTimerHandle);
 	GetWorldTimerManager().ClearTimer(CountdownTimerHandle);
+	GetWorldTimerManager().ClearTimer(ArrivalTimeoutTimerHandle);
 
 	FGameModeEvents::GameModePostLoginEvent.Remove(PostLoginHandle);
 	FGameModeEvents::GameModeLogoutEvent.Remove(LogoutHandle);
@@ -191,6 +197,66 @@ void ALeeBossLobbyManager::HandlePostLogin(AGameModeBase* GameMode, APlayerContr
 {
 	if (GameMode && GameMode->GetWorld() == GetWorld())
 	{
+		// 26.11.03 추가 - 도착한 게스트 본인의 접속 대기만 지운다
+		// (시간 초과로 이미 빠진 게스트가 늦게 와도 다른 게스트의 대기는 남는다)
+		const APlayerState* NewPlayerState = NewPlayer ? NewPlayer->PlayerState : nullptr;
+		if (NewPlayerState && NewPlayerState->GetUniqueId().IsValid())
+		{
+			const FUniqueNetIdRepl& NewPlayerId = NewPlayerState->GetUniqueId();
+			PendingArrivals.RemoveAll([&NewPlayerId](const FLeeBossArrival& Arrival) { return Arrival.PlayerId == NewPlayerId; });
+			ArrivingPlayerCount = PendingArrivals.Num();
+		}
+
+		EvaluateCountdown();
+	}
+}
+
+// 접속 대기 인원 추가 → 기한 타이머 갱신 → 카운트다운 재판정(진행 중이면 취소)
+void ALeeBossLobbyManager::HandleJoinApproved(const FUniqueNetIdRepl& PlayerId)
+{
+	if (bTravelStarted)
+	{
+		return;
+	}
+
+	if (!PlayerId.IsValid())
+	{
+		// ID가 없으면 도착해도 대기를 지울 수 없어 30초 동안 출발만 막히므로 기록하지 않는다
+		UE_LOG(LogLee, Warning, TEXT("[BossLobby] 수락한 요청자의 고유 ID가 없어 접속 대기로 기록하지 않습니다."));
+		return;
+	}
+
+	// 같은 사람을 다시 수락했다면(시간 초과 후 재요청 등) 기존 기록을 지우고 기한을 새로 잡는다
+	PendingArrivals.RemoveAll([&PlayerId](const FLeeBossArrival& Arrival) { return Arrival.PlayerId == PlayerId; });
+
+	FLeeBossArrival Arrival;
+	Arrival.PlayerId = PlayerId;
+	Arrival.Deadline = GetWorld()->GetTimeSeconds() + ArrivalTimeoutSeconds;
+	PendingArrivals.Add(Arrival);
+	ArrivingPlayerCount = PendingArrivals.Num();
+
+	RemoveExpiredArrivals();
+	EvaluateCountdown();
+}
+
+// 기한이 지난 접속 대기 인원은 접속 실패로 보고 제거 → 남은 인원 중 가장 빠른 기한에 다시 확인
+void ALeeBossLobbyManager::RemoveExpiredArrivals()
+{
+	const float Now = GetWorld()->GetTimeSeconds();
+	const int32 RemovedCount = PendingArrivals.RemoveAll([Now](const FLeeBossArrival& Arrival) { return Arrival.Deadline <= Now; });
+	ArrivingPlayerCount = PendingArrivals.Num();
+
+	GetWorldTimerManager().ClearTimer(ArrivalTimeoutTimerHandle);
+	if (PendingArrivals.Num() > 0)
+	{
+		// 수락한 순서대로 쌓이므로 0번이 가장 빠른 기한
+		GetWorldTimerManager().SetTimer(ArrivalTimeoutTimerHandle, this, &ThisClass::RemoveExpiredArrivals,
+			FMath::Max(PendingArrivals[0].Deadline - Now, 0.01f), false);
+	}
+
+	if (RemovedCount > 0)
+	{
+		UE_LOG(LogLee, Log, TEXT("[BossLobby] 수락한 게스트 %d명이 %.0f초 안에 접속하지 않아 대기에서 제외합니다."), RemovedCount, ArrivalTimeoutSeconds);
 		EvaluateCountdown();
 	}
 }
@@ -238,6 +304,9 @@ void ALeeBossLobbyManager::EvaluateCountdown()
 	}
 	bAllReady &= (PlayerCount > 0);
 
+	// 26.11.03 추가 - 수락했지만 아직 접속 중인 게스트가 있으면 출발하지 않는다 (호스트 혼자 떠나는 문제)
+	bAllReady &= PendingArrivals.IsEmpty();
+
 	const bool bCounting = GetWorldTimerManager().IsTimerActive(CountdownTimerHandle);
 	if (bAllReady && !bCounting)
 	{
@@ -262,6 +331,10 @@ void ALeeBossLobbyManager::StartBossTravel()
 	{
 		UE_LOG(LogLee, Warning, TEXT("[BossLobby] 로비 Experience에 BossMap이 지정되지 않아 출발할 수 없습니다."));
 		CountdownEndTime = 0.0f;
+
+		// 26.11.03 추가 - 전원 준비 상태로 남으면 카운트다운이 다시 시작될 계기가 없으므로 준비를 모두 해제한다
+		// (다시 준비를 누르면 EvaluateCountdown이 카운트다운을 새로 시작한다)
+		ReadyPlayers.Empty();
 		return;
 	}
 

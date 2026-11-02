@@ -12,6 +12,7 @@
 #include "Components/Button.h"
 #include "Components/PanelWidget.h"
 #include "Components/TextBlock.h"
+#include "Components/VerticalBoxSlot.h"
 #include "GameFramework/GameStateBase.h"
 #include "GameFramework/PlayerState.h"
 #include "GAS_Project/APlayer/LeePlayerController.h"
@@ -98,13 +99,45 @@ void ULeeBossLobbyHUDWidget::RefreshLobbyState()
 			continue;
 		}
 
+		const bool bReady = LobbyManager->IsPlayerReady(PlayerState);
+
 		UTextBlock* Line = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass());
 		Line->SetText(FText::Format(NSLOCTEXT("LeeBossLobby", "PlayerLine", "{0}  -  {1}"),
 			FText::FromString(PlayerState->GetPlayerName()),
-			LobbyManager->IsPlayerReady(PlayerState)
+			bReady
 				? NSLOCTEXT("LeeBossLobby", "Ready", "준비 완료")
 				: NSLOCTEXT("LeeBossLobby", "NotReady", "대기 중")));
-		PlayerListPanel->AddChild(Line);
+
+		// 26.11.03 추가 - 로비 위젯과 같은 스타일 (준비 완료 = 금색, 대기 중 = 양피지색, 그림자)
+		FSlateFontInfo Font = Line->GetFont();
+		Font.Size = PlayerLineFontSize;
+		Line->SetFont(Font);
+		Line->SetColorAndOpacity(FSlateColor(bReady ? ReadyLineColor : PlayerLineColor));
+		Line->SetShadowOffset(FVector2D(1.0f, 1.0f));
+		Line->SetShadowColorAndOpacity(FLinearColor(0.0f, 0.0f, 0.0f, 0.85f));
+
+		UPanelSlot* LineSlot = PlayerListPanel->AddChild(Line);
+		if (UVerticalBoxSlot* VerticalSlot = Cast<UVerticalBoxSlot>(LineSlot))
+		{
+			VerticalSlot->SetPadding(FMargin(0.0f, 0.0f, 0.0f, 6.0f));
+		}
+	}
+
+	// 26.11.03 추가 - 입장을 수락했지만 아직 접속 중인 인원 (이 인원이 도착할 때까지 출발하지 않는다)
+	const int32 ArrivingCount = LobbyManager->GetArrivingPlayerCount();
+	if (ArrivingCount > 0)
+	{
+		UTextBlock* ArrivingLine = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass());
+		ArrivingLine->SetText(FText::Format(NSLOCTEXT("LeeBossLobby", "ArrivingLine", "접속 중...  ({0}명)"), ArrivingCount));
+
+		FSlateFontInfo Font = ArrivingLine->GetFont();
+		Font.Size = PlayerLineFontSize;
+		ArrivingLine->SetFont(Font);
+		ArrivingLine->SetColorAndOpacity(FSlateColor(PlayerLineColor));
+		ArrivingLine->SetShadowOffset(FVector2D(1.0f, 1.0f));
+		ArrivingLine->SetShadowColorAndOpacity(FLinearColor(0.0f, 0.0f, 0.0f, 0.85f));
+
+		PlayerListPanel->AddChild(ArrivingLine);
 	}
 
 	ReadyButtonText->SetText(LobbyManager->IsPlayerReady(GetOwningPlayerState())

@@ -70,6 +70,18 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Lee|BossLobby")
 	TSubclassOf<ULeeBossJoinRequestEntryWidget> RequestEntryClass;
 
+	// 26.11.03 추가 - 참가자 줄 글자 크기
+	UPROPERTY(EditDefaultsOnly, Category = "Lee|BossLobby|Style", meta = (ClampMin = 8))
+	int32 PlayerLineFontSize = 16;
+
+	// 26.11.03 추가 - 참가자 줄 글자 색 (대기 중)
+	UPROPERTY(EditDefaultsOnly, Category = "Lee|BossLobby|Style")
+	FLinearColor PlayerLineColor = FLinearColor(0.745f, 0.708f, 0.604f);
+
+	// 26.11.03 추가 - 참가자 줄 글자 색 (준비 완료)
+	UPROPERTY(EditDefaultsOnly, Category = "Lee|BossLobby|Style")
+	FLinearColor ReadyLineColor = FLinearColor(0.694f, 0.479f, 0.171f);
+
 	// 상태 갱신 주기(초)
 	UPROPERTY(EditDefaultsOnly, Category = "Lee|BossLobby", meta = (ClampMin = 0.05))
 	float RefreshInterval = 0.25f;

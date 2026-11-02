@@ -4,6 +4,7 @@
 #include "LeeBossJoinBeaconHostObject.h"
 
 #include "LeeBossJoinBeaconClient.h"
+#include "Engine/NetConnection.h"
 
 // 이 HostObject가 담당할 클라이언트 비콘 클래스와 타입 이름 지정 (클라이언트 비콘의 클래스 이름과 같아야 연결된다)
 ALeeBossJoinBeaconHostObject::ALeeBossJoinBeaconHostObject(const FObjectInitializer& ObjectInitializer)
@@ -28,7 +29,12 @@ void ALeeBossJoinBeaconHostObject::ApproveRequest(ALeeBossJoinBeaconClient* Requ
 {
 	if (Request && PendingRequests.Remove(Request) > 0)
 	{
+		// 비콘 연결의 PlayerId는 접속할 때 보낸 플레이어 고유 ID다 (게임 접속 후 PlayerState의 UniqueId와 같은 값)
+		const UNetConnection* Connection = Request->GetNetConnection();
+		const FUniqueNetIdRepl PlayerId = Connection ? Connection->PlayerId : FUniqueNetIdRepl();
+
 		Request->ClientJoinApproved();
+		OnRequestApproved.Broadcast(PlayerId);
 		OnRequestsChanged.Broadcast();
 	}
 }
