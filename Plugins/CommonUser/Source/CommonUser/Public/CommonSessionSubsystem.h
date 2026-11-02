@@ -311,6 +311,9 @@ public:
     UFUNCTION(BlueprintCallable, Category=Session)
     COMMONUSER_API virtual void CleanUpSessions();
 
+    /** 26.11.02 추가 - 호스팅 중인 비콘 리스너 (게임 쪽 비콘 HostObject를 같은 포트에 등록할 때 사용, 없으면 nullptr) */
+    COMMONUSER_API AOnlineBeaconHost* GetBeaconHostListener() const;
+
     //////////////////////////////////////////////////////////////////////
     // 이벤트
 

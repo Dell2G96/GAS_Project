@@ -215,6 +215,7 @@ namespace MyTags
 		UE_DEFINE_GAMEPLAY_TAG(Message_Death_YouDied, "Souls.Message.Death.YouDied")
 		UE_DEFINE_GAMEPLAY_TAG(Message_Death_Respawn, "Souls.Message.Death.Respawn")
 		UE_DEFINE_GAMEPLAY_TAG(Message_Death_PartyWiped, "Souls.Message.Death.PartyWiped")
+		UE_DEFINE_GAMEPLAY_TAG(Message_Boss_Victory, "Souls.Message.Boss.Victory")
 
 		// ----- 데미지 판정 결과 (ExecCalc → Spec DynamicAssetTags) -----
 		UE_DEFINE_GAMEPLAY_TAG(DamageResult_HitReact, "Souls.DamageResult.HitReact")

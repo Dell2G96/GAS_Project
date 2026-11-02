@@ -995,6 +995,12 @@ void UCommonSessionSubsystem::HandleQuickPlaySearchFinished(bool bSucceeded, con
 	}
 }
 
+// 26.11.02 추가 - 호스팅 중인 비콘 리스너 반환 (호스팅 전이거나 맵 이동으로 파괴되면 nullptr)
+AOnlineBeaconHost* UCommonSessionSubsystem::GetBeaconHostListener() const
+{
+	return BeaconHostListener.Get();
+}
+
 void UCommonSessionSubsystem::CleanUpSessions()
 {
 	bWantToDestroyPendingSession = true;

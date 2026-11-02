@@ -5,6 +5,8 @@
 
 #include "CommonSessionSubsystem.h"
 #include "CommonUserTypes.h"
+#include "LeeBossExpeditionSubsystem.h"
+#include "LeeBossJoinWaitWidget.h"
 #include "LeeBossRequestActor.h"
 #include "LeeBossRoomEntryWidget.h"
 #include "Components/Button.h"
@@ -26,6 +28,8 @@ void ULeeBossLobbyWidget::NativeOnInitialized()
 	CreateRoomButton->OnClicked.AddUniqueDynamic(this, &ThisClass::HandleCreateRoomClicked);
 	RefreshButton->OnClicked.AddUniqueDynamic(this, &ThisClass::HandleRefreshClicked);
 	CloseButton->OnClicked.AddUniqueDynamic(this, &ThisClass::HandleCloseClicked);
+
+	JoinWaitPanel->SetVisibility(ESlateVisibility::Collapsed);
 }
 
 // 창이 열릴 때 방 만들기/입장 결과 이벤트 구독
@@ -57,6 +61,10 @@ void ULeeBossLobbyWidget::HandleCreateSessionComplete(const FOnlineResultInforma
 {
 	if (!Result.bWasSuccessful)
 	{
+		if (ULeeBossExpeditionSubsystem* ExpeditionSubsystem = ULeeBossExpeditionSubsystem::Get(this))
+		{
+			ExpeditionSubsystem->CancelExpedition();
+		}
 		SetStatusText(Result.ErrorText.IsEmpty()
 			? NSLOCTEXT("LeeBossLobby", "CreateFailed", "방을 만들지 못했습니다")
 			: FText::Format(NSLOCTEXT("LeeBossLobby", "CreateFailedReason", "방을 만들지 못했습니다: {0}"), Result.ErrorText));
@@ -68,6 +76,12 @@ void ULeeBossLobbyWidget::HandleJoinSessionComplete(const FOnlineResultInformati
 {
 	if (!Result.bWasSuccessful)
 	{
+		// 26.11.02 추가 - 수락 후 참가에 실패하면 대기 패널을 닫고 필드에 남는다
+		JoinWaitPanel->HideWaitPanel();
+		if (ULeeBossExpeditionSubsystem* ExpeditionSubsystem = ULeeBossExpeditionSubsystem::Get(this))
+		{
+			ExpeditionSubsystem->CancelExpedition();
+		}
 		SetStatusText(Result.ErrorText.IsEmpty()
 			? NSLOCTEXT("LeeBossLobby", "JoinFailed", "방에 입장하지 못했습니다. 새로고침 후 다시 시도하세요")
 			: FText::Format(NSLOCTEXT("LeeBossLobby", "JoinFailedReason", "방에 입장하지 못했습니다: {0}"), Result.ErrorText));
@@ -106,6 +120,12 @@ void ULeeBossLobbyWidget::HandleCreateRoomClicked()
 	}
 	HostRequest->SessionStringSettings.Add(NAME_LeeBossRoomName, RoomName);
 	HostRequest->SessionStringSettings.Add(NAME_LeeBossBossName, Actor->GetBossName().ToString());
+
+	// 26.11.02 추가 - 로비/보스맵에서 돌아올 필드맵 기억
+	if (ULeeBossExpeditionSubsystem* ExpeditionSubsystem = ULeeBossExpeditionSubsystem::Get(this))
+	{
+		ExpeditionSubsystem->BeginExpedition(GetWorld());
+	}
 
 	SetStatusText(NSLOCTEXT("LeeBossLobby", "Creating", "방을 만드는 중..."));
 	SessionSubsystem->HostSession(GetOwningPlayer(), HostRequest);
@@ -188,17 +208,16 @@ void ULeeBossLobbyWidget::HandleSearchFinished(bool bSucceeded, const FText& Err
 		: NSLOCTEXT("LeeBossLobby", "NoRoom", "참여할 수 있는 방이 없습니다"));
 }
 
-// 선택한 방(세션)에 참가 — 성공하면 호스트의 로비 맵으로 이동한다
+// 26.11.02 변경 - 선택한 방의 호스트에 입장 요청 (수락되면 대기 패널이 세션 참가 → 로비 맵 이동)
 void ULeeBossLobbyWidget::JoinRoom(UCommonSession_SearchResult* SearchResult)
 {
-	UCommonSessionSubsystem* SessionSubsystem = GetGameInstance() ? GetGameInstance()->GetSubsystem<UCommonSessionSubsystem>() : nullptr;
-	if (!SessionSubsystem || !SearchResult)
+	if (!SearchResult)
 	{
 		return;
 	}
 
-	SetStatusText(NSLOCTEXT("LeeBossLobby", "Joining", "방에 입장하는 중..."));
-	SessionSubsystem->JoinSession(GetOwningPlayer(), SearchResult);
+	SetStatusText(FText::GetEmpty());
+	JoinWaitPanel->StartJoinRequest(SearchResult);
 }
 
 // 상태 문구 표시 (StatusText가 있을 때만)

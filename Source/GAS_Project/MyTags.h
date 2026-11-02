@@ -217,6 +217,8 @@ namespace MyTags
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Message_Death_Respawn);
 		// 26.11.02 추가 - 보스전 전멸 (YOU DIED만 표시, 부활 질문 없음 → 로비로 이동)
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Message_Death_PartyWiped);
+		// 26.11.02 추가 - 보스전 보스 처치 (VICTORY 표시 → 일정 시간 후 각자 필드로 복귀)
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Message_Boss_Victory);
 
 		// ----- 데미지 판정 결과 (ExecCalc → Spec DynamicAssetTags) -----
 		// 데미지 판정 결과 — ULeeExecCalc_Damage가 Spec DynamicAssetTags에 기록,

@@ -20,6 +20,8 @@ void ULeeDeathScreenWidget::NativeConstruct()
 		MyTags::Souls::Message_Death_Respawn, this, &ThisClass::HandleRespawnMessage);
 	PartyWipedListenerHandle = MessageSystem.RegisterListener(
 		MyTags::Souls::Message_Death_PartyWiped, this, &ThisClass::HandlePartyWipedMessage);
+	BossVictoryListenerHandle = MessageSystem.RegisterListener(
+		MyTags::Souls::Message_Boss_Victory, this, &ThisClass::HandleBossVictoryMessage);
 }
 
 // 구독 해제 + 부활 질문 위젯 정리
@@ -28,6 +30,7 @@ void ULeeDeathScreenWidget::NativeDestruct()
 	YouDiedListenerHandle.Unregister();
 	RespawnListenerHandle.Unregister();
 	PartyWipedListenerHandle.Unregister();
+	BossVictoryListenerHandle.Unregister();
 	HideRespawnPrompt();
 
 	Super::NativeDestruct();
@@ -46,6 +49,12 @@ void ULeeDeathScreenWidget::HandleYouDiedMessage(FGameplayTag Channel, const FLe
 void ULeeDeathScreenWidget::HandlePartyWipedMessage(FGameplayTag Channel, const FLeeVerbMessage& Message)
 {
 	OnYouDied();
+}
+
+// 26.11.02 추가 - 보스 처치 메시지 수신 → BP OnBossVictory
+void ULeeDeathScreenWidget::HandleBossVictoryMessage(FGameplayTag Channel, const FLeeVerbMessage& Message)
+{
+	OnBossVictory();
 }
 
 // 부활 메시지 수신 → 부활 질문 닫기 + BP OnRespawn

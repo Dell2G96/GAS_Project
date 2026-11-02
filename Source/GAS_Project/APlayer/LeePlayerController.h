@@ -31,6 +31,14 @@ public:
 	UFUNCTION(Server, Reliable, BlueprintCallable, Category = "Lee|Spectate")
 	void ServerSpectateNextTeammate();
 
+	// 26.11.02 추가 - 보스 로비에서 준비 / 준비 취소 요청 (로비 HUD의 [준비] 버튼)
+	UFUNCTION(Server, Reliable)
+	void ServerSetBossLobbyReady(bool bReady);
+
+	// 26.11.02 추가 - 보스 처치 후 서버가 각 클라이언트에게 자기 필드맵으로 돌아가라고 지시
+	UFUNCTION(Client, Reliable)
+	void ClientReturnToField();
+
 protected:
 	virtual void SetupInputComponent() override;
 

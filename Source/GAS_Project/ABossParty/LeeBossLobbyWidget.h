@@ -12,6 +12,7 @@ class UCommonSession_SearchResult;
 class UCommonSession_SearchSessionRequest;
 struct FOnlineResultInformation;
 class UEditableTextBox;
+class ULeeBossJoinWaitWidget;
 class ULeeBossRoomEntryWidget;
 class UPanelWidget;
 class UTextBlock;
@@ -27,7 +28,7 @@ public:
 	// 위젯을 띄운 도움 요청 Actor를 받아 저장하고 방 목록을 바로 검색한다
 	void InitializeLobby(ALeeBossRequestActor* InRequestActor);
 
-	// 방 항목의 '입장' 버튼에서 호출 — 선택한 세션에 참가
+	// 방 항목의 '입장' 버튼에서 호출 — 26.11.02 변경: 바로 참가하지 않고 호스트에 입장 요청 (대기 패널 표시)
 	void JoinRoom(UCommonSession_SearchResult* SearchResult);
 
 protected:
@@ -80,6 +81,10 @@ protected:
 	// 검색 중 / 방 없음 / 입장 중 등의 안내 문구
 	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UTextBlock> StatusText;
+
+	// 26.11.02 추가 - "요청 수락을 기다리는 중" 패널 (로비 창 위에 겹쳐 배치, 기본 Collapsed)
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<ULeeBossJoinWaitWidget> JoinWaitPanel;
 
 	// 방 1개를 표시할 항목 위젯 클래스 (ULeeBossRoomEntryWidget 기반 BP)
 	UPROPERTY(EditDefaultsOnly, Category = "Lee|BossLobby")

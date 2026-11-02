@@ -9,6 +9,8 @@
 #include "GAS_Project/ACamera/LeePlayerCameraManager.h"
 #include "GAS_Project/MyTags.h"
 #include "GAS_Project/GameModes/LeeBossPartySubsystem.h"
+#include "GAS_Project/ABossParty/LeeBossExpeditionSubsystem.h"
+#include "GAS_Project/ABossParty/LeeBossLobbyManager.h"
 
 ALeePlayerController::ALeePlayerController(const FObjectInitializer& ObjectInitializer)
 {
@@ -68,5 +70,23 @@ void ALeePlayerController::ServerSpectateNextTeammate_Implementation()
 	if (ULeeBossPartySubsystem* BossPartySubsystem = GetWorld()->GetSubsystem<ULeeBossPartySubsystem>())
 	{
 		BossPartySubsystem->SpectateNextTeammate(this);
+	}
+}
+
+// [서버] 로비 관리 Actor에 내 준비 상태 전달 (전원 준비 시 카운트다운은 관리 Actor가 판단)
+void ALeePlayerController::ServerSetBossLobbyReady_Implementation(bool bReady)
+{
+	if (ALeeBossLobbyManager* LobbyManager = ALeeBossLobbyManager::Get(this))
+	{
+		LobbyManager->SetPlayerReady(PlayerState, bReady);
+	}
+}
+
+// [클라이언트] 세션 정리 후 자기 필드맵으로 이동
+void ALeePlayerController::ClientReturnToField_Implementation()
+{
+	if (ULeeBossExpeditionSubsystem* ExpeditionSubsystem = ULeeBossExpeditionSubsystem::Get(this))
+	{
+		ExpeditionSubsystem->ReturnToField();
 	}
 }
