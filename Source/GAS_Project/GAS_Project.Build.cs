@@ -82,7 +82,10 @@ public class GAS_Project : ModuleRules
 			"CommonGame", 
 			"GameplayMessageRuntime",
 			"CommonLoadingScreen", "ControlFlows",
-			
+			// 26.11.02 추가 - 보스 원정 입장 요청 비콘(AOnlineBeaconClient/HostObject), 세션 접속 주소 조회
+			"OnlineSubsystem",
+			"OnlineSubsystemUtils",
+
 		});
 
 		#region 26.09.22 추가 - StateTree 에셋 자동 저작용 에디터 전용 의존성

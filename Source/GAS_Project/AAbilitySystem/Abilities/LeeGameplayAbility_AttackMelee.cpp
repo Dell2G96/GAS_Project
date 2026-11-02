@@ -9,6 +9,10 @@
 #include "Abilities/Tasks/AbilityTask_WaitGameplayEvent.h"
 #include "AIController.h"
 #include "MotionWarpingComponent.h"
+#include "AnimNotifyState_MotionWarping.h"
+#include "RootMotionModifier.h"
+#include "Animation/AnimInstance.h"
+#include "GameFramework/Character.h"
 #include "GAS_Project/MyTags.h"
 #include "GAS_Project/_Souls/Abilities/LeeSoulsStatSet.h"
 
@@ -16,7 +20,10 @@ ULeeGameplayAbility_AttackMelee::ULeeGameplayAbility_AttackMelee(const FObjectIn
 	: Super(ObjectInitializer)
 {
 	InstancingPolicy  = EGameplayAbilityInstancingPolicy::InstancedPerActor;
-	NetExecutionPolicy = EGameplayAbilityNetExecutionPolicy::ServerInitiated;
+	// 26.11.02 수정 - ServerInitiated → LocalPredicted
+	// 클라이언트가 입력 즉시 몽타주(루트모션·워프)를 재생해야 서버 위치 보정으로 인한 끊김이 없다.
+	// 데미지(Trace)·스태미나 차감은 아래 각 함수에서 서버 전용으로 유지한다.
+	NetExecutionPolicy = EGameplayAbilityNetExecutionPolicy::LocalPredicted;
 	ActivationGroup   = ELeeAbilityActivationGroup::Exclusive_Blocking;
 
 	// 어빌리티가 활성 동안 ASC에 자동 부여될 태그 (EndAbility 시 GAS가 자동 제거)
@@ -300,7 +307,17 @@ void ULeeGameplayAbility_AttackMelee::UpdateAttackWarpTarget()
 	AActor* Target = GetWarpFacingTarget();
 	if (!Target)
 	{
-		
+		// 대상은 없지만 대체 방향(Player = 이동 입력 방향)이 있으면 그 방향으로 회전 워프.
+		// 위치는 "원본 루트모션이 도착할 지점을 그 방향으로 돌린 곳" — 현재 위치를 넣으면 루트모션 이동이 상쇄되어 제자리/공중에서 멈춘다
+		FVector FallbackDir;
+		if (GetWarpFallbackDirection(FallbackDir))
+		{
+			const FRotator FacingRot = FallbackDir.Rotation();
+			const FVector WarpLoc = Avatar->GetActorLocation() + GetRootMotionOffsetToWarpEnd(FacingRot);
+			MW->AddOrUpdateWarpTargetFromLocationAndRotation(WarpTargetName, WarpLoc, FacingRot);
+			return;
+		}
+
 		// 워프 대상 없음 — 이전 타깃 제거하여 제자리 공격(워프 없음)으로 안전 폴백
 		MW->RemoveWarpTarget(WarpTargetName);
 		return;
@@ -341,12 +358,65 @@ void ULeeGameplayAbility_AttackMelee::UpdateAttackWarpTarget()
 	
 }
 
+// [모션워핑] 현재 몽타주 위치 ~ 다음 이동 워프 구간 끝까지의 원본 루트모션 이동량을 FacingRotation 기준 월드 오프셋으로 변환
+FVector ULeeGameplayAbility_AttackMelee::GetRootMotionOffsetToWarpEnd(const FRotator& FacingRotation) const
+{
+	const ACharacter* Character = Cast<ACharacter>(GetAvatarActorFromActorInfo());
+	const UAnimMontage* Montage = CurrentAttackData.Montage;
+	if (!Character || !Montage || !Character->GetMesh())
+	{
+		return FVector::ZeroVector;
+	}
+
+	// 재생 직전(아직 이 몽타주가 안 돌고 있음)이면 0초, 재생 중(Refresh 이벤트)이면 현재 위치부터 계산
+	float FromTime = 0.0f;
+	if (const UAnimInstance* AnimInstance = Character->GetMesh()->GetAnimInstance())
+	{
+		if (AnimInstance->Montage_IsPlaying(Montage))
+		{
+			FromTime = AnimInstance->Montage_GetPosition(Montage);
+		}
+	}
+
+	// 아직 끝나지 않은 워프 구간 중 가장 먼저 시작하는, 같은 타깃 이름 + 이동 워프인 구간을 찾는다
+	float WindowStart = TNumericLimits<float>::Max();
+	float WindowEnd = -1.0f;
+	for (const FAnimNotifyEvent& NotifyEvent : Montage->Notifies)
+	{
+		const UAnimNotifyState_MotionWarping* WarpNotify = Cast<UAnimNotifyState_MotionWarping>(NotifyEvent.NotifyStateClass);
+		const URootMotionModifier_Warp* Modifier = WarpNotify ? Cast<URootMotionModifier_Warp>(WarpNotify->RootMotionModifier) : nullptr;
+		if (!Modifier || Modifier->WarpTargetName != WarpTargetName || !Modifier->bWarpTranslation)
+		{
+			continue;
+		}
+
+		const float Start = NotifyEvent.GetTriggerTime();
+		const float End = NotifyEvent.GetEndTriggerTime();
+		if (End > FromTime && Start < WindowStart)
+		{
+			WindowStart = Start;
+			WindowEnd = End;
+		}
+	}
+
+	if (WindowEnd < 0.0f)
+	{
+		return FVector::ZeroVector;
+	}
+
+	// 루트 본 공간 이동량 → 액터 공간(메시 회전 오프셋 반영) → 바라볼 방향으로 회전
+	const FTransform RootMotion = UMotionWarpingUtilities::ExtractRootMotionFromAnimation(Montage, FromTime, WindowEnd);
+	const FVector ActorSpaceDelta = Character->GetBaseRotationOffset().RotateVector(RootMotion.GetTranslation());
+	return FacingRotation.RotateVector(ActorSpaceDelta);
+}
+
 // [모션워핑] RefreshWarpTarget 이벤트 수신 — 그 시점의 대상 위치로 워프 타깃을 다시 계산한다.
 // 다단 공격에서 두 번째+ Warp 구간이 몽타주 시작 때의 낡은 위치가 아니라 최신 위치를 향하게 한다.
 void ULeeGameplayAbility_AttackMelee::OnRefreshWarpTargetEventReceived(FGameplayEventData Payload)
 {
-	// 서버 전용 — Warp 등록은 어빌리티가 도는 서버 권위 인스턴스에서 처리 (초기 등록과 동일 규약)
-	if (!GetActorInfo().IsNetAuthority() || !IsActive())
+	// 26.11.02 수정 - 서버 + 로컬 클라이언트 양쪽에서 갱신 (LocalPredicted: 양쪽 몽타주의 워프 이동량을 맞춘다)
+	const bool bServerOrLocal = GetActorInfo().IsNetAuthority() || GetActorInfo().IsLocallyControlled();
+	if (!bServerOrLocal || !IsActive())
 	{
 		return;
 	}
@@ -476,6 +546,12 @@ void ULeeGameplayAbility_AttackMelee::OnAttackStepEventReceived(FGameplayEventDa
 
 void ULeeGameplayAbility_AttackMelee::OnTraceEventReceived(FGameplayEventData Payload)
 {
+	// 26.11.02 추가 - 데미지는 서버에서만 적용 (LocalPredicted로 클라이언트에서도 어빌리티가 돌기 때문)
+	if (!GetActorInfo().IsNetAuthority())
+	{
+		return;
+	}
+
 	// Payload.Instigator: ANS_ToggleTrace가 설정하는 공격자 (GetOwner() 아님)
 	AActor* AttackerActor = const_cast<AActor*>(Payload.Instigator.Get());
 	if (!AttackerActor)

@@ -21,6 +21,9 @@ public:
 	virtual void Deinitialize() override;
 	//~End of USubsystem interface
 
+	// 26.11.02 추가 - 월드 상태가 기록된 맵 이름 (보스 원정 후 돌아갈 필드맵, 기록이 없으면 빈 문자열)
+	FString GetSavedMapName() const;
+
 	// 저장된 마지막 휴식 세이브 포인트 ID (다른 맵의 기록이면 None)
 	FName GetLastRestedSavePointId(const UWorld* World) const;
 

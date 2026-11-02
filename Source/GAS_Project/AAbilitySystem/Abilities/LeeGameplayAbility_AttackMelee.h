@@ -248,12 +248,24 @@ protected:
 	virtual AActor* GetWarpFacingTarget() const;
 
 	/**
+	 * [모션워핑] 워프 대상이 없을 때 대신 바라볼 방향을 반환하는 훅.
+	 * 기본(Enemy) = false(방향 없음 → 제자리 공격). Player는 이동 입력 방향을 반환하도록 override한다.
+	 */
+	virtual bool GetWarpFallbackDirection(FVector& OutDirection) const { return false; }
+
+	/**
 	 * [모션워핑] GetWarpFacingTarget()으로 얻은 대상 기준으로 워프 타깃을 갱신한다.
 	 * CurrentAttackData.bWarpTranslation에 따라 위치+회전(A)/회전만(B)로 분기한다.
 	 * 대상이 없거나 MotionWarpingComponent가 없으면 기존 타깃을 제거한다(제자리 공격으로 안전 폴백).
 	 * 각 타 몽타주 재생 직전(PlayMontageAndWait 생성 직전)에 호출한다.
 	 */
 	void UpdateAttackWarpTarget();
+
+	/**
+	 * [모션워핑] 현재 몽타주 위치부터 "다음 이동(Translation) 워프 구간 끝"까지의 원본 루트모션 이동량을
+	 * FacingRotation 방향 기준 월드 오프셋으로 돌려준다. (락온 없이 회전만 바꿀 때 원래 이동 거리를 유지하기 위함)
+	 */
+	FVector GetRootMotionOffsetToWarpEnd(const FRotator& FacingRotation) const;
 
 	/** 현재 활성화된 공격의 데이터 (활성화 시 확정, 종료 시 초기화) */
 	UPROPERTY(Transient)

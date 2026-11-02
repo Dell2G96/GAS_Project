@@ -245,10 +245,15 @@ FString UCommonSession_HostSessionRequest::GetMapName() const
 	{
 		return MapAssetData.PackageName.ToString();
 	}
-	else
+
+	// Map 타입은 에디터 전용이라 -game 프로세스에서는 스캔되지 않는다 — ID 이름이 패키지 경로면 그대로 사용
+	const FString MapIdName = MapID.PrimaryAssetName.ToString();
+	if (MapID.PrimaryAssetType == FPrimaryAssetType(TEXT("Map")) && FPackageName::DoesPackageExist(MapIdName))
 	{
-		return FString();
+		return MapIdName;
 	}
+
+	return FString();
 }
 
 FString UCommonSession_HostSessionRequest::ConstructTravelURL() const
@@ -549,6 +554,12 @@ void UCommonSessionSubsystem::CreateOnlineSessionInternalOSSv1(ULocalPlayer* Loc
 		HostSettings.Set(SETTING_MATCHING_TIMEOUT, 120.0f, EOnlineDataAdvertisementType::ViaOnlineService);
 		HostSettings.Set(SETTING_SESSION_TEMPLATE_NAME, FString(TEXT("GameSession")), EOnlineDataAdvertisementType::ViaOnlineService);
 		HostSettings.Set(SETTING_ONLINESUBSYSTEM_VERSION, true, EOnlineDataAdvertisementType::ViaOnlineService);
+
+		// 26.11.02 추가 - 게임에서 지정한 문자열 설정(방 이름 등)을 검색 결과에 노출되도록 광고
+		for (const TPair<FName, FString>& Setting : Request->SessionStringSettings)
+		{
+			HostSettings.Set(Setting.Key, Setting.Value, EOnlineDataAdvertisementType::ViaOnlineService);
+		}
 
 		Sessions->CreateSession(*UserId, SessionName, HostSettings);
 		NotifySessionInformationUpdated(ECommonSessionInformationState::InGame, Request->ModeNameForAdvertisement, Request->GetMapName());
@@ -982,6 +993,12 @@ void UCommonSessionSubsystem::HandleQuickPlaySearchFinished(bool bSucceeded, con
 		//@TODO: This sucks, need to tell someone.
 		NotifySessionInformationUpdated(ECommonSessionInformationState::OutOfGame);
 	}
+}
+
+// 26.11.02 추가 - 호스팅 중인 비콘 리스너 반환 (호스팅 전이거나 맵 이동으로 파괴되면 nullptr)
+AOnlineBeaconHost* UCommonSessionSubsystem::GetBeaconHostListener() const
+{
+	return BeaconHostListener.Get();
 }
 
 void UCommonSessionSubsystem::CleanUpSessions()

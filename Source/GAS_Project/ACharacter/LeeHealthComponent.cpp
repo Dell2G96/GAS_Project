@@ -385,6 +385,8 @@ void ULeeHealthComponent::StartDeath()
 		if (ULeeBossPartySubsystem* BossPartySubsystem = GetWorld()->GetSubsystem<ULeeBossPartySubsystem>())
 		{
 			BossPartySubsystem->HandlePlayerDeathStarted(Cast<APawn>(Owner));
+			// 26.11.02 추가 - 보스(Actor Tag "Boss") 처치 판정
+			BossPartySubsystem->HandleBossDeathStarted(Owner);
 		}
 	}
 }

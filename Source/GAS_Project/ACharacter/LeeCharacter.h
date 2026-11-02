@@ -89,6 +89,11 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Lee|Downed")
 	TObjectPtr<class UAnimMontage> DownedMontage;
 
+	// 26.11.02 추가 - 넉다운 중 동료에게 보여줄 부활 상호작용 (BP에서 InteractionAbilityToGrant=GA_Revive, Text, 위젯 지정)
+	// 26.11.02 수정 - protected → public. 디테일 패널에서 Lee|Downed가 둘로 갈라지지 않도록 DownedMontage 바로 아래로 이동
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Lee|Downed")
+	FInteractionOption ReviveInteractionOption;
+
 	//~IInteractableTarget interface
 	// 26.11.02 추가 - 넉다운 상태일 때 살아 있는 아군에게 "부활" 상호작용 옵션을 제공
 	virtual void GatherInteractionOptions(const FInteractionQuery& InteractQuery, FInteractionOptionBuilder& OptionBuilder) override;
@@ -169,10 +174,6 @@ protected:
 	// 26.10.29 추가 - 사망 시작 시 Death 어빌리티가 재생할 몽타주 후보 (캐릭터 BP Class Defaults에서 지정)
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Lee|Death")
 	TArray<TObjectPtr<class UAnimMontage>> DeathMontages;
-
-	// 26.11.02 추가 - 넉다운 중 동료에게 보여줄 부활 상호작용 (BP에서 InteractionAbilityToGrant=GA_Revive, Text, 위젯 지정)
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Lee|Downed")
-	FInteractionOption ReviveInteractionOption;
 
 	virtual void OnMovementModeChanged(EMovementMode PrevMovementMode, uint8 PreviousCustomMode) override;
 	void SetMovementModeTag(EMovementMode MovementMode, uint8 CustomMovementMode, bool bTagEnabled);

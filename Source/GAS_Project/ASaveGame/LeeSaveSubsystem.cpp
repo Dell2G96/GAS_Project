@@ -38,6 +38,12 @@ void ULeeSaveSubsystem::Deinitialize()
 	Super::Deinitialize();
 }
 
+// 26.11.02 추가 - 월드 상태가 기록된 맵 이름 (세이브가 없으면 빈 문자열)
+FString ULeeSaveSubsystem::GetSavedMapName() const
+{
+	return SaveGame ? SaveGame->SavedMapName : FString();
+}
+
 // 같은 맵의 기록일 때만 마지막 휴식 세이브 포인트 ID를 돌려준다
 FName ULeeSaveSubsystem::GetLastRestedSavePointId(const UWorld* World) const
 {

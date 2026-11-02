@@ -60,6 +60,18 @@ protected:
 
 	 void HandleMatchAssignmentIfNotExpectingOne();
 
+	// 맵의 Experience ID 조회를 처음 시도한 시각 (별도 프로세스에서 에셋 스캔 반영을 기다릴 때 사용)
+	double ExperienceResolveStartTime = -1.0;
+
+	// Experience ID 조회 재시도 최대 대기 시간(초)
+	static constexpr double ExperienceResolveTimeout = 30.0;
+
+	// Primary Asset 강제 재스캔을 이미 했는지
+	bool bForcedExperienceRescan = false;
+
+	// 별도 프로세스(-game)에서 누락된 Primary Asset 스캔을 보완 (등록된 모든 타입을 동기 스캔)
+	void RescanAllPrimaryAssetTypes();
+
 	 bool TryDedicatedServerLogin();
 	// void HostDedicatedServerMatch(ECommonSessionOnlineMode OnlineMode);
 

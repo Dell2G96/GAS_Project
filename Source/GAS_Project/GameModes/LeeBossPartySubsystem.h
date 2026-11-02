@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "GameplayTagContainer.h"
 #include "Subsystems/WorldSubsystem.h"
 #include "LeeBossPartySubsystem.generated.h"
 
@@ -27,6 +28,9 @@ public:
 
 	// 플레이어 사망 시작 시 호출 (서버). 전멸이면 로비 이동, 아니면 관전 시작
 	void HandlePlayerDeathStarted(APawn* DeadPawn);
+
+	// 26.11.02 추가 - Actor 사망 시작 시 호출 (서버). Actor Tag "Boss"가 있으면 보스 처치 → VICTORY 후 각자 필드로 복귀
+	void HandleBossDeathStarted(AActor* DeadActor);
 
 	// 관전 중인 플레이어의 카메라를 다음 생존 동료로 전환 (서버)
 	void SpectateNextTeammate(APlayerController* SpectatorController);
@@ -55,7 +59,21 @@ private:
 	// 다른 플레이어를 보고 있던 관전자를 새 대상으로 옮긴다
 	void RetargetSpectatorsWatching(const APawn* LostTarget);
 
+	// 26.11.02 추가 - 모든 플레이어에게 UI 메시지 전송 (호스트는 바로 방송, 원격은 PlayerState Client RPC)
+	void SendMessageToAllPlayers(FGameplayTag MessageTag);
+
+	// 26.11.02 추가 - 원격 플레이어에게 먼저 필드 복귀를 지시하고, 잠시 뒤 호스트도 복귀
+	void ReturnPartyToField();
+
+	// 26.11.02 추가 - 호스트(로컬 플레이어) 필드 복귀
+	void ReturnHostToField();
+
 	bool bWipeInProgress = false;
 
+	// 26.11.02 추가 - 보스 처치 후 복귀 대기 중 (전멸 판정·넉다운 중단)
+	bool bVictoryInProgress = false;
+
 	FTimerHandle WipeTravelTimerHandle;
+
+	FTimerHandle VictoryTravelTimerHandle;
 };

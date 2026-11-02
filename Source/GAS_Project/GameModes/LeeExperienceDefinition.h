@@ -51,6 +51,14 @@ public:
 	UPROPERTY(EditDefaultsOnly, Category="PlayMode", meta=(ClampMin=0, EditCondition="PlayMode==ELeePlayMode::MultiplayerBoss"))
 	float WipeTravelDelay = 5.0f;
 
+	// 26.11.02 추가 - 로비에서 전원 준비 후 카운트다운이 끝나면 다 같이 이동할 보스맵 (로비 Experience에 지정)
+	UPROPERTY(EditDefaultsOnly, Category="PlayMode", meta=(EditCondition="PlayMode==ELeePlayMode::MultiplayerBoss"))
+	TSoftObjectPtr<UWorld> BossMap;
+
+	// 26.11.02 추가 - 보스 처치 후 VICTORY를 보여주고 각자 자기 필드로 돌아가기까지 대기 시간(초)
+	UPROPERTY(EditDefaultsOnly, Category="PlayMode", meta=(ClampMin=0, EditCondition="PlayMode==ELeePlayMode::MultiplayerBoss"))
+	float VictoryTravelDelay = 10.0f;
+
 	// 26.10.30 사용 안함 - 레거시 봇 스포너 방식(BotIdentifier → PawnData). Controller BP의 EnemyPawnData로 교체됨
 	// // EnemyPawn Data 추가
 	// UPROPERTY(EditDefaultsOnly, Category= Gameplay)

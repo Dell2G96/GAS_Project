@@ -30,6 +30,10 @@ protected:
 	UFUNCTION(BlueprintImplementableEvent, Category = "Lee|Death")
 	void OnRespawn();
 
+	// 26.11.02 추가 - 보스전에서 보스를 처치했을 때 호출 — BP에서 VICTORY 표시 (잠시 후 서버가 각자 필드로 보낸다)
+	UFUNCTION(BlueprintImplementableEvent, Category = "Lee|Death")
+	void OnBossVictory();
+
 	// YOU DIED 이후 띄울 부활 질문 위젯 ("부활하시겠습니까? [예]")
 	UPROPERTY(EditDefaultsOnly, Category = "Lee|Death")
 	TSubclassOf<UCommonActivatableWidget> RespawnPromptClass;
@@ -45,6 +49,9 @@ private:
 	// 26.11.02 추가 - 보스전 전멸: YOU DIED만 표시 (부활 질문 없이 서버가 로비로 이동시킨다)
 	void HandlePartyWipedMessage(FGameplayTag Channel, const FLeeVerbMessage& Message);
 
+	// 26.11.02 추가 - 보스 처치: VICTORY 표시
+	void HandleBossVictoryMessage(FGameplayTag Channel, const FLeeVerbMessage& Message);
+
 	// 부활 질문 위젯을 UI.Layer.Menu에 Push
 	void ShowRespawnPrompt();
 
@@ -54,6 +61,7 @@ private:
 	FGameplayMessageListenerHandle YouDiedListenerHandle;
 	FGameplayMessageListenerHandle RespawnListenerHandle;
 	FGameplayMessageListenerHandle PartyWipedListenerHandle;
+	FGameplayMessageListenerHandle BossVictoryListenerHandle;
 
 	FTimerHandle RespawnPromptTimerHandle;
 

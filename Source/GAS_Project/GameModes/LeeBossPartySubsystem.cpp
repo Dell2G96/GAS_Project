@@ -15,6 +15,8 @@
 #include "GAS_Project/ACharacter/LeeHealthComponent.h"
 #include "GAS_Project/AMessage/LeeVerbMessage.h"
 #include "GAS_Project/APlayer/LeePlayerState.h"
+#include "GAS_Project/APlayer/LeePlayerController.h"
+#include "GAS_Project/ABossParty/LeeBossExpeditionSubsystem.h"
 
 // 게임/PIE 월드에서만 생성한다 (에디터 프리뷰 월드 등 제외)
 bool ULeeBossPartySubsystem::DoesSupportWorldType(const EWorldType::Type WorldType) const
@@ -91,7 +93,7 @@ TArray<APawn*> ULeeBossPartySubsystem::GetPlayerPawns(bool bStandingOnly) const
 // 보스전이고, 피해자를 제외한 "서 있는" 동료가 1명 이상이면 넉다운 가능 (마지막 생존자는 바로 사망)
 bool ULeeBossPartySubsystem::CanEnterDowned(const APawn* VictimPawn) const
 {
-	if (bWipeInProgress || !GetBossExperience() || !VictimPawn || !VictimPawn->IsPlayerControlled())
+	if (bWipeInProgress || bVictoryInProgress || !GetBossExperience() || !VictimPawn || !VictimPawn->IsPlayerControlled())
 	{
 		return false;
 	}
@@ -109,7 +111,7 @@ bool ULeeBossPartySubsystem::CanEnterDowned(const APawn* VictimPawn) const
 // 사망한 플레이어 처리 — 서 있는 동료가 없으면 전멸, 있으면 사망자는 관전 시작
 void ULeeBossPartySubsystem::HandlePlayerDeathStarted(APawn* DeadPawn)
 {
-	if (bWipeInProgress || !GetBossExperience() || !DeadPawn || !DeadPawn->IsPlayerControlled())
+	if (bWipeInProgress || bVictoryInProgress || !GetBossExperience() || !DeadPawn || !DeadPawn->IsPlayerControlled())
 	{
 		return;
 	}
@@ -189,29 +191,7 @@ void ULeeBossPartySubsystem::StartPartyWipe()
 		}
 	}
 
-	for (FConstPlayerControllerIterator It = GetWorld()->GetPlayerControllerIterator(); It; ++It)
-	{
-		APlayerController* PlayerController = It->Get();
-		if (!PlayerController)
-		{
-			continue;
-		}
-
-		FLeeVerbMessage Message;
-		Message.Verb = MyTags::Souls::Message_Death_PartyWiped;
-		Message.Instigator = PlayerController;
-		Message.Target = PlayerController->PlayerState;
-
-		// 로컬 플레이어(호스트)는 바로 방송, 원격 플레이어는 PlayerState의 Client RPC로 전달
-		if (PlayerController->IsLocalController())
-		{
-			UGameplayMessageSubsystem::Get(PlayerController).BroadcastMessage(Message.Verb, Message);
-		}
-		else if (ALeePlayerState* LeePlayerState = PlayerController->GetPlayerState<ALeePlayerState>())
-		{
-			LeePlayerState->ClientBroadcastMessage(Message);
-		}
-	}
+	SendMessageToAllPlayers(MyTags::Souls::Message_Death_PartyWiped);
 
 	const float TravelDelay = GetBossExperience()->WipeTravelDelay;
 	GetWorld()->GetTimerManager().SetTimer(WipeTravelTimerHandle, this, &ThisClass::TravelToLobby, FMath::Max(TravelDelay, 0.01f), false);
@@ -229,4 +209,72 @@ void ULeeBossPartySubsystem::TravelToLobby()
 	}
 
 	GetWorld()->ServerTravel(LobbyMapName);
+}
+
+// 26.11.02 변경 - 전멸 메시지 루프를 함수로 분리 (보스 처치 VICTORY에도 재사용)
+// 로컬 플레이어(호스트)는 바로 방송, 원격 플레이어는 PlayerState의 Client RPC로 전달
+void ULeeBossPartySubsystem::SendMessageToAllPlayers(FGameplayTag MessageTag)
+{
+	for (FConstPlayerControllerIterator It = GetWorld()->GetPlayerControllerIterator(); It; ++It)
+	{
+		APlayerController* PlayerController = It->Get();
+		if (!PlayerController)
+		{
+			continue;
+		}
+
+		FLeeVerbMessage Message;
+		Message.Verb = MessageTag;
+		Message.Instigator = PlayerController;
+		Message.Target = PlayerController->PlayerState;
+
+		if (PlayerController->IsLocalController())
+		{
+			UGameplayMessageSubsystem::Get(PlayerController).BroadcastMessage(Message.Verb, Message);
+		}
+		else if (ALeePlayerState* LeePlayerState = PlayerController->GetPlayerState<ALeePlayerState>())
+		{
+			LeePlayerState->ClientBroadcastMessage(Message);
+		}
+	}
+}
+
+// 26.11.02 추가 - 보스(Actor Tag "Boss") 사망 → 전원 VICTORY 표시, VictoryTravelDelay 뒤 각자 필드로 복귀
+void ULeeBossPartySubsystem::HandleBossDeathStarted(AActor* DeadActor)
+{
+	if (bWipeInProgress || bVictoryInProgress || !DeadActor || !DeadActor->HasAuthority()
+		|| !DeadActor->ActorHasTag(TEXT("Boss")) || !GetBossExperience())
+	{
+		return;
+	}
+
+	bVictoryInProgress = true;
+	SendMessageToAllPlayers(MyTags::Souls::Message_Boss_Victory);
+
+	const float TravelDelay = GetBossExperience()->VictoryTravelDelay;
+	GetWorld()->GetTimerManager().SetTimer(VictoryTravelTimerHandle, this, &ThisClass::ReturnPartyToField, FMath::Max(TravelDelay, 0.01f), false);
+}
+
+// 26.11.02 추가 - 원격 플레이어부터 각자 필드로 보내고, 호스트는 1초 뒤 복귀 (호스트가 먼저 나가면 연결 끊김으로 처리되므로)
+void ULeeBossPartySubsystem::ReturnPartyToField()
+{
+	for (FConstPlayerControllerIterator It = GetWorld()->GetPlayerControllerIterator(); It; ++It)
+	{
+		ALeePlayerController* PlayerController = Cast<ALeePlayerController>(It->Get());
+		if (PlayerController && !PlayerController->IsLocalController())
+		{
+			PlayerController->ClientReturnToField();
+		}
+	}
+
+	GetWorld()->GetTimerManager().SetTimer(VictoryTravelTimerHandle, this, &ThisClass::ReturnHostToField, 1.0f, false);
+}
+
+// 26.11.02 추가 - 호스트 자신의 세션 정리 + 필드 복귀
+void ULeeBossPartySubsystem::ReturnHostToField()
+{
+	if (ULeeBossExpeditionSubsystem* ExpeditionSubsystem = ULeeBossExpeditionSubsystem::Get(this))
+	{
+		ExpeditionSubsystem->ReturnToField();
+	}
 }

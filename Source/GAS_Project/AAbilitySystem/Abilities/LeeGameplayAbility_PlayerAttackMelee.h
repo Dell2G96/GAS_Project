@@ -49,6 +49,9 @@ protected:
 	/** [모션워핑] 워프가 바라볼 대상 — 락온 대상(있고 락온 중일 때만)을 반환 */
 	virtual AActor* GetWarpFacingTarget() const override;
 
+	/** [모션워핑] 락온 대상이 없을 때 — 현재 이동 입력(가속도) 방향을 반환. 입력이 없으면 false */
+	virtual bool GetWarpFallbackDirection(FVector& OutDirection) const override;
+
 	/** 각 타 데이터의 [0] 비용을 쓰되 콤보 인덱스를 중복키로 넘겨 스태미나를 차감한다 */
 	virtual void OnAttackStepEventReceived(FGameplayEventData Payload) override;
 

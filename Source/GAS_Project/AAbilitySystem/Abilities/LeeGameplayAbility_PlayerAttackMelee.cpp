@@ -5,6 +5,8 @@
 #include "Abilities/Tasks/AbilityTask_WaitGameplayEvent.h"
 #include "Abilities/Tasks/AbilityTask_WaitInputPress.h"
 #include "Animation/AnimMontage.h"
+#include "GameFramework/Character.h"
+#include "GameFramework/CharacterMovementComponent.h"
 #include "GAS_Project/MyTags.h"
 #include "GAS_Project/ACharacter/LeeTargetLockComponent.h"
 
@@ -12,7 +14,9 @@ ULeeGameplayAbility_PlayerAttackMelee::ULeeGameplayAbility_PlayerAttackMelee(con
 	: Super(ObjectInitializer)
 {
 	// 좌클릭(또는 지정 입력) 트리거 시 활성화 — 부모의 ActivationGroup(Exclusive_Blocking),
-	// NetExecutionPolicy(ServerInitiated)는 그대로 상속해 사용한다.
+	// NetExecutionPolicy(LocalPredicted)는 그대로 상속해 사용한다.
+	// 26.11.02 - 콤보 판정은 서버와 로컬 클라이언트가 각자 자기 몽타주 기준으로 수행한다
+	// (로컬 클라이언트는 서버가 복제한 몽타주를 무시하므로 콤보 전환을 직접 재생해야 한다).
 	ActivationPolicy = ELeeAbilityActivationPolicy::OnInputTriggered;
 
 	// 콤보 윈도우 이벤트 태그 기본값
@@ -47,6 +51,21 @@ AActor* ULeeGameplayAbility_PlayerAttackMelee::GetWarpFacingTarget() const
 {
 	const ULeeTargetLockComponent* Lock = ULeeTargetLockComponent::FindTargetLockComponent(GetAvatarActorFromActorInfo());
 	return (Lock && Lock->IsLocked()) ? Lock->GetLockedTarget() : nullptr;
+}
+
+// [모션워핑] 락온이 아닐 때 공격 방향 = 현재 이동 입력 방향
+// 서버에서도 원격 클라이언트의 입력을 알 수 있도록 GetLastMovementInputVector 대신 가속도(ServerMove로 전달됨)를 사용
+bool ULeeGameplayAbility_PlayerAttackMelee::GetWarpFallbackDirection(FVector& OutDirection) const
+{
+	const ACharacter* Character = Cast<ACharacter>(GetAvatarActorFromActorInfo());
+	const UCharacterMovementComponent* MoveComp = Character ? Character->GetCharacterMovement() : nullptr;
+	if (!MoveComp)
+	{
+		return false;
+	}
+
+	OutDirection = MoveComp->GetCurrentAcceleration().GetSafeNormal2D();
+	return !OutDirection.IsNearlyZero();
 }
 
 // 콤보 상태 초기화
@@ -100,21 +119,16 @@ void ULeeGameplayAbility_PlayerAttackMelee::RegisterComboTasks()
 // WaitInputPress 등록 — 입력 수신 시 즉시 재등록해 다음 입력도 계속 받는다
 void ULeeGameplayAbility_PlayerAttackMelee::ListenForNextComboInput()
 {
-	// 콤보 상태는 서버만 소유 — 클라이언트에서는 입력 리스너를 걸지 않는다 (ServerInitiated 규칙)
-	if (!GetActorInfo().IsNetAuthority())
-	{
-		return;
-	}
-
+	// 26.11.02 수정 - 서버(복제된 입력)와 로컬 클라이언트(직접 입력) 양쪽에서 리스너를 건다
 	UAbilityTask_WaitInputPress* InputTask = UAbilityTask_WaitInputPress::WaitInputPress(this);
 	InputTask->OnPress.AddDynamic(this, &ThisClass::OnComboInputPressed);
 	InputTask->ReadyForActivation();
 }
 
-// 콤보 입력 허용 구간 시작 — 서버 전용. 선입력(버퍼)이 있으면 이 순간 예약으로 승격한다
+// 콤보 입력 허용 구간 시작 — 서버·로컬 클라이언트 각자. 선입력(버퍼)이 있으면 이 순간 예약으로 승격한다
 void ULeeGameplayAbility_PlayerAttackMelee::OnComboWindowOpen(FGameplayEventData Payload)
 {
-	if (!GetActorInfo().IsNetAuthority() || !IsActive())
+	if (!IsActive())
 	{
 		return;
 	}
@@ -130,10 +144,10 @@ void ULeeGameplayAbility_PlayerAttackMelee::OnComboWindowOpen(FGameplayEventData
 	}
 }
 
-// 콤보 입력 허용 구간 종료 — 서버 전용. 창만 닫고 예약(큐)은 유지한다
+// 콤보 입력 허용 구간 종료 — 서버·로컬 클라이언트 각자. 창만 닫고 예약(큐)은 유지한다
 void ULeeGameplayAbility_PlayerAttackMelee::OnComboWindowClose(FGameplayEventData Payload)
 {
-	if (!GetActorInfo().IsNetAuthority() || !IsActive())
+	if (!IsActive())
 	{
 		return;
 	}
@@ -147,7 +161,7 @@ void ULeeGameplayAbility_PlayerAttackMelee::OnComboInputPressed(float TimeWaited
 	// 다음 입력도 계속 받을 수 있도록 즉시 재등록
 	ListenForNextComboInput();
 
-	if (!GetActorInfo().IsNetAuthority() || !IsActive())
+	if (!IsActive())
 	{
 		return;
 	}
@@ -165,10 +179,10 @@ void ULeeGameplayAbility_PlayerAttackMelee::OnComboInputPressed(float TimeWaited
 	// else: 첫 콤보 윈도우가 열리기 전 입력 = 어빌리티를 활성화시킨 그 클릭 → 무시(콤보로 세지 않음)
 }
 
-// 전환 노티파이 수신 — 실제 콤보 전환이 실행되는 시점 (서버 전용)
+// 전환 노티파이 수신 — 실제 콤보 전환이 실행되는 시점 (서버·로컬 클라이언트 각자)
 void ULeeGameplayAbility_PlayerAttackMelee::OnComboTransition(FGameplayEventData Payload)
 {
-	if (!GetActorInfo().IsNetAuthority() || !IsActive())
+	if (!IsActive())
 	{
 		return;
 	}
