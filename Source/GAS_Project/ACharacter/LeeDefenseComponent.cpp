@@ -16,6 +16,9 @@ ULeeDefenseComponent::ULeeDefenseComponent()
 {
 	PrimaryComponentTick.bCanEverTick = true;
 	PrimaryComponentTick.bStartWithTickEnabled = false;
+
+	// 26.11.03 추가 - Client RPC(Client_SendDefenseEvent)를 쓰려면 컴포넌트가 복제되어야 한다
+	SetIsReplicatedByDefault(true);
 }
 
 // BeginPlay — 서버에서만 StatSet 델리게이트 바인딩 예약 + 디버그 켜져 있으면 틱 활성화
@@ -99,10 +102,17 @@ void ULeeDefenseComponent::BindToStatSetDelegates()
 
 // [서버] 데미지 판정 확정 — ExecCalc가 기록한 결과 태그별로 이벤트 발송 + 반대편 GE 적용
 void ULeeDefenseComponent::HandleDamageResolved(AActor* EffectInstigator, AActor* /*EffectCauser*/,
-	const FGameplayEffectSpec* EffectSpec, float /*EffectMagnitude*/, float /*OldValue*/, float /*NewValue*/)
+	const FGameplayEffectSpec* EffectSpec, float /*EffectMagnitude*/, float /*OldValue*/, float NewValue)
 {
 	// 서버 아니라면 리턴
 	if (GetOwnerRole() != ROLE_Authority || !EffectSpec)
+	{
+		return;
+	}
+
+	// 26.11.03 추가 - 이번 피격으로 HP가 0 이하가 됐다면 사망(또는 다운) 처리가 이미 시작된 상태이므로 리액션을 하지 않는다
+	// (리액션의 CancelExclusiveAbilities가 방금 켜진 GA_Hero_Death를 취소하려다 "CanBeCanceled is false" 에러를 남기던 문제)
+	if (NewValue <= 0.0f)
 	{
 		return;
 	}
@@ -147,6 +157,7 @@ void ULeeDefenseComponent::HandleDamageResolved(AActor* EffectInstigator, AActor
 	if (ResultTags.HasTagExact(MyTags::Souls::DamageResult_PerfectGuard))
 	{
 		SendGameplayEventTo(Owner, MyTags::Souls::Event_Defense_PerfectGuard, Attacker);
+		SendEventToOwningClient(MyTags::Souls::Event_Defense_PerfectGuard, Attacker);
 
 		UAbilitySystemComponent* AttackerASC =
 			Attacker ? UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(Attacker) : nullptr;
@@ -214,6 +225,7 @@ void ULeeDefenseComponent::HandleDamageResolved(AActor* EffectInstigator, AActor
 		if (!bReactionInProgress && !OwnerASC->HasMatchingGameplayTag(MyTags::Souls::Status_Groggy))
 		{
 			SendGameplayEventTo(Owner, MyTags::Souls::Event_Defense_GuardHit, Attacker);
+			SendEventToOwningClient(MyTags::Souls::Event_Defense_GuardHit, Attacker);
 		}
 		return;
 	}
@@ -439,6 +451,26 @@ void ULeeDefenseComponent::SendGameplayEventTo(AActor* TargetActor, const FGamep
 	Payload.Instigator = InstigatorActor;
 	Payload.Target = TargetActor;
 	UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(TargetActor, EventTag, Payload);
+}
+
+// [서버] 오너가 원격 플레이어면 같은 이벤트를 소유 클라이언트로 전달 — 로컬 클라는 서버가 복제한 몽타주를 무시하므로
+// 가드 어빌리티의 클라 인스턴스가 이 이벤트를 받아 플린치/패리 몽타주를 직접 재생해야 본인 화면에 보인다
+void ULeeDefenseComponent::SendEventToOwningClient(const FGameplayTag& EventTag, AActor* InstigatorActor)
+{
+	const APawn* OwnerPawn = Cast<APawn>(GetOwner());
+	if (!OwnerPawn || !OwnerPawn->IsPlayerControlled() || OwnerPawn->IsLocallyControlled())
+	{
+		// AI이거나 리슨 서버 호스트 본인이면 서버에서 보낸 이벤트로 이미 충분하다
+		return;
+	}
+
+	Client_SendDefenseEvent(EventTag, InstigatorActor);
+}
+
+// [클라이언트] 서버가 판정한 방어 이벤트를 로컬 오너에게 발송 (판정 자체는 서버 권위 그대로)
+void ULeeDefenseComponent::Client_SendDefenseEvent_Implementation(FGameplayTag EventTag, AActor* InstigatorActor)
+{
+	SendGameplayEventTo(GetOwner(), EventTag, InstigatorActor);
 }
 
 UAbilitySystemComponent* ULeeDefenseComponent::GetOwnerASC() const

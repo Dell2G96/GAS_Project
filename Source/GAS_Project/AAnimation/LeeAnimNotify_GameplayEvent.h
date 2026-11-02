@@ -41,4 +41,12 @@ protected:
 	 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Lee|Event", meta = (ClampMin = "0.0"))
 	float DamageMultiplier = 1.0f;
+
+	/**
+	 * 26.11.03 추가 - 켜면 서버 + "직접 조종 중인 클라이언트"에서도 이벤트를 발사한다.
+	 * LocalPredicted 어빌리티(플레이어 콤보 윈도우/전환, 워프 갱신)처럼 클라이언트 인스턴스가 직접 몽타주를 넘겨야 하는 이벤트에만 켠다.
+	 * 데미지·회복처럼 서버에서만 처리해야 하는 이벤트는 꺼 둔다(기본값).
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Lee|Event")
+	bool bSendOnLocalClient = false;
 };

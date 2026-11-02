@@ -104,6 +104,13 @@ private:
 	/** GameplayEvent 발송 헬퍼 (Instigator = 상대편 액터) */
 	static void SendGameplayEventTo(AActor* TargetActor, const FGameplayTag& EventTag, AActor* InstigatorActor);
 
+	/** 26.11.03 - [서버] 원격 플레이어 오너면 같은 이벤트를 소유 클라이언트에도 보낸다 (가드 플린치/패리 몽타주를 클라 인스턴스가 직접 재생하도록) */
+	void SendEventToOwningClient(const FGameplayTag& EventTag, AActor* InstigatorActor);
+
+	/** 26.11.03 - [클라이언트] 서버가 보낸 방어 이벤트를 로컬 오너에게 발송 */
+	UFUNCTION(Client, Reliable)
+	void Client_SendDefenseEvent(FGameplayTag EventTag, AActor* InstigatorActor);
+
 	UAbilitySystemComponent* GetOwnerASC() const;
 	
 	
