@@ -173,6 +173,8 @@ namespace MyTags
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Event_Attack_ComboTransition);
 		// 다단 공격 몽타주에서 Warp 구간마다 워프 타깃을 재계산 — Lee Gameplay Event(Server) 노티파이가 2번째+ Warp 구간 직전에 발사
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Event_Attack_RefreshWarpTarget);
+		// 26.11.03 추가 - 특수 공격(가드불가/퍼펙트가드 전용) 경고 연출 타이밍 — 몽타주 노티파이가 발사, GA_AttackMelee가 Cue 실행
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Event_Attack_Warning);
 		// [신규] 원거리 공격 발사 시점 — 몽타주의 Lee Gameplay Event(Server) 노티파이가 발사, GA_EnemyRangedAttack이 수신해 투사체를 스폰
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Event_Attack_Fire);
 
@@ -253,6 +255,9 @@ namespace MyTags
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(GameplayCue_Dodge_Perfect);
 		// [신규 26.10.20] 모래 시야 방해 화면 효과 Cue (ALeeGameplayCue_SandBlind)
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(GameplayCue_SandBlind);
+		// 26.11.03 추가 - 특수 공격 경고 불빛 Cue (가드불가 = 빨강 / 퍼펙트가드 전용 = 파랑). Cue BP는 에디터에서 제작
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(GameplayCue_AttackWarning_Unblockable);
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(GameplayCue_AttackWarning_PerfectGuardOnly);
 
 		// ----- 쿨타임 -----
 		// [신규 26.10.20] 근접 공격 몽타주별 쿨다운 태그의 부모. 개별 태그(Souls.Cooldown.<Enemy>.<Attack>)는 DefaultGameplayTags.ini에 추가

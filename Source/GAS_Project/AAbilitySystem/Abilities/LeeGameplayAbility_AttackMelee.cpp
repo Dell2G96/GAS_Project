@@ -12,8 +12,10 @@
 #include "AnimNotifyState_MotionWarping.h"
 #include "RootMotionModifier.h"
 #include "Animation/AnimInstance.h"
+#include "Animation/AnimMontage.h"
 #include "GameFramework/Character.h"
 #include "GAS_Project/MyTags.h"
+#include "GAS_Project/AAnimation/LeeAnimNotify_GameplayEvent.h"
 #include "GAS_Project/_Souls/Abilities/LeeSoulsStatSet.h"
 
 ULeeGameplayAbility_AttackMelee::ULeeGameplayAbility_AttackMelee(const FObjectInitializer& ObjectInitializer)
@@ -172,6 +174,22 @@ void ULeeGameplayAbility_AttackMelee::ActivateAbility(
 		RefreshTask->ReadyForActivation();
 	}
 
+	// 4-D. [공격 경고] Warning 이벤트 대기 — 가드불가/퍼펙트가드 전용 공격의 경고 불빛 타이밍 (서버만, Cue는 멀티캐스트로 전원에게 보임)
+	//      OnlyTriggerOnce=false: 콤보 몽타주처럼 경고가 여러 번 필요한 경우 반복 수신
+	if (ActorInfo->IsNetAuthority())
+	{
+		UAbilityTask_WaitGameplayEvent* WarningTask =
+			UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(
+				this,
+				MyTags::Souls::Event_Attack_Warning,
+				/*OptionalExternalOwner*/nullptr,
+				/*OnlyTriggerOnce*/false,
+				/*OnlyMatchExact*/true);
+
+		WarningTask->EventReceived.AddDynamic(this, &ThisClass::OnAttackWarningEventReceived);
+		WarningTask->ReadyForActivation();
+	}
+
 	// 5. 몽타주 재생 (Player 파생 클래스는 이 함수를 override하여 콤보 Task를 먼저 등록한다)
 	PlayAttackMontage(CurrentAttackData.Montage, NAME_None);
 }
@@ -182,6 +200,12 @@ void ULeeGameplayAbility_AttackMelee::PlayAttackMontage(UAnimMontage* Montage, F
 	// 몽타주 재생 직전, 공격 대상 기준으로 워프 타깃을 갱신 (하이브리드: CurrentAttackData.bWarpTranslation 참조)
 	UpdateAttackWarpTarget();
 
+	// [공격 경고] 몽타주에 Warning 노티파이가 없으면 재생 시작 시점에 바로 경고 (노티파이 배치를 잊은 몽타주 대비)
+	if (CurrentActorInfo && CurrentActorInfo->IsNetAuthority() && !MontageHasAttackWarningNotify(Montage))
+	{
+		ExecuteAttackWarningCue();
+	}
+
 	UAbilityTask_PlayMontageAndWait* MontageTask =
 		UAbilityTask_PlayMontageAndWait::CreatePlayMontageAndWaitProxy(
 			this, NAME_None, Montage, /*PlayRate*/1.0f, StartSection);
@@ -191,6 +215,63 @@ void ULeeGameplayAbility_AttackMelee::PlayAttackMontage(UAnimMontage* Montage, F
 	MontageTask->OnInterrupted.AddDynamic(this, &ThisClass::OnMontageInterrupted);
 	MontageTask->OnCancelled.AddDynamic(this, &ThisClass::OnMontageInterrupted);
 	MontageTask->ReadyForActivation();
+}
+
+// [공격 경고] Warning 노티파이 타이밍 — 경고 Cue 실행 (이벤트는 서버에서만 발사되고 대기 태스크도 서버에만 등록됨)
+void ULeeGameplayAbility_AttackMelee::OnAttackWarningEventReceived(FGameplayEventData /*Payload*/)
+{
+	ExecuteAttackWarningCue();
+}
+
+// [공격 경고] 공격 속성 태그 → 경고 Cue 태그. 둘 다 있으면 더 위험한 가드불가(빨강)를 우선한다
+FGameplayTag ULeeGameplayAbility_AttackMelee::GetAttackWarningCueTag() const
+{
+	if (CurrentAttackData.DamageTypeTags.HasTagExact(MyTags::Souls::DamageType_Attack_Unblockable))
+	{
+		return MyTags::Souls::GameplayCue_AttackWarning_Unblockable;
+	}
+	if (CurrentAttackData.DamageTypeTags.HasTagExact(MyTags::Souls::DamageType_Attack_PerfectGuardOnly))
+	{
+		return MyTags::Souls::GameplayCue_AttackWarning_PerfectGuardOnly;
+	}
+	return FGameplayTag();
+}
+
+// [공격 경고][서버] Cue 실행 — 서버에서 ExecuteGameplayCue를 호출하면 모든 클라이언트로 멀티캐스트된다 (연출 전용, 판정 무관)
+void ULeeGameplayAbility_AttackMelee::ExecuteAttackWarningCue() const
+{
+	const FGameplayTag CueTag = GetAttackWarningCueTag();
+	if (!CueTag.IsValid())
+	{
+		return;
+	}
+
+	if (UAbilitySystemComponent* ASC = GetAbilitySystemComponentFromActorInfo())
+	{
+		FGameplayCueParameters CueParams;
+		CueParams.Instigator = GetAvatarActorFromActorInfo();
+		CueParams.EffectCauser = GetAvatarActorFromActorInfo();
+		ASC->ExecuteGameplayCue(CueTag, CueParams);
+	}
+}
+
+// [공격 경고] 몽타주 노티파이 중 Souls.Events.Attack.Warning을 발사하는 LeeAnimNotify_GameplayEvent가 있는지 검사
+bool ULeeGameplayAbility_AttackMelee::MontageHasAttackWarningNotify(const UAnimMontage* Montage)
+{
+	if (!Montage)
+	{
+		return false;
+	}
+
+	for (const FAnimNotifyEvent& NotifyEvent : Montage->Notifies)
+	{
+		const ULeeAnimNotify_GameplayEvent* EventNotify = Cast<ULeeAnimNotify_GameplayEvent>(NotifyEvent.Notify);
+		if (EventNotify && EventNotify->GetEventTag().MatchesTagExact(MyTags::Souls::Event_Attack_Warning))
+		{
+			return true;
+		}
+	}
+	return false;
 }
 
 // 공격 데이터 목록 검증 — 기본은 "비어있지 않은가"만 확인 (Enemy는 여러 개 중 랜덤 선택)

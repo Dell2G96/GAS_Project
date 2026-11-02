@@ -177,6 +177,7 @@ namespace MyTags
 		UE_DEFINE_GAMEPLAY_TAG(Event_Attack_ComboTransition, "Souls.Events.Attack.ComboTransition")
 		// [신규] Warp 타깃 재계산 이벤트 (다단 공격의 2번째+ Warp 구간 직전에 Lee Gameplay Event(Server) 노티파이가 발사)
 		UE_DEFINE_GAMEPLAY_TAG(Event_Attack_RefreshWarpTarget, "Souls.Events.Attack.RefreshWarpTarget")
+		UE_DEFINE_GAMEPLAY_TAG(Event_Attack_Warning, "Souls.Events.Attack.Warning")
 		UE_DEFINE_GAMEPLAY_TAG(Event_Attack_Fire, "Souls.Events.Attack.Fire")
 
 		// ----- 이벤트 - 방어 판정 (ULeeDefenseComponent 발신) -----
@@ -246,6 +247,8 @@ namespace MyTags
 		UE_DEFINE_GAMEPLAY_TAG(GameplayCue_FinishIndicator, "GameplayCue.Souls.FinishIndicator")
 		UE_DEFINE_GAMEPLAY_TAG(GameplayCue_Dodge_Perfect, "GameplayCue.Souls.Dodge.Perfect")
 		UE_DEFINE_GAMEPLAY_TAG(GameplayCue_SandBlind, "GameplayCue.Souls.SandBlind")
+		UE_DEFINE_GAMEPLAY_TAG(GameplayCue_AttackWarning_Unblockable, "GameplayCue.Souls.AttackWarning.Unblockable")
+		UE_DEFINE_GAMEPLAY_TAG(GameplayCue_AttackWarning_PerfectGuardOnly, "GameplayCue.Souls.AttackWarning.PerfectGuardOnly")
 
 		// 근접 공격 몽타주별 쿨다운 태그의 부모
 		UE_DEFINE_GAMEPLAY_TAG(Cooldown, "Souls.Cooldown")

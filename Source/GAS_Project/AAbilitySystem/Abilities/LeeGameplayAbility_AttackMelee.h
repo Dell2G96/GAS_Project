@@ -33,6 +33,8 @@ struct FLeeMeleeAttackData
 	 * 예: Souls.DamageType.Attack.Heavy,
 	 *     Souls.DamageType.Attack.Unblockable (퍼펙트 회피로만 회피),
 	 *     Souls.DamageType.Attack.PerfectGuardOnly (퍼펙트 가드로만 방어)
+	 * 가드불가/퍼펙트가드 전용 공격은 경고 불빛 Cue가 자동 실행된다 (빨강/파랑).
+	 * 타이밍은 몽타주의 Souls.Events.Attack.Warning 노티파이, 없으면 몽타주 재생 시작 시점.
 	 */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
 	FGameplayTagContainer DamageTypeTags;
@@ -297,6 +299,22 @@ protected:
 	 */
 	UFUNCTION()
 	virtual void OnRefreshWarpTargetEventReceived(FGameplayEventData Payload);
+
+	/**
+	 * [공격 경고] Souls.Events.Attack.Warning 수신 → 현재 공격 속성에 맞는 경고 Cue 실행 (서버).
+	 * 몽타주의 준비 동작 프레임에 LeeAnimNotify_GameplayEvent(EventTag = Souls.Events.Attack.Warning)를 배치하면 그 타이밍에 불빛이 난다.
+	 */
+	UFUNCTION()
+	virtual void OnAttackWarningEventReceived(FGameplayEventData Payload);
+
+	/** [공격 경고] 현재 공격 속성 → 경고 Cue 태그 (가드불가 = 빨강, 퍼펙트가드 전용 = 파랑, 그 외 = 없음) */
+	FGameplayTag GetAttackWarningCueTag() const;
+
+	/** [공격 경고][서버] 현재 공격에 해당하는 경고 Cue를 실행한다. 해당 속성이 없으면 아무것도 하지 않음 */
+	void ExecuteAttackWarningCue() const;
+
+	/** [공격 경고] 몽타주에 Warning 이벤트 노티파이가 배치돼 있는지 — 없으면 몽타주 재생 시작 시점에 경고를 띄운다 */
+	static bool MontageHasAttackWarningNotify(const UAnimMontage* Montage);
 
 private:
 	/** ANS_ToggleTrace로부터 HitResult 이벤트를 수신하여 데미지 GE 적용 */

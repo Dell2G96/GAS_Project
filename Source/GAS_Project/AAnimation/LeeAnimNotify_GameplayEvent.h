@@ -30,6 +30,9 @@ public:
 
 	virtual FString GetNotifyName_Implementation() const override;
 
+	/** 이 노티파이가 발사하는 이벤트 태그 (몽타주에 특정 이벤트 노티파이가 배치돼 있는지 검사할 때 사용) */
+	const FGameplayTag& GetEventTag() const { return EventTag; }
+
 protected:
 	/** 발사할 GameplayEvent 태그 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Lee|Event")
