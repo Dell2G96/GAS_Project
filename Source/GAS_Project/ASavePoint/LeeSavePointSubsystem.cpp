@@ -219,17 +219,28 @@ void ULeeSavePointSubsystem::DestroyPawnForReset(APawn* Pawn)
 	}
 
 	// 사망 중인 Pawn은 FinishDeath가 호출된 적이 없다 → 여기서 완료시켜 GA_Death(Exclusive_Blocking)를 끝낸다
+	bool bWasDying = false;
 	if (ULeeHealthComponent* HealthComponent = ULeeHealthComponent::FindHealthComponent(Pawn))
 	{
 		if (HealthComponent->GetDeathState() == ELeeDeathState::DeathStarted)
 		{
 			HealthComponent->FinishDeath();
+			bWasDying = true;
 		}
 	}
 
 	if (ALeeCharacter* LeeCharacter = Cast<ALeeCharacter>(Pawn))
 	{
-		LeeCharacter->UninitAndDestroy();
+		// 26.11.03 수정 - 죽어 있던 Pawn은 Controller가 붙어 있을 때 사망 정리(BP OnDeathFinished → ClearInventory)를 바로 실행한다.
+		// UninitAndDestroy를 먼저 부르면 Controller가 떨어진 뒤 다음 틱에 OnDeathFinished가 실행되어 GetController가 None이 된다
+		if (bWasDying)
+		{
+			LeeCharacter->DestroyDueToDeath();
+		}
+		else
+		{
+			LeeCharacter->UninitAndDestroy();
+		}
 	}
 	else
 	{

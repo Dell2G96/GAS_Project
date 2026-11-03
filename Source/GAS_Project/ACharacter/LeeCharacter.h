@@ -85,6 +85,13 @@ public:
 	// 26.10.29 추가 - DeathMontages 중 하나를 랜덤으로 반환 (비어 있으면 nullptr)
 	class UAnimMontage* GetRandomDeathMontage() const;
 
+	// 26.11.03 추가 - 서버의 Death 어빌리티가 호출. 모든 머신에서 사망 페이드(디졸브) BP 이벤트를 실행한다
+	UFUNCTION(NetMulticast, Reliable)
+	void MulticastStartDeathFade(float FadeDuration);
+
+	// 26.11.03 수정 - protected → public. 세이브 포인트 리셋이 Controller를 떼기 전에 BP OnDeathFinished(인벤토리 정리)까지 즉시 실행하기 위해 호출
+	void DestroyDueToDeath();
+
 	// 26.11.02 추가 - 보스전 넉다운 진입 시 GA_Downed가 재생할 몽타주 (캐릭터 BP Class Defaults에서 지정, 비우면 생략)
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Lee|Downed")
 	TObjectPtr<class UAnimMontage> DownedMontage;
@@ -166,10 +173,13 @@ protected:
 	virtual void OnDeathFinished(AActor* OwningActor);
 
 	void DisableMovementAndCollision();
-	void DestroyDueToDeath();
 
 	UFUNCTION(BlueprintImplementableEvent, meta=(DisplayName="OnDeathFinished"))
 	void K2_OnDeathFinished();
+
+	// 26.11.03 추가 - 사망 몽타주 후 페이드 시작 시 호출. BP에서 FadeDuration 동안 디졸브 파라미터를 0→1로 올린다
+	UFUNCTION(BlueprintImplementableEvent, meta=(DisplayName="OnDeathFadeStarted"))
+	void K2_OnDeathFadeStarted(float FadeDuration);
 
 	// 26.10.29 추가 - 사망 시작 시 Death 어빌리티가 재생할 몽타주 후보 (캐릭터 BP Class Defaults에서 지정)
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Lee|Death")
@@ -204,6 +214,9 @@ private:
 
 	UPROPERTY()
 	FOnLeeTeamIndexChangedDelegate OnTeamChangedDelegate;
+
+	// 26.11.03 추가 - DestroyDueToDeath가 이미 실행됐는지 (리셋 직접 호출 + 다음 틱 타이머의 중복 실행 방지)
+	bool bDeathCleanupDone = false;
 
 
 protected:

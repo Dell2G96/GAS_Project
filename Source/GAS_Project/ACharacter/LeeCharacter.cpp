@@ -436,6 +436,12 @@ void ALeeCharacter::OnDeathFinished(AActor* OwningActor)
 	GetWorld()->GetTimerManager().SetTimerForNextTick(this, &ThisClass::DestroyDueToDeath);
 }
 
+// 서버 → 모든 머신: 사망 페이드 연출 BP 이벤트 실행 (파괴는 서버의 FinishDeath가 담당)
+void ALeeCharacter::MulticastStartDeathFade_Implementation(float FadeDuration)
+{
+	K2_OnDeathFadeStarted(FadeDuration);
+}
+
 void ALeeCharacter::DisableMovementAndCollision()
 {
 	if (GetController())
@@ -453,8 +459,17 @@ void ALeeCharacter::DisableMovementAndCollision()
 	LeeMoveComp->DisableMovement();
 }
 
+// 사망 완료 정리: BP OnDeathFinished(인벤토리 정리 등) 실행 후 숨김·파괴. 두 번째 호출은 무시한다
 void ALeeCharacter::DestroyDueToDeath()
 {
+	// 26.11.03 추가 - 리셋에서 직접 호출한 뒤 OnDeathFinished의 다음 틱 타이머로 다시 들어오면
+	// Controller가 이미 떨어져 BP ClearInventory가 GetController(None)를 읽으므로 한 번만 실행한다
+	if (bDeathCleanupDone)
+	{
+		return;
+	}
+	bDeathCleanupDone = true;
+
 	K2_OnDeathFinished();
 
 	UninitAndDestroy();
