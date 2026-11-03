@@ -451,6 +451,13 @@ void ULeeGameplayAbility_AttackMelee::EndAbility(
 	CurrentAttackStepIndex = 0;
 	CommittedAttackSteps.Empty();
 
+	// [타격별 공격 속성] 몽타주가 비정상 종료돼 Telegraph NotifyEnd가 불리지 않아도 다음 공격에 속성 태그가 남지 않도록 초기화
+	if (UAbilitySystemComponent* ASC = ActorInfo ? ActorInfo->AbilitySystemComponent.Get() : nullptr)
+	{
+		ASC->SetLooseGameplayTagCount(MyTags::Souls::DamageType_Attack_Unblockable, 0);
+		ASC->SetLooseGameplayTagCount(MyTags::Souls::DamageType_Attack_PerfectGuardOnly, 0);
+	}
+
 	// 공격 종료 후 일정 시간 동안 스태미나 회복을 지연 (RegenBlocked 태그를 Duration GE로 유지)
 	// 실제로 공격이 시작된 경우(쿨다운 커밋 성공)에만 적용한다 — 데이터 검증 실패 등으로
 	// 몽타주가 재생되지도 못하고 끝난 경우까지 회복을 지연시키는 것은 의도한 동작이 아니다
@@ -606,6 +613,16 @@ void ULeeGameplayAbility_AttackMelee::OnTraceEventReceived(FGameplayEventData Pa
 		for (const FGameplayTag& DamageTypeTag : CurrentAttackData.DamageTypeTags)
 		{
 			SpecHandle.Data->AddDynamicAssetTag(DamageTypeTag);
+		}
+
+		// [타격별 공격 속성] Telegraph 노티파이가 공격자에게 건 Loose Tag를 이번 히트에만 추가
+		const FGameplayTag PerHitTags[] = { MyTags::Souls::DamageType_Attack_Unblockable, MyTags::Souls::DamageType_Attack_PerfectGuardOnly };
+		for (const FGameplayTag& PerHitTag : PerHitTags)
+		{
+			if (AttackerASC->GetTagCount(PerHitTag) > 0)
+			{
+				SpecHandle.Data->AddDynamicAssetTag(PerHitTag);
+			}
 		}
 
 		HitASC->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
