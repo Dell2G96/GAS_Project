@@ -22,7 +22,10 @@ void UANS_WeaponTrace::NotifyBegin(USkeletalMeshComponent* MeshComp, UAnimSequen
 {
 	Super::NotifyBegin(MeshComp, Animation, TotalDuration, EventReference);
 
-	if (!MeshComp) return;
+	if (!ShouldRunTrace(MeshComp))
+	{
+		return;
+	}
 
 	FWeaponTraceRuntimeData& Data = RuntimeMap.FindOrAdd(MeshComp);
 	Data.WeaponMesh = ResolveWeaponMesh(MeshComp);
@@ -50,7 +53,6 @@ void UANS_WeaponTrace::NotifyTick(USkeletalMeshComponent* MeshComp, UAnimSequenc
 
 	if (!ShouldRunTrace(MeshComp))
 	{
-		
 		return;
 	}
 
@@ -60,7 +62,6 @@ void UANS_WeaponTrace::NotifyTick(USkeletalMeshComponent* MeshComp, UAnimSequenc
 	FWeaponTraceRuntimeData* DataPtr = RuntimeMap.Find(MeshComp);
 	if (!DataPtr)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("[WeaponTrace] STOP@RuntimeData: NotifyBegin이 안 불림(노티파이 배치/재생 문제)"));
 		return;
 	}
 
@@ -68,7 +69,6 @@ void UANS_WeaponTrace::NotifyTick(USkeletalMeshComponent* MeshComp, UAnimSequenc
 	UMeshComponent* WeaponMesh = DataPtr->WeaponMesh.Get();
 	if (!WeaponMesh)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("[WeaponTrace] STOP@WeaponMesh=null: 무기 resolve 실패(장비매니저/무기스폰/소켓 확인) — ResolveWeaponMesh 로그 참고"));
 		return;
 	}
 
@@ -128,10 +128,16 @@ void UANS_WeaponTrace::NotifyTick(USkeletalMeshComponent* MeshComp, UAnimSequenc
 	}
 }
 
-// 서버 권위에서만 판정(멀티 권장). bServerOnly=false면 어디서나 실행
+// 서버 권위에서만 판정(멀티 권장). bServerOnly=false면 어디서나 실행 (에디터 프리뷰 월드는 제외)
 bool UANS_WeaponTrace::ShouldRunTrace(const USkeletalMeshComponent* MeshComp) const
 {
 	if (!MeshComp) return false;
+
+	const UWorld* World = MeshComp->GetWorld();
+	if (!World || !World->IsGameWorld())
+	{
+		return false;
+	}
 
 	AActor* OwnerActor = MeshComp->GetOwner();
 	if (!OwnerActor) return false;
@@ -147,47 +153,33 @@ UMeshComponent* UANS_WeaponTrace::ResolveWeaponMesh(USkeletalMeshComponent* Mesh
 	AActor* Owner = MeshComp ? MeshComp->GetOwner() : nullptr;
 	if (!Owner) return nullptr;
 
-	ULeeEquipmentManagerComponent* EquipMgr = Owner->FindComponentByClass<ULeeEquipmentManagerComponent>();
-	if (!EquipMgr)
+	if (ULeeEquipmentManagerComponent* EquipMgr = Owner->FindComponentByClass<ULeeEquipmentManagerComponent>())
 	{
-		UE_LOG(LogTemp, Warning, TEXT("[WeaponTrace] Resolve STOP: %s 에 ULeeEquipmentManagerComponent 없음"), *GetNameSafe(Owner));
-		return nullptr;
-	}
+		const TArray<ULeeEquipmentInstance*> Instances = EquipMgr->GetEquipmentInstancesOfType(ULeeEquipmentInstance::StaticClass());
 
-	// [진단] 타입 필터 없이 "전체" 장비 인스턴스를 조회해 실제로 무엇이 장착돼 있는지 확인
-	const TArray<ULeeEquipmentInstance*> Instances = EquipMgr->GetEquipmentInstancesOfType(ULeeEquipmentInstance::StaticClass());
-	UE_LOG(LogTemp, Warning, TEXT("[WeaponTrace] Resolve: 전체 장비 인스턴스=%d개 (요청 필터=%s)"),
-		Instances.Num(), *GetNameSafe(WeaponInstanceType ? *WeaponInstanceType : ULeeMeleeWeaponInstance::StaticClass()));
-
-	for (ULeeEquipmentInstance* Inst : Instances)
-	{
-		if (!Inst) continue;
-
-		const TArray<AActor*> SpawnedActors = Inst->GetSpawnedActors();
-		UE_LOG(LogTemp, Warning, TEXT("[WeaponTrace] Resolve: 장비 클래스=%s → 스폰 액터=%d개"),
-			*GetNameSafe(Inst->GetClass()), SpawnedActors.Num());
-
-		for (AActor* WeaponActor : SpawnedActors)
+		for (ULeeEquipmentInstance* Inst : Instances)
 		{
-			if (!WeaponActor) continue;
+			if (!Inst) continue;
 
-			TArray<UMeshComponent*> Meshes;
-			WeaponActor->GetComponents<UMeshComponent>(Meshes);
-			UE_LOG(LogTemp, Log, TEXT("[WeaponTrace] Resolve: 액터 %s → 메시 컴포넌트=%d개"),
-				*GetNameSafe(WeaponActor), Meshes.Num());
+			const TArray<AActor*> SpawnedActors = Inst->GetSpawnedActors();
 
-			for (UMeshComponent* M : Meshes)
+			for (AActor* WeaponActor : SpawnedActors)
 			{
-				const bool bHasBase = M && M->DoesSocketExist(WeaponBaseSocket);
-				const bool bHasTip  = M && M->DoesSocketExist(WeaponTipSocket);
-				UE_LOG(LogTemp, Log, TEXT("[WeaponTrace] Resolve: 메시 %s → Base(%s)=%d Tip(%s)=%d"),
-					*GetNameSafe(M), *WeaponBaseSocket.ToString(), bHasBase ? 1 : 0,
-					*WeaponTipSocket.ToString(), bHasTip ? 1 : 0);
+				if (!WeaponActor) continue;
 
-				// 자루/칼끝 소켓을 모두 가진 메시만 무기로 인정
-				if (bHasBase && bHasTip)
+				TArray<UMeshComponent*> Meshes;
+				WeaponActor->GetComponents<UMeshComponent>(Meshes);
+
+				for (UMeshComponent* M : Meshes)
 				{
-					return M;
+					const bool bHasBase = M && M->DoesSocketExist(WeaponBaseSocket);
+					const bool bHasTip  = M && M->DoesSocketExist(WeaponTipSocket);
+
+					// 자루/칼끝 소켓을 모두 가진 메시만 무기로 인정
+					if (bHasBase && bHasTip)
+					{
+						return M;
+					}
 				}
 			}
 		}
@@ -198,7 +190,6 @@ UMeshComponent* UANS_WeaponTrace::ResolveWeaponMesh(USkeletalMeshComponent* Mesh
 	{
 		TArray<UMeshComponent*> OwnerMeshes;
 		Owner->GetComponents<UMeshComponent>(OwnerMeshes);
-		UE_LOG(LogTemp, Warning, TEXT("[WeaponTrace] Resolve 폴백: 소유 액터 메시 컴포넌트=%d개 탐색"), OwnerMeshes.Num());
 
 		for (UMeshComponent* M : OwnerMeshes)
 		{
@@ -206,18 +197,14 @@ UMeshComponent* UANS_WeaponTrace::ResolveWeaponMesh(USkeletalMeshComponent* Mesh
 
 			const bool bHasBase = M && M->DoesSocketExist(WeaponBaseSocket);
 			const bool bHasTip  = M && M->DoesSocketExist(WeaponTipSocket);
-			UE_LOG(LogTemp, Warning, TEXT("[WeaponTrace] Resolve 폴백: 메시 %s → Base=%d Tip=%d"),
-				*GetNameSafe(M), bHasBase ? 1 : 0, bHasTip ? 1 : 0);
 
 			if (bHasBase && bHasTip)
 			{
-				UE_LOG(LogTemp, Warning, TEXT("[WeaponTrace] Resolve 폴백 성공: %s 사용"), *GetNameSafe(M));
 				return M;
 			}
 		}
 	}
 
-	UE_LOG(LogTemp, Warning, TEXT("[WeaponTrace] Resolve STOP: 두 소켓을 모두 가진 무기 메시를 못 찾음"));
 	return nullptr;
 }
 
