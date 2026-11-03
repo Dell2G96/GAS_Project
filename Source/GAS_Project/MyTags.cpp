@@ -1,4 +1,4 @@
-// Vince Petrelli All Rights Reserved
+﻿// Vince Petrelli All Rights Reserved
 
 
 #include "MyTags.h"
@@ -246,6 +246,8 @@ namespace MyTags
 		UE_DEFINE_GAMEPLAY_TAG(GameplayCue_FinishIndicator, "GameplayCue.Souls.FinishIndicator")
 		UE_DEFINE_GAMEPLAY_TAG(GameplayCue_Dodge_Perfect, "GameplayCue.Souls.Dodge.Perfect")
 		UE_DEFINE_GAMEPLAY_TAG(GameplayCue_SandBlind, "GameplayCue.Souls.SandBlind")
+		UE_DEFINE_GAMEPLAY_TAG(GameplayCue_Attack_PerfectGuardOnly, "GameplayCue.Souls.Attack.PerfectGuardOnly")
+		UE_DEFINE_GAMEPLAY_TAG(GameplayCue_Attack_Unblockable, "GameplayCue.Souls.Attack.Unblockable")
 
 		// 근접 공격 몽타주별 쿨다운 태그의 부모
 		UE_DEFINE_GAMEPLAY_TAG(Cooldown, "Souls.Cooldown")

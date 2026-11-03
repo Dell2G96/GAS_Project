@@ -1,4 +1,4 @@
-// Vince Petrelli All Rights Reserved
+﻿// Vince Petrelli All Rights Reserved
 
 #pragma once
 
@@ -253,6 +253,9 @@ namespace MyTags
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(GameplayCue_Dodge_Perfect);
 		// [신규 26.10.20] 모래 시야 방해 화면 효과 Cue (ALeeGameplayCue_SandBlind)
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(GameplayCue_SandBlind);
+		// [신규 26.11.03] 퍼펙트 가드 전용(파란색) / 퍼펙트 회피 전용(빨간색) 공격 예고 무기 발광 Cue
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(GameplayCue_Attack_PerfectGuardOnly);
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(GameplayCue_Attack_Unblockable);
 
 		// ----- 쿨타임 -----
 		// [신규 26.10.20] 근접 공격 몽타주별 쿨다운 태그의 부모. 개별 태그(Souls.Cooldown.<Enemy>.<Attack>)는 DefaultGameplayTags.ini에 추가
