@@ -5,6 +5,7 @@
 
 #include "CommonActivatableWidget.h"
 #include "CommonUIExtensions.h"
+#include "Components/Image.h"
 #include "GAS_Project/MyTags.h"
 #include "GAS_Project/AMessage/LeeVerbMessage.h"
 
@@ -39,6 +40,7 @@ void ULeeDeathScreenWidget::NativeDestruct()
 // 사망 메시지 수신 → BP OnYouDied, RespawnPromptDelay 뒤 부활 질문 표시
 void ULeeDeathScreenWidget::HandleYouDiedMessage(FGameplayTag Channel, const FLeeVerbMessage& Message)
 {
+	SetDimBackgroundVisible(true);
 	OnYouDied();
 
 	GetWorld()->GetTimerManager().SetTimer(
@@ -48,13 +50,24 @@ void ULeeDeathScreenWidget::HandleYouDiedMessage(FGameplayTag Channel, const FLe
 // 전멸 메시지 수신 → YOU DIED 표시만 (부활 질문 없음)
 void ULeeDeathScreenWidget::HandlePartyWipedMessage(FGameplayTag Channel, const FLeeVerbMessage& Message)
 {
+	SetDimBackgroundVisible(true);
 	OnYouDied();
 }
 
-// 26.11.02 추가 - 보스 처치 메시지 수신 → BP OnBossVictory
+// 26.11.02 추가 - 보스 처치 메시지 수신 → BP OnBossVictory (26.11.03 - 승리 화면은 어두운 배경 없음)
 void ULeeDeathScreenWidget::HandleBossVictoryMessage(FGameplayTag Channel, const FLeeVerbMessage& Message)
 {
+	SetDimBackgroundVisible(false);
 	OnBossVictory();
+}
+
+// 26.11.03 추가 - 어두운 배경 표시/숨김 (표시 중에도 클릭은 막지 않도록 HitTestInvisible)
+void ULeeDeathScreenWidget::SetDimBackgroundVisible(bool bVisible)
+{
+	if (DimBackground)
+	{
+		DimBackground->SetVisibility(bVisible ? ESlateVisibility::HitTestInvisible : ESlateVisibility::Collapsed);
+	}
 }
 
 // 부활 메시지 수신 → 부활 질문 닫기 + BP OnRespawn

@@ -9,6 +9,7 @@
 
 struct FLeeVerbMessage;
 class UCommonActivatableWidget;
+class UImage;
 
 // "YOU DIED" 화면 위젯 베이스 (W_YouDied)
 // 사망/부활 메시지(Souls.Message.Death.*)를 구독해 BP 이벤트로 넘기고, 사망 후 부활 질문 위젯을 Menu 레이어에 띄운다
@@ -42,7 +43,14 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Lee|Death")
 	float RespawnPromptDelay = 2.0f;
 
+	// 26.11.03 추가 - 화면 전체를 어둡게 덮는 배경 (WB_YouDied의 DimBackground). 사망 시 표시, 보스 처치 시 숨김
+	UPROPERTY(meta = (BindWidget))
+	TObjectPtr<UImage> DimBackground;
+
 private:
+	// 26.11.03 추가 - 어두운 배경 표시/숨김
+	void SetDimBackgroundVisible(bool bVisible);
+
 	void HandleYouDiedMessage(FGameplayTag Channel, const FLeeVerbMessage& Message);
 	void HandleRespawnMessage(FGameplayTag Channel, const FLeeVerbMessage& Message);
 
