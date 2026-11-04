@@ -322,7 +322,9 @@ bool ULeeTargetSelectionComponent::IsValidCandidate(const APawn* Candidate) cons
 		return false;
 	}
 
-	return !ASC->HasMatchingGameplayTag(MyTags::Souls::Status_Death_Dead);
+	// 26.11.04 수정 - 사망 시작(Dying)도 제외. 보스전 플레이어는 관전을 위해 FinishDeath(Dead)까지 가지 않으므로 Dead만 보면 시체를 계속 공격한다
+	return !ASC->HasMatchingGameplayTag(MyTags::Souls::Status_Death_Dead)
+		&& !ASC->HasMatchingGameplayTag(MyTags::Souls::Status_Death_Dying);
 }
 
 // 다른 팀 소속인지 확인 (ULeeTargetLockComponent::PassesTeamFilter와 동일 방식)
