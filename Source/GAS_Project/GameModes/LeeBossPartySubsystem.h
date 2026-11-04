@@ -59,6 +59,9 @@ private:
 	// 다른 플레이어를 보고 있던 관전자를 새 대상으로 옮긴다
 	void RetargetSpectatorsWatching(const APawn* LostTarget);
 
+	// 26.11.04 추가 - 넉다운/사망 판정 시점의 플레이어별 상태를 로그로 남긴다 (디버깅용)
+	void LogPlayerStates(const TCHAR* Context, const APawn* SubjectPawn) const;
+
 	// 26.11.02 추가 - 모든 플레이어에게 UI 메시지 전송 (호스트는 바로 방송, 원격은 PlayerState Client RPC)
 	void SendMessageToAllPlayers(FGameplayTag MessageTag);
 

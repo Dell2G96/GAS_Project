@@ -10,6 +10,7 @@
 #include "GameFramework/GameStateBase.h"
 #include "GameFramework/GameplayMessageSubsystem.h"
 #include "GameFramework/PlayerController.h"
+#include "TimerManager.h"
 #include "GAS_Project/LeeLogChannels.h"
 #include "GAS_Project/MyTags.h"
 #include "GAS_Project/ACharacter/LeeHealthComponent.h"
@@ -98,14 +99,41 @@ bool ULeeBossPartySubsystem::CanEnterDowned(const APawn* VictimPawn) const
 		return false;
 	}
 
+	// 26.11.04 추가 - 판정 당시 플레이어별 상태를 로그로 남긴다 (전멸 대신 넉다운되는 버그 원인 확인용)
+	LogPlayerStates(TEXT("CanEnterDowned"), VictimPawn);
+
 	for (APawn* Pawn : GetPlayerPawns(/*bStandingOnly*/true))
 	{
 		if (Pawn != VictimPawn)
 		{
+			UE_LOG(LogLee, Log, TEXT("[BossParty] CanEnterDowned(%s) → 넉다운 (서 있는 동료: %s)"), *GetNameSafe(VictimPawn), *GetNameSafe(Pawn));
 			return true;
 		}
 	}
+	UE_LOG(LogLee, Log, TEXT("[BossParty] CanEnterDowned(%s) → 사망 (서 있는 동료 없음)"), *GetNameSafe(VictimPawn));
 	return false;
+}
+
+// 26.11.04 추가 - 모든 PlayerController의 Pawn 상태(조종 여부, DeathState, 넉다운)를 로그로 출력한다
+void ULeeBossPartySubsystem::LogPlayerStates(const TCHAR* Context, const APawn* SubjectPawn) const
+{
+	UE_LOG(LogLee, Log, TEXT("[BossParty] %s 대상=%s"), Context, *GetNameSafe(SubjectPawn));
+
+	for (FConstPlayerControllerIterator It = GetWorld()->GetPlayerControllerIterator(); It; ++It)
+	{
+		const APlayerController* PlayerController = It->Get();
+		const APawn* Pawn = PlayerController ? PlayerController->GetPawn() : nullptr;
+		const ULeeHealthComponent* HealthComponent = ULeeHealthComponent::FindHealthComponent(Pawn);
+		const UAbilitySystemComponent* ASC = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(Pawn);
+
+		UE_LOG(LogLee, Log, TEXT("[BossParty]   PC=%s Pawn=%s 조종=%d DeathState=%d 넉다운=%d 서있음=%d"),
+			*GetNameSafe(PlayerController),
+			*GetNameSafe(Pawn),
+			Pawn ? Pawn->IsPlayerControlled() : 0,
+			HealthComponent ? (int32)HealthComponent->GetDeathState() : -1,
+			ASC ? ASC->HasMatchingGameplayTag(MyTags::Souls::Status_Downed) : 0,
+			IsPlayerStanding(Pawn));
+	}
 }
 
 // 사망한 플레이어 처리 — 서 있는 동료가 없으면 전멸, 있으면 사망자는 관전 시작
@@ -116,11 +144,15 @@ void ULeeBossPartySubsystem::HandlePlayerDeathStarted(APawn* DeadPawn)
 		return;
 	}
 
+	// 26.11.04 추가 - 사망 처리 당시 플레이어별 상태 로그
+	LogPlayerStates(TEXT("HandlePlayerDeathStarted"), DeadPawn);
+
 	// 이 Pawn을 관전하던 사람은 다른 동료로 옮긴다
 	RetargetSpectatorsWatching(DeadPawn);
 
 	if (GetPlayerPawns(/*bStandingOnly*/true).Num() == 0)
 	{
+		UE_LOG(LogLee, Log, TEXT("[BossParty] 서 있는 플레이어 없음 → 전멸"));
 		StartPartyWipe();
 		return;
 	}
