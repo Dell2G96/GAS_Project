@@ -446,3 +446,6 @@ _AssetFiles
 /Plugins/Developer/RiderLink/Source/RD/thirdparty/spdlog/include/spdlog/fmt/xchar.h
 /Temp/mytags_reference_audit.json
 /.unrealagent/sessions/
+
+# 26.11.04 - 로컬 도구(AI 리뷰 스크립트 등)는 커밋하지 않음
+Tools/
