@@ -4,11 +4,24 @@
 
 #include "Abilities/Tasks/AbilityTask_WaitGameplayEvent.h"
 #include "Abilities/Tasks/AbilityTask_WaitInputPress.h"
+#include "AbilitySystemComponent.h"
 #include "Animation/AnimMontage.h"
 #include "GameFramework/Character.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "GAS_Project/LeeLogChannels.h"
 #include "GAS_Project/MyTags.h"
 #include "GAS_Project/ACharacter/LeeTargetLockComponent.h"
+
+// 26.11.04 추가 - 콤보 진단 로그용: 이 인스턴스가 서버/호스트 본인/클라이언트 중 어디서 도는지 문자열로 반환
+static const TCHAR* GetComboNetRole(const UGameplayAbility* Ability)
+{
+	const FGameplayAbilityActorInfo* ActorInfo = Ability->GetCurrentActorInfo();
+	if (!ActorInfo || !ActorInfo->IsNetAuthority())
+	{
+		return TEXT("Client");
+	}
+	return ActorInfo->IsLocallyControlled() ? TEXT("Server(Host)") : TEXT("Server(Remote)");
+}
 
 ULeeGameplayAbility_PlayerAttackMelee::ULeeGameplayAbility_PlayerAttackMelee(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -36,10 +49,17 @@ const FLeeMeleeAttackData* ULeeGameplayAbility_PlayerAttackMelee::SelectAttackDa
 void ULeeGameplayAbility_PlayerAttackMelee::PlayAttackMontage(UAnimMontage* Montage, FName StartSection)
 {
 	ResetComboState();
+	UE_LOG(LogLee, Log, TEXT("[Combo] %s 1타 시작"), GetComboNetRole(this));
 
 	// 시작 프레임 이벤트 유실을 막기 위해 몽타주 ReadyForActivation보다 먼저 등록
 	RegisterComboTasks();
 	ListenForNextComboInput();
+
+	// 26.11.04 추가 - 서버의 게스트 캐릭터는 게스트가 보내는 전환 신호로 콤보를 진행한다
+	if (IsServerForRemotePlayer())
+	{
+		ListenForRemoteComboAdvance();
+	}
 
 	// 첫 타는 처음부터 재생 (섹션 사용 안 함)
 	// Super::PlayAttackMontage(부모 구현)가 재생 직전 UpdateAttackWarpTarget()을 호출한다
@@ -134,7 +154,8 @@ void ULeeGameplayAbility_PlayerAttackMelee::OnComboWindowOpen(FGameplayEventData
 	}
 
 	bComboWindowOpen = true;
-	bFirstWindowOpened = true;   // 이 시점 이후부터 선입력(윈도우 직전 입력) 버퍼링을 허용
+	bFirstWindowOpened = true;
+	UE_LOG(LogLee, Log, TEXT("[Combo] %s 윈도우 열림 Index=%d Buffered=%d"), GetComboNetRole(this), CurrentComboIndex, bBufferedInput);   // 이 시점 이후부터 선입력(윈도우 직전 입력) 버퍼링을 허용
 
 	// 윈도우가 열리기 직전에 눌러둔 선입력이 있으면 예약으로 승격 (전환 노티파이에서 소비)
 	if (bBufferedInput)
@@ -153,6 +174,7 @@ void ULeeGameplayAbility_PlayerAttackMelee::OnComboWindowClose(FGameplayEventDat
 	}
 
 	bComboWindowOpen = false;
+	UE_LOG(LogLee, Log, TEXT("[Combo] %s 윈도우 닫힘 Index=%d Queued=%d"), GetComboNetRole(this), CurrentComboIndex, bComboInputQueued);
 }
 
 // 콤보 입력 수신 — 윈도우 중이면 예약만(즉시 전환 X), 닫혀 있으면 선입력으로 버퍼링
@@ -165,6 +187,9 @@ void ULeeGameplayAbility_PlayerAttackMelee::OnComboInputPressed(float TimeWaited
 	{
 		return;
 	}
+
+	UE_LOG(LogLee, Log, TEXT("[Combo] %s 입력 수신 Index=%d WindowOpen=%d FirstWindowOpened=%d"),
+		GetComboNetRole(this), CurrentComboIndex, bComboWindowOpen, bFirstWindowOpened);
 
 	if (bComboWindowOpen)
 	{
@@ -193,7 +218,15 @@ void ULeeGameplayAbility_PlayerAttackMelee::OnComboTransition(FGameplayEventData
 // 큐에 예약된 입력이 있으면 다음 타로 전환 — 전환 노티파이에서만 호출
 void ULeeGameplayAbility_PlayerAttackMelee::AdvanceComboIfQueued()
 {
+	UE_LOG(LogLee, Log, TEXT("[Combo] %s 전환 노티파이 Index=%d Queued=%d"), GetComboNetRole(this), CurrentComboIndex, bComboInputQueued);
+
 	if (!bComboInputQueued)
+	{
+		return;
+	}
+
+	// 26.11.04 추가 - 서버의 게스트 캐릭터는 여기서 전환하지 않는다 (서버 노티파이가 빠지면 게스트와 어긋나므로 게스트 신호만 따른다)
+	if (IsServerForRemotePlayer())
 	{
 		return;
 	}
@@ -220,6 +253,7 @@ void ULeeGameplayAbility_PlayerAttackMelee::PlayComboAttack(int32 Index)
 	// 현재 타 데이터 교체 — 데미지/트레이스/스태미나 비용이 이 타 기준으로 갱신된다
 	CurrentAttackData = AttackDataList[Index];
 	CurrentComboIndex = Index;
+	UE_LOG(LogLee, Log, TEXT("[Combo] %s 다음 타 재생 Index=%d"), GetComboNetRole(this), Index);
 
 	// 새 타로 넘어가므로 윈도우/선입력/예약 상태를 리셋 (다음 타의 윈도우 Notify를 새로 기다린다)
 	bComboWindowOpen = false;
@@ -235,6 +269,85 @@ void ULeeGameplayAbility_PlayerAttackMelee::PlayComboAttack(int32 Index)
 
 	// 부모 재생 로직 재사용 — 새 PlayMontageAndWait Task를 만들어 다음 타 몽타주로 블렌드
 	Super::PlayAttackMontage(CurrentAttackData.Montage, EntrySection);
+
+	// 26.11.04 추가 - 게스트가 다음 타로 넘어갔으면 서버도 같은 타를 재생하도록 알린다
+	const FGameplayAbilityActorInfo* ActorInfo = GetCurrentActorInfo();
+	if (ActorInfo && !ActorInfo->IsNetAuthority() && ActorInfo->IsLocallyControlled())
+	{
+		SendComboAdvanceToServer();
+	}
+}
+
+// 26.11.04 추가 - 서버 권한이면서 로컬 조종이 아닌 인스턴스 = 서버에서 도는 게스트 캐릭터
+bool ULeeGameplayAbility_PlayerAttackMelee::IsServerForRemotePlayer() const
+{
+	const FGameplayAbilityActorInfo* ActorInfo = GetCurrentActorInfo();
+	return ActorInfo && ActorInfo->IsNetAuthority() && !ActorInfo->IsLocallyControlled();
+}
+
+// 26.11.04 추가 - [게스트] "한 타 전진" 신호를 서버로 보낸다. 신뢰성 RPC라 순서대로 도착하므로 횟수 = 전진할 타 수
+void ULeeGameplayAbility_PlayerAttackMelee::SendComboAdvanceToServer()
+{
+	UAbilitySystemComponent* ASC = GetAbilitySystemComponentFromActorInfo();
+	if (!ASC)
+	{
+		return;
+	}
+
+	FScopedPredictionWindow ScopedPrediction(ASC, true);
+	ASC->ServerSetReplicatedEvent(EAbilityGenericReplicatedEvent::GameCustom1, CurrentSpecHandle,
+		GetCurrentActivationInfo().GetActivationPredictionKey(), ASC->ScopedPredictionKey);
+	UE_LOG(LogLee, Log, TEXT("[Combo] %s 서버에 전환 신호 전송 Index=%d"), GetComboNetRole(this), CurrentComboIndex);
+}
+
+// 26.11.04 추가 - [서버, 원격 플레이어] 이번 활성화의 전환 신호를 구독하고, 이미 도착해 있으면 바로 처리
+void ULeeGameplayAbility_PlayerAttackMelee::ListenForRemoteComboAdvance()
+{
+	UAbilitySystemComponent* ASC = GetAbilitySystemComponentFromActorInfo();
+	if (!ASC || RemoteComboAdvanceHandle.IsValid())
+	{
+		return;
+	}
+
+	const FPredictionKey ActivationKey = GetCurrentActivationInfo().GetActivationPredictionKey();
+	RemoteComboAdvanceHandle = ASC->AbilityReplicatedEventDelegate(EAbilityGenericReplicatedEvent::GameCustom1, CurrentSpecHandle, ActivationKey)
+		.AddUObject(this, &ThisClass::OnRemoteComboAdvance);
+	ASC->CallReplicatedEventDelegateIfSet(EAbilityGenericReplicatedEvent::GameCustom1, CurrentSpecHandle, ActivationKey);
+}
+
+// 26.11.04 추가 - [서버, 원격 플레이어] 신호를 소비하고 다음 타를 재생 (데미지·스태미나 판정은 계속 서버 몽타주 기준)
+void ULeeGameplayAbility_PlayerAttackMelee::OnRemoteComboAdvance()
+{
+	if (UAbilitySystemComponent* ASC = GetAbilitySystemComponentFromActorInfo())
+	{
+		ASC->ConsumeGenericReplicatedEvent(EAbilityGenericReplicatedEvent::GameCustom1, CurrentSpecHandle,
+			GetCurrentActivationInfo().GetActivationPredictionKey());
+	}
+
+	const int32 NextIndex = CurrentComboIndex + 1;
+	UE_LOG(LogLee, Log, TEXT("[Combo] %s 게스트 전환 신호 수신 → Index=%d"), GetComboNetRole(this), NextIndex);
+
+	if (IsActive() && AttackDataList.IsValidIndex(NextIndex))
+	{
+		PlayComboAttack(NextIndex);
+	}
+}
+
+// 26.11.04 추가 - 원격 콤보 전환 신호 구독 해제 후 부모 종료 처리
+void ULeeGameplayAbility_PlayerAttackMelee::EndAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo,
+	const FGameplayAbilityActivationInfo ActivationInfo, bool bReplicateEndAbility, bool bWasCancelled)
+{
+	if (RemoteComboAdvanceHandle.IsValid())
+	{
+		if (UAbilitySystemComponent* ASC = GetAbilitySystemComponentFromActorInfo())
+		{
+			ASC->AbilityReplicatedEventDelegate(EAbilityGenericReplicatedEvent::GameCustom1, Handle, ActivationInfo.GetActivationPredictionKey())
+				.Remove(RemoteComboAdvanceHandle);
+		}
+		RemoteComboAdvanceHandle.Reset();
+	}
+
+	Super::EndAbility(Handle, ActorInfo, ActivationInfo, bReplicateEndAbility, bWasCancelled);
 }
 
 // 다음 몽타주에 ComboEntry 섹션이 있는지 확인 — 없으면 경고 로그 후 처음부터 재생하도록 폴백
@@ -258,6 +371,7 @@ FName ULeeGameplayAbility_PlayerAttackMelee::ResolveComboEntrySection(const UAni
 // 마지막 타 완주 / 블렌드아웃 → 콤보 종료
 void ULeeGameplayAbility_PlayerAttackMelee::OnMontageCompleted()
 {
+	UE_LOG(LogLee, Log, TEXT("[Combo] %s 몽타주 완료 → 어빌리티 종료 Index=%d"), GetComboNetRole(this), CurrentComboIndex);
 	ResetComboState();
 	Super::OnMontageCompleted();
 }
@@ -272,6 +386,7 @@ void ULeeGameplayAbility_PlayerAttackMelee::OnMontageInterrupted()
 		return;
 	}
 
+	UE_LOG(LogLee, Log, TEXT("[Combo] %s 몽타주 중단(외부) → 어빌리티 종료 Index=%d"), GetComboNetRole(this), CurrentComboIndex);
 	ResetComboState();
 	Super::OnMontageInterrupted();
 }

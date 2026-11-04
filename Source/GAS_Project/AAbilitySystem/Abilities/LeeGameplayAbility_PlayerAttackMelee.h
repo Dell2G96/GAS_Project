@@ -46,6 +46,10 @@ protected:
 	virtual void OnMontageCompleted() override;
 	virtual void OnMontageInterrupted() override;
 
+	/** 26.11.04 추가 - 서버의 원격 콤보 전환 신호 구독 해제 */
+	virtual void EndAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo,
+		const FGameplayAbilityActivationInfo ActivationInfo, bool bReplicateEndAbility, bool bWasCancelled) override;
+
 	/** [모션워핑] 워프가 바라볼 대상 — 락온 대상(있고 락온 중일 때만)을 반환 */
 	virtual AActor* GetWarpFacingTarget() const override;
 
@@ -101,6 +105,24 @@ private:
 
 	UFUNCTION()
 	void OnComboInputPressed(float TimeWaited);
+
+	/**
+	 * 26.11.04 추가 - 서버에서 도는 "게스트 캐릭터"의 인스턴스인지 (서버 권한 + 로컬 조종 아님).
+	 * 이 인스턴스는 자기 노티파이로 콤보를 진행하지 않고, 게스트가 보낸 전환 신호로만 다음 타를 재생한다.
+	 */
+	bool IsServerForRemotePlayer() const;
+
+	/** 26.11.04 추가 - [게스트] 다음 타로 넘어갔음을 서버에 알린다 (GAS 복제 이벤트 GameCustom1) */
+	void SendComboAdvanceToServer();
+
+	/** 26.11.04 추가 - [서버, 원격 플레이어] 게스트의 전환 신호 구독 시작 */
+	void ListenForRemoteComboAdvance();
+
+	/** 26.11.04 추가 - [서버, 원격 플레이어] 전환 신호 수신 → 다음 타 재생 */
+	void OnRemoteComboAdvance();
+
+	/** 26.11.04 추가 - 원격 콤보 전환 신호 델리게이트 핸들 (EndAbility에서 해제) */
+	FDelegateHandle RemoteComboAdvanceHandle;
 
 	/** 콤보 입력 허용 여부 (서버 전용 상태) */
 	bool bComboWindowOpen = false;
