@@ -45,7 +45,7 @@ struct FMcpResponse
 	{
 		FMcpResponse Response;
 		Response.bSuccess = false;
-		Response.Result = InError;
+		Response.Error = InError;	// GetText()는 실패 시 Error를 반환하므로 Error에 저장해야 메시지가 전달된다
 		
 		return Response;
 	}
