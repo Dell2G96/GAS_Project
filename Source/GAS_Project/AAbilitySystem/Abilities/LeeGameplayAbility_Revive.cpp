@@ -7,8 +7,10 @@
 #include "AbilitySystemGlobals.h"
 #include "Abilities/Tasks/AbilityTask_PlayMontageAndWait.h"
 #include "Abilities/Tasks/AbilityTask_WaitDelay.h"
+#include "GAS_Project/LeeLogChannels.h"
 #include "GAS_Project/MyTags.h"
 #include "GAS_Project/ACharacter/LeeHealthComponent.h"
+#include "GAS_Project/ACharacter/LeeCharacter.h"
 
 // 상호작용으로 실행되는 로컬 예측 어빌리티 (이동 입력 취소를 클라이언트에서 바로 판단하기 위해)
 ULeeGameplayAbility_Revive::ULeeGameplayAbility_Revive(const FObjectInitializer& ObjectInitializer)
@@ -27,6 +29,10 @@ void ULeeGameplayAbility_Revive::ActivateAbility(const FGameplayAbilitySpecHandl
 
 	bReviveSucceeded = false;
 	ReviveTarget = TriggerEventData ? const_cast<AActor*>(ToRawPtr(TriggerEventData->Target)) : nullptr;
+
+	// 26.11.04 추가 - 부활 게이지가 남는 버그 조사용 (어느 머신에서 시작/종료되는지)
+	UE_LOG(LogLee, Log, TEXT("[Revive] 시작 Reviver=%s Target=%s Authority=%d Local=%d"),
+		*GetNameSafe(GetAvatarActorFromActorInfo()), *GetNameSafe(ReviveTarget.Get()), HasAuthority(&ActivationInfo), IsLocallyControlled());
 	if (!IsTargetStillDowned())
 	{
 		CancelAbility(Handle, ActorInfo, ActivationInfo, true);
@@ -51,6 +57,15 @@ void ULeeGameplayAbility_Revive::ActivateAbility(const FGameplayAbilitySpecHandl
 		if (ULeeHealthComponent* HealthComponent = ULeeHealthComponent::FindHealthComponent(GetAvatarActorFromActorInfo()))
 		{
 			HealthComponent->OnHealthChanged.AddUniqueDynamic(this, &ThisClass::HandleReviverHealthChanged);
+		}
+	}
+
+	// 26.11.04 추가 - 부활시키는 사람의 화면에만 대상 가슴에 진행 게이지 표시
+	if (IsLocallyControlled())
+	{
+		if (ALeeCharacter* TargetCharacter = Cast<ALeeCharacter>(ReviveTarget.Get()))
+		{
+			TargetCharacter->ShowReviveGauge(ReviveDuration);
 		}
 	}
 
@@ -88,6 +103,7 @@ void ULeeGameplayAbility_Revive::CheckCancelConditions()
 
 	if (bShouldCancel)
 	{
+		UE_LOG(LogLee, Log, TEXT("[Revive] 취소 조건 충족 (이동/대상 상태/거리) Local=%d"), IsLocallyControlled());
 		CancelAbility(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo, true);
 	}
 }
@@ -97,6 +113,7 @@ void ULeeGameplayAbility_Revive::HandleReviverHealthChanged(ULeeHealthComponent*
 {
 	if (NewValue < OldValue && IsActive())
 	{
+		UE_LOG(LogLee, Log, TEXT("[Revive] 피격으로 취소 (서버)"));
 		CancelAbility(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo, true);
 	}
 }
@@ -126,6 +143,15 @@ void ULeeGameplayAbility_Revive::EndAbility(const FGameplayAbilitySpecHandle Han
 	bool bReplicateEndAbility, bool bWasCancelled)
 {
 	GetWorld()->GetTimerManager().ClearTimer(CancelCheckTimerHandle);
+
+	UE_LOG(LogLee, Log, TEXT("[Revive] 종료 Reviver=%s Target=%s Authority=%d Local=%d Cancelled=%d Succeeded=%d"),
+		*GetNameSafe(GetAvatarActorFromActorInfo()), *GetNameSafe(ReviveTarget.Get()), HasAuthority(&ActivationInfo), IsLocallyControlled(), bWasCancelled, bReviveSucceeded);
+
+	// 26.11.04 추가 - 완료/취소 모두 게이지를 숨긴다
+	if (ALeeCharacter* TargetCharacter = Cast<ALeeCharacter>(ReviveTarget.Get()))
+	{
+		TargetCharacter->HideReviveGauge();
+	}
 
 	if (ULeeHealthComponent* HealthComponent = ULeeHealthComponent::FindHealthComponent(GetAvatarActorFromActorInfo()))
 	{

@@ -101,6 +101,20 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Lee|Downed")
 	FInteractionOption ReviveInteractionOption;
 
+	// 26.11.04 추가 - 부활 게이지를 붙일 메시 소켓(또는 본) 이름. 기본은 가슴 본
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Lee|Downed")
+	FName ReviveGaugeSocket = TEXT("spine_03");
+
+	// 26.11.04 추가 - 부활 진행도 원형 게이지 위젯 (W_ReviveGauge, 비우면 표시 안 함)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Lee|Downed")
+	TSubclassOf<class ULeeReviveGaugeWidget> ReviveGaugeWidgetClass;
+
+	// 26.11.04 추가 - 부활시키는 사람의 화면에서만 호출. 가슴 소켓에 게이지를 띄우고 Duration초 동안 채운다
+	void ShowReviveGauge(float Duration);
+
+	// 26.11.04 추가 - 부활 게이지 숨김 (부활 완료/취소 시)
+	void HideReviveGauge();
+
 	//~IInteractableTarget interface
 	// 26.11.02 추가 - 넉다운 상태일 때 살아 있는 아군에게 "부활" 상호작용 옵션을 제공
 	virtual void GatherInteractionOptions(const FInteractionQuery& InteractQuery, FInteractionOptionBuilder& OptionBuilder) override;
@@ -184,6 +198,10 @@ protected:
 	// 26.10.29 추가 - 사망 시작 시 Death 어빌리티가 재생할 몽타주 후보 (캐릭터 BP Class Defaults에서 지정)
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Lee|Death")
 	TArray<TObjectPtr<class UAnimMontage>> DeathMontages;
+
+	// 26.11.04 추가 - 부활 게이지를 그리는 WidgetComponent (처음 ShowReviveGauge 때 로컬에서만 생성)
+	UPROPERTY(Transient)
+	TObjectPtr<class UWidgetComponent> ReviveGaugeComponent;
 
 	virtual void OnMovementModeChanged(EMovementMode PrevMovementMode, uint8 PreviousCustomMode) override;
 	void SetMovementModeTag(EMovementMode MovementMode, uint8 CustomMovementMode, bool bTagEnabled);

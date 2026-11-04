@@ -9,6 +9,8 @@
 #include "LeePawnExtensionComponent.h"
 #include "Animation/AnimMontage.h"
 #include "Components/CapsuleComponent.h"
+#include "Components/WidgetComponent.h"
+#include "GAS_Project/AUI/LeeReviveGaugeWidget.h"
 #include "GAS_Project/LeeLogChannels.h"
 #include "GAS_Project/MyTags.h"
 #include "GAS_Project/AAbilitySystem/LeeAbilitySystemComponent.h"
@@ -424,6 +426,44 @@ void ALeeCharacter::GatherInteractionOptions(const FInteractionQuery& InteractQu
 	}
 
 	OptionBuilder.AddInteractionOption(ReviveInteractionOption);
+}
+
+// 26.11.04 추가 - 가슴 소켓에 WidgetComponent를 (없으면 만들어) 붙이고 부활 게이지를 Duration초 동안 채운다
+void ALeeCharacter::ShowReviveGauge(float Duration)
+{
+	if (!ReviveGaugeWidgetClass)
+	{
+		return;
+	}
+
+	if (!ReviveGaugeComponent)
+	{
+		ReviveGaugeComponent = NewObject<UWidgetComponent>(this, TEXT("ReviveGaugeComponent"));
+		ReviveGaugeComponent->SetupAttachment(GetMesh(), ReviveGaugeSocket);
+		ReviveGaugeComponent->SetWidgetSpace(EWidgetSpace::Screen);	// 화면 공간: 카메라 방향과 상관없이 항상 정면으로 보인다
+		ReviveGaugeComponent->SetDrawAtDesiredSize(true);
+		ReviveGaugeComponent->SetWidgetClass(ReviveGaugeWidgetClass);
+		ReviveGaugeComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		ReviveGaugeComponent->RegisterComponent();
+		ReviveGaugeComponent->InitWidget();	// 위젯 인스턴스를 바로 만들어 아래 StartProgress가 동작하게 한다
+	}
+
+	UE_LOG(LogLee, Log, TEXT("[ReviveGauge] Show %s Duration=%.1f"), *GetName(), Duration);
+	ReviveGaugeComponent->SetVisibility(true);
+	if (ULeeReviveGaugeWidget* GaugeWidget = Cast<ULeeReviveGaugeWidget>(ReviveGaugeComponent->GetUserWidgetObject()))
+	{
+		GaugeWidget->StartProgress(Duration);
+	}
+}
+
+// 26.11.04 추가 - 부활 게이지 숨김
+void ALeeCharacter::HideReviveGauge()
+{
+	if (ReviveGaugeComponent)
+	{
+		UE_LOG(LogLee, Log, TEXT("[ReviveGauge] Hide %s"), *GetName());
+		ReviveGaugeComponent->SetVisibility(false);
+	}
 }
 
 void ALeeCharacter::OnDeathStarted(AActor* OwningActor)
