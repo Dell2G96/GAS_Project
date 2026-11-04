@@ -6,6 +6,7 @@
 #include "Abilities/LeeGameplayAbility.h"
 #include "GAS_Project/LeeLogChannels.h"
 #include "GAS_Project/MyTags.h"
+#include "GameFramework/Pawn.h"
 #include "GAS_Project/AAnimation/LeeAnimInstance.h"
 
 ULeeAbilitySystemComponent::ULeeAbilitySystemComponent(const FObjectInitializer& ObjectInitializer)
@@ -202,7 +203,10 @@ void ULeeAbilitySystemComponent::AbilityInputTagReleased(const FGameplayTag& Inp
 void ULeeAbilitySystemComponent::ProcessAbilityInput(float DeltaTime, bool bGamePaused)
 {
 	// 26.11.02 추가 - 넉다운 중에는 입력으로 어빌리티(공격·구르기·가드·포션·상호작용)를 실행하지 않는다 (이동만 허용)
-	if (HasMatchingGameplayTag(MyTags::Souls::Status_Downed))
+	// 26.11.04 추가 - 사망 중/사망 후(보스전 관전 중)에도 입력을 막는다. 죽은 캐릭터의 공격과 서버로 가는 입력 RPC 폭주 방지
+	if (HasMatchingGameplayTag(MyTags::Souls::Status_Downed)
+		|| HasMatchingGameplayTag(MyTags::Souls::Status_Death_Dying)
+		|| HasMatchingGameplayTag(MyTags::Souls::Status_Death_Dead))
 	{
 		InputPressedSpecHandles.Reset();
 		InputReleasedSpecHandles.Reset();
