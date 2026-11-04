@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 
 #include "LeeDeathScreenWidget.h"
@@ -6,13 +6,27 @@
 #include "CommonActivatableWidget.h"
 #include "CommonUIExtensions.h"
 #include "Components/Image.h"
+#include "TimerManager.h"
+#include "GAS_Project/LeeLogChannels.h"
 #include "GAS_Project/MyTags.h"
 #include "GAS_Project/AMessage/LeeVerbMessage.h"
 
-// 사망/부활 메시지 채널 구독
+// 사망/부활 메시지 채널 구독 + 화면을 숨김 상태로 초기화
 void ULeeDeathScreenWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
+
+	UE_LOG(LogLee, Log, TEXT("[DeathScreen] Construct %s World=%s"), *GetName(), *GetNameSafe(GetWorld()));
+
+	// 26.11.04 추가 - HUD 레이어 스택과 확장 슬롯은 위젯을 풀에 넣었다가 같은 인스턴스를 다시 붙인다.
+	// 이전 맵에서 켜 둔 YOU DIED / Clear 상태가 그대로 남지 않도록, 붙을 때마다 숨김 상태로 되돌린다
+	// (WB_YouDied는 모든 요소가 루트 Canvas 아래에 있고, 루트 기본값이 Collapsed → 루트만 숨기면 처음 상태와 같다)
+	StopAllAnimations();
+	SetDimBackgroundVisible(false);
+	if (UWidget* Root = GetRootWidget())
+	{
+		Root->SetVisibility(ESlateVisibility::Collapsed);
+	}
 
 	UGameplayMessageSubsystem& MessageSystem = UGameplayMessageSubsystem::Get(this);
 	YouDiedListenerHandle = MessageSystem.RegisterListener(
@@ -28,6 +42,8 @@ void ULeeDeathScreenWidget::NativeConstruct()
 // 구독 해제 + 부활 질문 위젯 정리
 void ULeeDeathScreenWidget::NativeDestruct()
 {
+	UE_LOG(LogLee, Log, TEXT("[DeathScreen] Destruct %s World=%s"), *GetName(), *GetNameSafe(GetWorld()));
+
 	YouDiedListenerHandle.Unregister();
 	RespawnListenerHandle.Unregister();
 	PartyWipedListenerHandle.Unregister();
@@ -40,6 +56,7 @@ void ULeeDeathScreenWidget::NativeDestruct()
 // 사망 메시지 수신 → BP OnYouDied, RespawnPromptDelay 뒤 부활 질문 표시
 void ULeeDeathScreenWidget::HandleYouDiedMessage(FGameplayTag Channel, const FLeeVerbMessage& Message)
 {
+	UE_LOG(LogLee, Log, TEXT("[DeathScreen] YouDied 수신 %s World=%s"), *GetName(), *GetNameSafe(GetWorld()));
 	SetDimBackgroundVisible(true);
 	OnYouDied();
 
@@ -50,6 +67,7 @@ void ULeeDeathScreenWidget::HandleYouDiedMessage(FGameplayTag Channel, const FLe
 // 전멸 메시지 수신 → YOU DIED 표시만 (부활 질문 없음)
 void ULeeDeathScreenWidget::HandlePartyWipedMessage(FGameplayTag Channel, const FLeeVerbMessage& Message)
 {
+	UE_LOG(LogLee, Log, TEXT("[DeathScreen] PartyWiped 수신 %s World=%s"), *GetName(), *GetNameSafe(GetWorld()));
 	SetDimBackgroundVisible(true);
 	OnYouDied();
 }
@@ -57,6 +75,7 @@ void ULeeDeathScreenWidget::HandlePartyWipedMessage(FGameplayTag Channel, const 
 // 26.11.02 추가 - 보스 처치 메시지 수신 → BP OnBossVictory (26.11.03 - 승리 화면은 어두운 배경 없음)
 void ULeeDeathScreenWidget::HandleBossVictoryMessage(FGameplayTag Channel, const FLeeVerbMessage& Message)
 {
+	UE_LOG(LogLee, Log, TEXT("[DeathScreen] BossVictory 수신 %s World=%s"), *GetName(), *GetNameSafe(GetWorld()));
 	SetDimBackgroundVisible(false);
 	OnBossVictory();
 }
@@ -73,6 +92,7 @@ void ULeeDeathScreenWidget::SetDimBackgroundVisible(bool bVisible)
 // 부활 메시지 수신 → 부활 질문 닫기 + BP OnRespawn
 void ULeeDeathScreenWidget::HandleRespawnMessage(FGameplayTag Channel, const FLeeVerbMessage& Message)
 {
+	UE_LOG(LogLee, Log, TEXT("[DeathScreen] Respawn 수신 %s World=%s"), *GetName(), *GetNameSafe(GetWorld()));
 	HideRespawnPrompt();
 	OnRespawn();
 }
