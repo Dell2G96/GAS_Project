@@ -5,10 +5,12 @@
 #include "DrawDebugHelpers.h"
 #include "Abilities/GameplayAbilityTargetTypes.h"
 #include "Components/MeshComponent.h"
+#include "Components/SkeletalMeshComponent.h"
 #include "GAS_Project/MyTags.h"
 #include "GAS_Project/AEquipment/LeeEquipmentManagerComponent.h"
 #include "GAS_Project/AEquipment/LeeEquipmentInstance.h"
 #include "GAS_Project/AEquipment/LeeMeleeWeaponInstance.h"
+#include "GAS_Project/AEquipment/LeeEquipmentMeshSelection.h"
 
 // 생성자 — 기본 무기 인스턴스 타입을 근접무기로 지정
 UANS_WeaponTrace::UANS_WeaponTrace()
@@ -16,7 +18,7 @@ UANS_WeaponTrace::UANS_WeaponTrace()
 	WeaponInstanceType = ULeeMeleeWeaponInstance::StaticClass();
 }
 
-// 구간 시작 — 무기 메시를 1회 resolve해 캐싱하고 히트 목록 초기화
+// 구간 시작 — 선택한 메시를 캐싱하고 히트 목록 초기화
 void UANS_WeaponTrace::NotifyBegin(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation, float TotalDuration,
 	const FAnimNotifyEventReference& EventReference)
 {
@@ -28,8 +30,12 @@ void UANS_WeaponTrace::NotifyBegin(USkeletalMeshComponent* MeshComp, UAnimSequen
 	}
 
 	FWeaponTraceRuntimeData& Data = RuntimeMap.FindOrAdd(MeshComp);
-	Data.WeaponMesh = ResolveWeaponMesh(MeshComp);
-	Data.HitActors.Reset();
+	ResolveTraceSources(MeshComp, Data.Sources);
+	if (TraceSource == ELeeMeleeTraceSource::CharacterMesh && Data.Sources.IsEmpty())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[WeaponTrace] Character Mesh 소켓/본 설정 확인: Mesh=%s Start=%s End=%s"),
+			*GetNameSafe(MeshComp), *BodyStartSocket.ToString(), *BodyEndSocket.ToString());
+	}
 }
 
 // 구간 끝 — 런타임 데이터 정리
@@ -43,7 +49,7 @@ void UANS_WeaponTrace::NotifyEnd(USkeletalMeshComponent* MeshComp, UAnimSequence
 	RuntimeMap.Remove(MeshComp);
 }
 
-// 매 틱 — 무기 자루→칼끝 사이를 구체 스윕해 히트 처리
+// 매 틱 — 선택한 메시의 두 소켓/본 사이를 구체 스윕한다
 void UANS_WeaponTrace::NotifyTick(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation, float FrameDeltaTime,
 	const FAnimNotifyEventReference& EventReference)
 {
@@ -65,69 +71,34 @@ void UANS_WeaponTrace::NotifyTick(USkeletalMeshComponent* MeshComp, UAnimSequenc
 		return;
 	}
 
-	// 무기 메시가 없으면 판정 스킵(무장 해제/스폰 전 등) — 5-a
-	UMeshComponent* WeaponMesh = DataPtr->WeaponMesh.Get();
-	if (!WeaponMesh)
-	{
-		return;
-	}
-
-	
-
-	// 이번 프레임의 자루/칼끝 위치 (2점)
-	const FVector Start = WeaponMesh->GetSocketLocation(WeaponBaseSocket);
-	const FVector End   = WeaponMesh->GetSocketLocation(WeaponTipSocket);
-
 	UWorld* World = MeshComp->GetWorld();
 	if (!World) return;
-
-	FCollisionQueryParams Params(SCENE_QUERY_STAT(WeaponSocketTrace), false);
-	if (bIgnoreOwner)
+	for (FWeaponTraceSourceData& Source : DataPtr->Sources)
 	{
-		Params.AddIgnoredActor(OwnerActor);
-	}
-
-	// 이미 맞춘 액터는 이번 공격 동안 중복 히트하지 않도록 무시
-	for (const TWeakObjectPtr<AActor>& HitActorPtr : DataPtr->HitActors)
-	{
-		if (AActor* HitActor = HitActorPtr.Get())
+		UMeshComponent* TraceMesh = Source.TraceMesh.Get();
+		if (!TraceMesh || !TraceMesh->DoesSocketExist(Source.StartSocket) || !TraceMesh->DoesSocketExist(Source.EndSocket)) continue;
+		const FVector Start = TraceMesh->GetSocketLocation(Source.StartSocket);
+		const FVector End = TraceMesh->GetSocketLocation(Source.EndSocket);
+		FCollisionQueryParams Params(SCENE_QUERY_STAT(WeaponSocketTrace), false);
+		if (bIgnoreOwner) Params.AddIgnoredActor(OwnerActor);
+		for (const TWeakObjectPtr<AActor>& HitActor : Source.HitActors)
+			if (HitActor.IsValid()) Params.AddIgnoredActor(HitActor.Get());
+		TArray<FHitResult> Hits;
+		const bool bHit = World->SweepMultiByChannel(Hits, Start, End, FQuat::Identity, TraceChannel, FCollisionShape::MakeSphere(TraceRadius), Params);
+		if (bDrawDebug)
 		{
-			Params.AddIgnoredActor(HitActor);
+			DrawDebugLine(World, Start, End, FColor::Cyan, false, 0.1f, 0, 1.f);
+			DrawDebugSphere(World, End, TraceRadius, 12, bHit ? FColor::Red : FColor::Green, false, 0.1f);
 		}
-	}
-
-	TArray<FHitResult> Hits;
-	const bool bHit = World->SweepMultiByChannel(
-		Hits,
-		Start,
-		End,
-		FQuat::Identity,
-		TraceChannel,
-		FCollisionShape::MakeSphere(TraceRadius),
-		Params);
-
-	
-
-	if (bDrawDebug)
-	{
-		DrawDebugLine(World, Start, End, FColor::Cyan, false, 0.1f, 0, 1.0f);
-		DrawDebugSphere(World, End, TraceRadius, 12, bHit ? FColor::Red : FColor::Green, false, 0.1f);
-	}
-
-	if (bHit)
-	{
-		for (const FHitResult& HR : Hits)
+		for (const FHitResult& Hit : Hits)
 		{
-			AActor* HitActor = HR.GetActor();
-			if (!HitActor) continue;
-
-			// 중복 히트 방지 등록 후 이벤트 처리
-			DataPtr->HitActors.Add(HitActor);
-			HandleHit(OwnerActor, HR);
+			AActor* HitActor = Hit.GetActor();
+			if (!HitActor || Source.HitActors.Contains(HitActor)) continue;
+			Source.HitActors.Add(HitActor);
+			HandleHit(OwnerActor, Hit);
 		}
 	}
 }
-
 // 서버 권위에서만 판정(멀티 권장). bServerOnly=false면 어디서나 실행 (에디터 프리뷰 월드는 제외)
 bool UANS_WeaponTrace::ShouldRunTrace(const USkeletalMeshComponent* MeshComp) const
 {
@@ -145,6 +116,65 @@ bool UANS_WeaponTrace::ShouldRunTrace(const USkeletalMeshComponent* MeshComp) co
 	if (!bServerOnly) return true;
 
 	return OwnerActor->HasAuthority();
+}
+
+void UANS_WeaponTrace::ResolveTraceSources(USkeletalMeshComponent* MeshComp, TArray<FWeaponTraceSourceData>& OutSources) const
+{
+	OutSources.Reset();
+	if (!MeshComp) return;
+	if (TraceSource == ELeeMeleeTraceSource::EquippedWeapon && !WeaponTargets.IsEmpty())
+	{
+		TSet<UMeshComponent*> Seen;
+		for (const FLeeWeaponTraceTarget& Target : WeaponTargets)
+		{
+			if (Target.StartSocket.IsNone() || Target.EndSocket.IsNone()) continue;
+			for (UMeshComponent* Mesh : LeeEquipmentMeshSelection::FindMeshes(MeshComp->GetOwner(), Target.EquipmentAttachSocket))
+			{
+				if (!Mesh->DoesSocketExist(Target.StartSocket) || !Mesh->DoesSocketExist(Target.EndSocket)) continue;
+				if (!Seen.Contains(Mesh))
+				{
+					Seen.Add(Mesh);
+					auto& Source = OutSources.AddDefaulted_GetRef();
+					Source.TraceMesh = Mesh;
+					Source.StartSocket = Target.StartSocket;
+					Source.EndSocket = Target.EndSocket;
+				}
+				break; // 지정 장비에서 두 소켓이 있는 한 메시를 선택한다.
+			}
+		}
+		return; // 명시한 장비가 없으면 다른 무기로 대체하지 않는다.
+	}
+	if (UMeshComponent* Mesh = ResolveTraceMesh(MeshComp))
+	{
+		auto& Source = OutSources.AddDefaulted_GetRef();
+		Source.TraceMesh = Mesh;
+		GetTraceSocketNames(Source.StartSocket, Source.EndSocket);
+	}
+}
+void UANS_WeaponTrace::GetTraceSocketNames(FName& OutStart, FName& OutEnd) const
+{
+	const bool bBody = TraceSource == ELeeMeleeTraceSource::CharacterMesh;
+	OutStart = bBody ? BodyStartSocket : WeaponBaseSocket;
+	OutEnd = bBody ? BodyEndSocket : WeaponTipSocket;
+}
+
+bool UANS_WeaponTrace::HasTraceSockets(const UMeshComponent* Mesh) const
+{
+	FName Start, End;
+	GetTraceSocketNames(Start, End);
+	return IsValid(Mesh) && !Start.IsNone() && !End.IsNone()
+		&& Mesh->DoesSocketExist(Start) && Mesh->DoesSocketExist(End);
+}
+
+UMeshComponent* UANS_WeaponTrace::ResolveTraceMesh(USkeletalMeshComponent* MeshComp) const
+{
+	if (!MeshComp) return nullptr;
+	if (TraceSource == ELeeMeleeTraceSource::CharacterMesh)
+	{
+		// 장비 유무와 관계없이 이 노티파이를 실행하는 캐릭터 메시만 사용한다.
+		return HasTraceSockets(MeshComp) ? MeshComp : nullptr;
+	}
+	return ResolveWeaponMesh(MeshComp);
 }
 
 // LeeEquipment → 무기 인스턴스 → 스폰 무기 액터 → 두 소켓을 모두 가진 메시 반환(방패 등 자동 제외)
