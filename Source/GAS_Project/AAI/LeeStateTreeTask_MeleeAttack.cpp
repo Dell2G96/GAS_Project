@@ -56,12 +56,7 @@ EStateTreeRunStatus FLeeStateTreeTask_ActivateAbility::EnterState(FStateTreeExec
 		return EStateTreeRunStatus::Failed;
 	}
 
-	if (!ASC->TryActivateAbility(MatchedHandle))
-	{
-		return EStateTreeRunStatus::Failed;
-	}
-
-	Data.ActivatedSpecHandle = MatchedHandle;
+	Data.ActivatedSpecHandle = FGameplayAbilitySpecHandle();
 	Data.ElapsedSeconds = 0.f;
 
 	if (!Data.EndListener)
@@ -69,6 +64,14 @@ EStateTreeRunStatus FLeeStateTreeTask_ActivateAbility::EnterState(FStateTreeExec
 		Data.EndListener = NewObject<ULeeAbilityEndListener>(Context.GetOwner());
 	}
 	Data.EndListener->Bind(ASC, MatchedHandle);
+	// 즉시 종료하는 GA도 놓치지 않도록 활성화 전에 구독한다.
+	if (!ASC->TryActivateAbility(MatchedHandle))
+	{
+		Data.EndListener->Unbind();
+		return EStateTreeRunStatus::Failed;
+	}
+	Data.ActivatedSpecHandle = MatchedHandle;
+	if (Data.EndListener->HasEnded()) return EStateTreeRunStatus::Succeeded;
 
 	return EStateTreeRunStatus::Running;
 }
