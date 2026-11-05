@@ -82,10 +82,19 @@ void ULeeGameplayAbility_HitReaction::ActivateAbility(
 
 		if (SelectedMontage->GetSectionIndex(StartSection) == INDEX_NONE)
 		{
-			UE_LOG(LogTemp, Warning, TEXT("[LeeGA_HitReaction] %s에 Section [%s]이 없습니다."),
-				*SelectedMontage->GetName(), *StartSection.ToString());
-			EndAbility(Handle, ActorInfo, ActivationInfo, true, true);
-			return;
+			// 26.11.05 추가 - 강경직은 4방향(Front/Back/Left/Right 섹션) 몽타주와 1방향(섹션 없음) 몽타주를 혼용 가능.
+			// 방향 섹션이 없으면 1방향 몽타주로 보고 처음부터 재생한다. (일반 경직은 기존대로 섹션 필수)
+			if (TriggerEventData->EventTag == MyTags::Souls::Event_Combat_HitReactHeavy)
+			{
+				StartSection = NAME_None;
+			}
+			else
+			{
+				UE_LOG(LogTemp, Warning, TEXT("[LeeGA_HitReaction] %s에 Section [%s]이 없습니다."),
+					*SelectedMontage->GetName(), *StartSection.ToString());
+				EndAbility(Handle, ActorInfo, ActivationInfo, true, true);
+				return;
+			}
 		}
 	}
 
