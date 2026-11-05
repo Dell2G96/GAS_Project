@@ -98,6 +98,7 @@ public class GAS_Project : ModuleRules
 				"StateTreeEditorModule",   // UStateTreeEditorData / UStateTreeState / FStateTreeCompiler
 				"UnrealEd",                // UStateTreeEditingSubsystem (컴파일 + 검증 + 해시 갱신)
 				"AssetRegistry",           // FAssetRegistryModule::AssetCreated
+				"BehaviorTreeEditor", "AIGraph",
 			});
 		}
 		#endregion

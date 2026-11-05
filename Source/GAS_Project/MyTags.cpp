@@ -233,6 +233,7 @@ namespace MyTags
 		// 스태미나 감소 원인 태그 (GuardBreak/PostureBreak 분기 근거)
 		UE_DEFINE_GAMEPLAY_TAG(DamageType_ParryCounter, "Souls.DamageType.ParryCounter")
 		UE_DEFINE_GAMEPLAY_TAG(DamageType_DodgeCost, "Souls.DamageType.DodgeCost")
+		UE_DEFINE_GAMEPLAY_TAG(StaminaCause_AttackCost, "Souls.StaminaCause.AttackCost")
 		UE_DEFINE_GAMEPLAY_TAG(DamageType_Attack_Projectile, "Souls.DamageType.Attack.Projectile")
 		// 모래 공격 속성 태그 (피격 시 시야 방해)
 		UE_DEFINE_GAMEPLAY_TAG(DamageType_Attack_Sand, "Souls.DamageType.Attack.Sand")

@@ -1,6 +1,7 @@
 #include "LeeGameplayAbility_Guard.h"
 
 #include "AbilitySystemComponent.h"
+#include "GameFramework/Pawn.h"
 #include "Abilities/Tasks/AbilityTask_PlayMontageAndWait.h"
 #include "Abilities/Tasks/AbilityTask_WaitGameplayEvent.h"
 #include "Abilities/Tasks/AbilityTask_WaitInputRelease.h"
@@ -75,11 +76,15 @@ void ULeeGameplayAbility_Guard::ActivateAbility(
 	PerfectGuardTask->EventReceived.AddDynamic(this, &ThisClass::OnPerfectGuardEventReceived);
 	PerfectGuardTask->ReadyForActivation();
 
-	// 3. 입력 해제 대기 — WhileInputActive는 재활성화 정책일 뿐 종료를 대신하지 않으므로 필요 
-	UAbilityTask_WaitInputRelease* ReleaseTask =
-		UAbilityTask_WaitInputRelease::WaitInputRelease(this, /*bTestAlreadyReleased*/true);
-	ReleaseTask->OnRelease.AddDynamic(this, &ThisClass::OnInputReleased);
-	ReleaseTask->ReadyForActivation();
+	// 플레이어는 입력을 놓으면 종료하고, AI는 StateTree가 상태를 이탈할 때 종료한다.
+	const APawn* Pawn = Cast<APawn>(GetAvatarActorFromActorInfo());
+	if (!Pawn || Pawn->IsPlayerControlled())
+	{
+		UAbilityTask_WaitInputRelease* ReleaseTask =
+			UAbilityTask_WaitInputRelease::WaitInputRelease(this, /*bTestAlreadyReleased*/true);
+		ReleaseTask->OnRelease.AddDynamic(this, &ThisClass::OnInputReleased);
+		ReleaseTask->ReadyForActivation();
+	}
 }
 
 // 종료 — 퍼펙트 윈도우 GE 핸들 정리 (Guard.Active는 ActivationOwnedTags라 자동 제거)

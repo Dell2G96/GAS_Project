@@ -238,6 +238,7 @@ namespace MyTags
 		// 스태미나 감소 원인 태그 — 스태미나 0 도달 시 GuardBreak/PostureBreak 분기 근거 (리뷰 P0-3)
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(DamageType_ParryCounter);
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(DamageType_DodgeCost);
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(StaminaCause_AttackCost);
 		// [신규] 투사체(원거리) 공격 속성 태그 — 가드 방향 판정 기준을 투사체 위치로 바꾸는 등 원거리 전용 분기에 사용
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(DamageType_Attack_Projectile);
 		// [신규 26.10.20] 모래 공격 속성 태그 — 피격 시 DefenseComponent가 시야 방해 GE(GE_SandBlind)를 건다

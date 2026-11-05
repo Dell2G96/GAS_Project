@@ -2,6 +2,7 @@
 
 
 #include "LeeSoulsStatSet.h"
+#include "GAS_Project/AAI/Boss/LeeBossBrainComponent.h"
 
 #include "GameplayEffectExtension.h"
 #include "GameFramework/GameplayMessageSubsystem.h"
@@ -235,12 +236,26 @@ void ULeeSoulsStatSet::PostGameplayEffectExecute(const FGameplayEffectModCallbac
             OnStaminaChanged.Broadcast(Instigator, Causer, &Data.EffectSpec, Data.EvaluatedData.Magnitude, StaminaBeforeAttributeChange, GetStamina());
         }
 
-        // [신규] 스태미나 0 도달 → 그로기 진입 알림 (OnOutOfHealth와 동일 패턴)
-        if ((GetStamina() <= 0.0f) && !bOutOfStamina)
+        if (GetStamina() > 0.0f)
         {
-            OnOutOfStamina.Broadcast(Instigator, Causer, &Data.EffectSpec, Data.EvaluatedData.Magnitude, StaminaBeforeAttributeChange, GetStamina());
+            bOutOfStamina = false;
         }
+        else if (!bOutOfStamina)
+        {
+            ULeeBossBrainComponent* BossBrain = ULeeBossBrainComponent::FindForPawn(Data.Target.GetAvatarActor());
+            const float StaminaDelta = Data.EvaluatedData.Magnitude;
+            const bool bIsAttackCost = Data.EffectSpec.GetDynamicAssetTags().HasTagExact(MyTags::Souls::StaminaCause_AttackCost);
 
-        bOutOfStamina = (GetStamina() <= 0.0f);
+            if (BossBrain && bIsAttackCost && StaminaDelta < 0.0f)
+            {
+                // 비용 고갈로는 그로기 이벤트를 소비하지 않는다. 0인 동안 받은 외부 피해도 처리할 수 있다.
+                BossBrain->BeginAttackStaminaRecovery(-StaminaDelta);
+            }
+            else if (!BossBrain || StaminaDelta < 0.0f || !BossBrain->IsRecoveringAttackStamina())
+            {
+                bOutOfStamina = true;
+                OnOutOfStamina.Broadcast(Instigator, Causer, &Data.EffectSpec, StaminaDelta, StaminaBeforeAttributeChange, GetStamina());
+            }
+        }
     }
 }

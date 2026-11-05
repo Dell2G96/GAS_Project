@@ -516,6 +516,7 @@ bool ULeeGameplayAbility_AttackMelee::TryCommitAttackStepCost(int32 CostIndex, i
 		{
 			// 음수로 설정하여 스태미나 감소
 			SpecHandle.Data->SetSetByCallerMagnitude(MyTags::Souls::SetByCaller_StaminaDamage, -StepCost);
+			SpecHandle.Data->AddDynamicAssetTag(MyTags::Souls::StaminaCause_AttackCost);
 			ASC->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
 		}
 	}
