@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "Animation/AnimNotifies/AnimNotifyState.h"
 #include "GameplayTagContainer.h"
+#include "GAS_Project/AFeedBack/LeeWeaponTelegraphVisuals.h"
 #include "LeeAnimNotifyState_WeaponTelegraph.generated.h"
 
 class UMeshComponent;
@@ -53,7 +54,15 @@ public:
 
 	virtual FString GetNotifyName_Implementation() const override;
 
+	const TArray<FLeeWeaponTelegraphTarget>& GetEquipmentTargets() const { return EquipmentTargets; }
+	FName GetEffectAttachSocket() const { return AttachSocketName; }
+	UMaterialInterface* GetTelegraphOverlay() const { return ResolveOverlayMaterial(); }
+	UNiagaraSystem* GetTelegraphNiagara() const { return ResolveNiagaraSystem(); }
+
 protected:
+	/** 비어 있으면 기존 첫 무기 탐색. 명시하면 해당 캐릭터 부착 소켓의 장비만 사용한다. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Lee|WeaponTelegraph|Targets")
+	TArray<FLeeWeaponTelegraphTarget> EquipmentTargets;
 	/** 예고 타입 선택 — 파란색(퍼펙트 가드 전용) / 빨간색(퍼펙트 회피 전용) 프리셋 자동 적용 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Lee|WeaponTelegraph")
 	ELeeWeaponTelegraphType TelegraphType = ELeeWeaponTelegraphType::PerfectGuardOnly;
@@ -81,11 +90,8 @@ protected:
 private:
 	struct FTelegraphRuntimeData
 	{
-		TWeakObjectPtr<UMeshComponent> WeaponMesh;
-		TWeakObjectPtr<UMaterialInterface> PreviousOverlayMaterial;
-		TWeakObjectPtr<UNiagaraComponent> SpawnedNiagara;
+		TArray<FLeeWeaponTelegraphVisualState> Visuals;
 		FGameplayTag ActiveCueTag;
-		bool bAppliedOverlay = false;
 
 		/** 공격자 ASC에 건 타격 속성 Loose Tag (서버 전용) */
 		FGameplayTag ActiveDamageTypeTag;

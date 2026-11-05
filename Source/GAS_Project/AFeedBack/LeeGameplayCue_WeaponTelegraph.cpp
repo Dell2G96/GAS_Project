@@ -1,4 +1,5 @@
 #include "LeeGameplayCue_WeaponTelegraph.h"
+#include "GAS_Project/AAnimation/LeeAnimNotifyState_WeaponTelegraph.h"
 
 #include "Components/MeshComponent.h"
 #include "Components/SkeletalMeshComponent.h"
@@ -23,35 +24,21 @@ bool ALeeGameplayCue_WeaponTelegraph::WhileActive_Implementation(AActor* MyTarge
 
 	ClearTelegraphEffect();
 
-	UMeshComponent* WeaponMesh = FindWeaponMeshOnActor(MyTarget, WeaponBaseSocket, WeaponTipSocket);
-	if (!WeaponMesh)
+	const auto* Settings = Cast<ULeeAnimNotifyState_WeaponTelegraph>(Parameters.SourceObject.Get());
+	TArray<FLeeResolvedTelegraphTarget> Targets;
+	if (Settings && !Settings->GetEquipmentTargets().IsEmpty())
 	{
-		return false;
+		LeeWeaponTelegraphVisuals::Resolve(MyTarget, Settings->GetEquipmentTargets(), Targets);
 	}
-
-	CachedWeaponMesh = WeaponMesh;
-
-	// 1. 발광 오버레이 머티리얼 적용
-	if (TelegraphOverlayMaterial)
+	else
 	{
-		PreviousOverlayMaterial = WeaponMesh->GetOverlayMaterial();
-		WeaponMesh->SetOverlayMaterial(TelegraphOverlayMaterial);
+		const FName Socket = Settings ? Settings->GetEffectAttachSocket() : AttachSocketName;
+		UMeshComponent* Mesh = FindWeaponMeshOnActor(MyTarget, Settings ? Socket : WeaponBaseSocket, WeaponTipSocket);
+		if (Mesh) Targets.Add({Mesh, Mesh->DoesSocketExist(Socket) ? Socket : NAME_None});
 	}
-
-	// 2. 나이아가라 이펙트 부착
-	if (TelegraphNiagaraSystem)
-	{
-		const FName SocketToUse = WeaponMesh->DoesSocketExist(AttachSocketName) ? AttachSocketName : NAME_None;
-		SpawnedNiagaraComp = UNiagaraFunctionLibrary::SpawnSystemAttached(
-			TelegraphNiagaraSystem,
-			WeaponMesh,
-			SocketToUse,
-			FVector::ZeroVector,
-			FRotator::ZeroRotator,
-			EAttachLocation::SnapToTarget,
-			true);
-	}
-
+	LeeWeaponTelegraphVisuals::Apply(Targets,
+		Settings ? Settings->GetTelegraphOverlay() : TelegraphOverlayMaterial.Get(),
+		Settings ? Settings->GetTelegraphNiagara() : TelegraphNiagaraSystem.Get(), Visuals);
 	return true;
 }
 
@@ -75,23 +62,7 @@ bool ALeeGameplayCue_WeaponTelegraph::Recycle()
 
 void ALeeGameplayCue_WeaponTelegraph::ClearTelegraphEffect()
 {
-	if (UMeshComponent* WeaponMesh = CachedWeaponMesh.Get())
-	{
-		if (TelegraphOverlayMaterial)
-		{
-			WeaponMesh->SetOverlayMaterial(PreviousOverlayMaterial);
-		}
-	}
-
-	if (SpawnedNiagaraComp)
-	{
-		SpawnedNiagaraComp->DeactivateImmediate();
-		SpawnedNiagaraComp->DestroyComponent();
-		SpawnedNiagaraComp = nullptr;
-	}
-
-	PreviousOverlayMaterial = nullptr;
-	CachedWeaponMesh.Reset();
+	LeeWeaponTelegraphVisuals::Clear(Visuals);
 }
 
 UMeshComponent* ALeeGameplayCue_WeaponTelegraph::FindWeaponMeshOnActor(AActor* Owner, FName BaseSocketName, FName TipSocketName)

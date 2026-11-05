@@ -10,6 +10,7 @@
 #include "NiagaraSystem.h"
 #include "GAS_Project/MyTags.h"
 #include "GAS_Project/AFeedBack/LeeGameplayCue_WeaponTelegraph.h"
+#include "GAS_Project/AEquipment/LeeEquipmentMeshSelection.h"
 
 ULeeAnimNotifyState_WeaponTelegraph::ULeeAnimNotifyState_WeaponTelegraph()
 {
@@ -33,11 +34,16 @@ void ULeeAnimNotifyState_WeaponTelegraph::NotifyBegin(USkeletalMeshComponent* Me
 
 	// 1. 서버에서는 ASC에 GameplayCue 활성 (네트워크 복제 지원)
 	const FGameplayTag CueTag = ResolveCueTag();
-	if (Owner && Owner->HasAuthority() && CueTag.IsValid())
+	const UWorld* World = MeshComp->GetWorld();
+	UAbilitySystemComponent* OwnerASC = Owner ? UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(Owner) : nullptr;
+	const bool bCueOwnsVisuals = World && World->IsGameWorld() && OwnerASC && CueTag.IsValid();
+	if (bCueOwnsVisuals && Owner->HasAuthority())
 	{
 		if (UAbilitySystemComponent* ASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(Owner))
 		{
-			ASC->AddGameplayCue(CueTag);
+			FGameplayCueParameters Parameters;
+			Parameters.SourceObject = this;
+			ASC->AddGameplayCue(CueTag, Parameters);
 			Data.ActiveCueTag = CueTag;
 		}
 	}
@@ -57,64 +63,32 @@ void ULeeAnimNotifyState_WeaponTelegraph::NotifyBegin(USkeletalMeshComponent* Me
 	Data.ElapsedTime = 0.0f;
 	Data.bGlowActive = true;
 
-	// 2. 데디케이티드 서버가 아니면 즉시 무기 메시(없으면 캐릭터 본체 메시 폴백)에 발광 오버레이 + 나이아가라 부착
-	const UWorld* World = MeshComp->GetWorld();
-	if (!World || World->GetNetMode() == NM_DedicatedServer)
+	// 게임에서는 Cue가 시각효과를 소유하여 노티파이와 이중으로 적용하지 않는다.
+	if (!World || World->GetNetMode() == NM_DedicatedServer || bCueOwnsVisuals) return;
+	TArray<FLeeResolvedTelegraphTarget> Targets;
+	if (!EquipmentTargets.IsEmpty())
 	{
-		return;
+		LeeWeaponTelegraphVisuals::Resolve(Owner, EquipmentTargets, Targets);
 	}
-
-	UMeshComponent* TargetMesh = Owner
-		? ALeeGameplayCue_WeaponTelegraph::FindWeaponMeshOnActor(Owner, AttachSocketName, TEXT("WeaponTip"))
-		: nullptr;
-
-	// 에디터 애니메이션 프리뷰 창처럼 장착 무기가 없는 환경에서는 본체 MeshComp의 소켓에 폴백하여 프리뷰 확인 가능
-	if (!TargetMesh)
+	else
 	{
-		TargetMesh = MeshComp;
-	}
-
-	Data.WeaponMesh = TargetMesh;
-
-	// A. 오버레이 발광 머티리얼 적용 (무기 메시가 별도로 존재할 때만 덮어씌움; 본체 전체가 파랗게 되는 것 방지)
-	if (TargetMesh != MeshComp)
-	{
-		if (UMaterialInterface* OverlayMat = ResolveOverlayMaterial())
+		UMeshComponent* TargetMesh = Owner ? ALeeGameplayCue_WeaponTelegraph::FindWeaponMeshOnActor(Owner, AttachSocketName, TEXT("WeaponTip")) : nullptr;
+		if (!TargetMesh)
 		{
-			Data.PreviousOverlayMaterial = TargetMesh->GetOverlayMaterial();
-			TargetMesh->SetOverlayMaterial(OverlayMat);
-			Data.bAppliedOverlay = true;
-		}
-	}
-
-	// B. 나이아가라 이펙트 부착
-	if (UNiagaraSystem* NiagaraSys = ResolveNiagaraSystem())
-	{
-		FName SocketToUse = AttachSocketName;
-		if (!TargetMesh->DoesSocketExist(SocketToUse))
-		{
-			// 프리뷰 메시의 경우 hand_r 등 손 소켓이 있으면 우선 사용
-			if (TargetMesh->DoesSocketExist(TEXT("hand_r")))
+			const TArray<UMeshComponent*> PreviewMeshes = LeeEquipmentMeshSelection::FindPreviewMeshes(Owner);
+			auto* MatchingMesh = PreviewMeshes.FindByPredicate([this](const UMeshComponent* Mesh)
 			{
-				SocketToUse = TEXT("hand_r");
-			}
-			else
-			{
-				SocketToUse = NAME_None;
-			}
+				return Mesh->DoesSocketExist(AttachSocketName);
+			});
+			TargetMesh = MatchingMesh ? *MatchingMesh : (PreviewMeshes.IsEmpty() ? nullptr : PreviewMeshes[0]);
 		}
-
-		Data.SpawnedNiagara = UNiagaraFunctionLibrary::SpawnSystemAttached(
-			NiagaraSys,
-			TargetMesh,
-			SocketToUse,
-			FVector::ZeroVector,
-			FRotator::ZeroRotator,
-			EAttachLocation::SnapToTarget,
-			true);
+		if (!TargetMesh) TargetMesh = MeshComp;
+		FName Socket = AttachSocketName;
+		if (!TargetMesh->DoesSocketExist(Socket)) Socket = TargetMesh->DoesSocketExist(TEXT("hand_r")) ? FName(TEXT("hand_r")) : NAME_None;
+		Targets.Add({TargetMesh, Socket});
 	}
+	LeeWeaponTelegraphVisuals::Apply(Targets, ResolveOverlayMaterial(), ResolveNiagaraSystem(), Data.Visuals, MeshComp);
 }
-
 void ULeeAnimNotifyState_WeaponTelegraph::NotifyEnd(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation,
 	const FAnimNotifyEventReference& EventReference)
 {
@@ -186,25 +160,10 @@ void ULeeAnimNotifyState_WeaponTelegraph::StopGlow(USkeletalMeshComponent* MeshC
 		}
 	}
 
-	// 2. 오버레이 머티리얼 복원
-	if (Data.bAppliedOverlay)
-	{
-		if (UMeshComponent* WeaponMesh = Data.WeaponMesh.Get())
-		{
-			WeaponMesh->SetOverlayMaterial(Data.PreviousOverlayMaterial.Get());
-		}
-	}
-
-	// 3. 나이아가라 컴포넌트 종료 및 제거
-	if (UNiagaraComponent* NiagaraComp = Data.SpawnedNiagara.Get())
-	{
-		NiagaraComp->DeactivateImmediate();
-		NiagaraComp->DestroyComponent();
-	}
-
+	LeeWeaponTelegraphVisuals::Clear(Data.Visuals);
 	Data.ActiveCueTag = FGameplayTag();
-	Data.bAppliedOverlay = false;
-	Data.SpawnedNiagara.Reset();
+
+
 	Data.bGlowActive = false;
 }
 

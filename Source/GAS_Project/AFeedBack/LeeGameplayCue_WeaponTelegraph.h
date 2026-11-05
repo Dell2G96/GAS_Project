@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "GameplayCueNotify_Actor.h"
+#include "LeeWeaponTelegraphVisuals.h"
 #include "LeeGameplayCue_WeaponTelegraph.generated.h"
 
 class UMeshComponent;
@@ -58,12 +59,5 @@ protected:
 private:
 	void ClearTelegraphEffect();
 
-	TWeakObjectPtr<UMeshComponent> CachedWeaponMesh;
-
-	UPROPERTY(Transient)
-	TObjectPtr<UMaterialInterface> PreviousOverlayMaterial;
-
-	UPROPERTY(Transient)
-	TObjectPtr<UNiagaraComponent> SpawnedNiagaraComp;
+	TArray<FLeeWeaponTelegraphVisualState> Visuals;
 };
-
