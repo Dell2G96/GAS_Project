@@ -101,6 +101,9 @@ private:
 	/** 유효(생존) 후보인지 확인 */
 	bool IsValidCandidate(const APawn* Candidate) const;
 
+	/** 보스전 넉다운 상태인지 확인 (넉다운 후보는 타겟 우선순위 최하위) */
+	bool IsDownedCandidate(const APawn* Candidate) const;
+
 	/** 아군이 아닌지(다른 팀인지) 확인 */
 	bool PassesTeamFilter(const APawn* Candidate) const;
 

@@ -371,11 +371,31 @@ void ULeeTargetSelectionComponent::GatherCandidates(TArray<APawn*>& OutCandidate
 		}
 		else
 		{
-			
+
 		}
 	}
 
-	
+	// 26.11.05 추가 - 넉다운 플레이어는 최하위: 멀쩡한 후보가 한 명이라도 있으면 넉다운 후보를 뺀다.
+	// 현재 타겟이 넉다운되면 후보에서 빠지므로 UpdateTargetSelection의 즉시 재선정 규칙이 그대로 적용된다.
+	// 전원 넉다운이면 아무도 빼지 않아 기존 규칙(위협도 → 최근접)대로 넉다운 플레이어를 노린다.
+	const bool bHasStandingCandidate = OutCandidates.ContainsByPredicate([this](const APawn* Candidate)
+	{
+		return !IsDownedCandidate(Candidate);
+	});
+	if (bHasStandingCandidate)
+	{
+		OutCandidates.RemoveAll([this](const APawn* Candidate)
+		{
+			return IsDownedCandidate(Candidate);
+		});
+	}
+}
+
+// 후보가 보스전 넉다운(Status_Downed) 상태인지 확인
+bool ULeeTargetSelectionComponent::IsDownedCandidate(const APawn* Candidate) const
+{
+	const UAbilitySystemComponent* ASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(const_cast<APawn*>(Candidate));
+	return ASC && ASC->HasMatchingGameplayTag(MyTags::Souls::Status_Downed);
 }
 
 // AIController 소유 StateTreeComponent에 이벤트 발신 (StateTree가 아직 없거나 비활성 상태면 조용히 무시)
