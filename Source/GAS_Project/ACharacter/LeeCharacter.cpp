@@ -131,6 +131,8 @@ void ALeeCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLif
 
 	DOREPLIFETIME_CONDITION(ThisClass, ReplicatedAcceleration, COND_SimulatedOnly);
 	DOREPLIFETIME(ThisClass, MyTeamID)
+	DOREPLIFETIME(ThisClass, DownedDeathServerTime);
+	DOREPLIFETIME(ThisClass, DownedPausedRemaining);
 }
 
 void ALeeCharacter::PreReplication(IRepChangedPropertyTracker& ChangedPropertyTracker)
@@ -425,7 +427,108 @@ void ALeeCharacter::GatherInteractionOptions(const FInteractionQuery& InteractQu
 		return;
 	}
 
-	OptionBuilder.AddInteractionOption(ReviveInteractionOption);
+	// 26.11.06 추가 - "대상 이름 + 부활 + 사망까지 남은 초" 문구. 초나 이름이 바뀔 때만 새로 만든다
+	const int32 Seconds = FMath::CeilToInt(GetDownedRemainingTime());
+	const FString Name = GetPlayerState() ? GetPlayerState()->GetPlayerName() : GetName();
+	if (Seconds != CachedReviveSeconds || Name != CachedReviveName || CachedReviveInteractionText.IsEmpty())
+	{
+		FFormatNamedArguments Args;
+		Args.Add(TEXT("Name"), FText::FromString(Name));
+		Args.Add(TEXT("Action"), ReviveInteractionOption.Text);
+		Args.Add(TEXT("Seconds"), Seconds);
+		CachedReviveInteractionText = FText::Format(ReviveInteractionFormat, Args);
+		CachedReviveSeconds = Seconds;
+		CachedReviveName = Name;
+	}
+
+	FInteractionOption Option = ReviveInteractionOption;
+	Option.Text = CachedReviveInteractionText;
+	OptionBuilder.AddInteractionOption(Option);
+}
+
+// 26.11.06 추가 - [서버] 사망 카운트다운 시작: 타이머를 걸고 사망 예정 서버 시간을 복제한다
+void ALeeCharacter::StartDownedCountdown(float Duration)
+{
+	if (!HasAuthority())
+	{
+		return;
+	}
+
+	ActiveReviverCount = 0;
+	DownedPausedRemaining = -1.0f;
+	GetWorldTimerManager().SetTimer(DownedCountdownHandle, this, &ThisClass::HandleDownedCountdownExpired, Duration, false);
+
+	const AGameStateBase* GameState = GetWorld()->GetGameState();
+	DownedDeathServerTime = (GameState ? GameState->GetServerWorldTimeSeconds() : GetWorld()->GetTimeSeconds()) + Duration;
+}
+
+// 26.11.06 추가 - [서버] 카운트다운 정지·초기화
+void ALeeCharacter::StopDownedCountdown()
+{
+	GetWorldTimerManager().ClearTimer(DownedCountdownHandle);
+	ActiveReviverCount = 0;
+	DownedDeathServerTime = -1.0f;
+	DownedPausedRemaining = -1.0f;
+}
+
+// 26.11.06 추가 - [서버] 첫 번째 부활자가 붙으면 타이머를 멈추고 남은 시간을 복제한다
+void ALeeCharacter::AddReviver()
+{
+	// 카운트다운이 없으면(넉다운 아님) 무시. 이미 멈춰 있으면(다른 부활자) 인원 수만 늘린다
+	if (!HasAuthority() || !GetWorldTimerManager().TimerExists(DownedCountdownHandle))
+	{
+		return;
+	}
+
+	if (++ActiveReviverCount == 1)
+	{
+		DownedPausedRemaining = GetWorldTimerManager().GetTimerRemaining(DownedCountdownHandle);
+		GetWorldTimerManager().PauseTimer(DownedCountdownHandle);
+	}
+}
+
+// 26.11.06 추가 - [서버] 마지막 부활자가 떨어지면 멈춘 시간부터 다시 진행한다
+void ALeeCharacter::RemoveReviver()
+{
+	if (!HasAuthority() || ActiveReviverCount <= 0)
+	{
+		return;
+	}
+
+	if (--ActiveReviverCount == 0 && GetWorldTimerManager().TimerExists(DownedCountdownHandle))
+	{
+		GetWorldTimerManager().UnPauseTimer(DownedCountdownHandle);
+
+		const AGameStateBase* GameState = GetWorld()->GetGameState();
+		const float Now = GameState ? GameState->GetServerWorldTimeSeconds() : GetWorld()->GetTimeSeconds();
+		DownedDeathServerTime = Now + GetWorldTimerManager().GetTimerRemaining(DownedCountdownHandle);
+		DownedPausedRemaining = -1.0f;
+	}
+}
+
+// 26.11.06 추가 - 사망까지 남은 시간: 멈춰 있으면 멈춘 값, 진행 중이면 (사망 예정 시간 - 현재 서버 시간)
+float ALeeCharacter::GetDownedRemainingTime() const
+{
+	if (DownedPausedRemaining >= 0.0f)
+	{
+		return DownedPausedRemaining;
+	}
+	if (DownedDeathServerTime < 0.0f)
+	{
+		return 0.0f;
+	}
+
+	const AGameStateBase* GameState = GetWorld() ? GetWorld()->GetGameState() : nullptr;
+	const float Now = GameState ? GameState->GetServerWorldTimeSeconds() : (GetWorld() ? GetWorld()->GetTimeSeconds() : 0.0f);
+	return FMath::Max(0.0f, DownedDeathServerTime - Now);
+}
+
+// 26.11.06 추가 - [서버] 카운트다운 만료 → 구독자(GA_Downed)에게 알림
+void ALeeCharacter::HandleDownedCountdownExpired()
+{
+	DownedDeathServerTime = -1.0f;
+	DownedPausedRemaining = -1.0f;
+	OnDownedCountdownExpired.Broadcast();
 }
 
 // 26.11.04 추가 - 가슴 소켓에 WidgetComponent를 (없으면 만들어) 붙이고 부활 게이지를 Duration초 동안 채운다
@@ -452,7 +555,7 @@ void ALeeCharacter::ShowReviveGauge(float Duration)
 	ReviveGaugeComponent->SetVisibility(true);
 	if (ULeeReviveGaugeWidget* GaugeWidget = Cast<ULeeReviveGaugeWidget>(ReviveGaugeComponent->GetUserWidgetObject()))
 	{
-		GaugeWidget->StartProgress(Duration);
+		GaugeWidget->StartProgress(Duration, this);
 	}
 }
 

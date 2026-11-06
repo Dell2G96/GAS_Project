@@ -63,4 +63,7 @@ private:
 	FTimerHandle CancelCheckTimerHandle;
 
 	bool bReviveSucceeded = false;
+
+	// 26.11.06 추가 - [서버] 대상의 사망 카운트다운을 멈추도록 부활자로 등록했는지
+	bool bAddedAsReviver = false;
 };

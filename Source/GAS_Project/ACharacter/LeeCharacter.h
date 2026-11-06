@@ -115,6 +115,29 @@ public:
 	// 26.11.04 추가 - 부활 게이지 숨김 (부활 완료/취소 시)
 	void HideReviveGauge();
 
+	// 26.11.06 추가 - 부활 프롬프트 문구 형식. {Name}=대상 이름, {Action}=ReviveInteractionOption.Text, {Seconds}=사망까지 남은 초
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Lee|Downed")
+	FText ReviveInteractionFormat = NSLOCTEXT("Lee", "ReviveInteractionFormat", "{Name} {Action} (사망까지 {Seconds}초)");
+
+	// 26.11.06 추가 - [서버] 넉다운 사망 카운트다운 시작 (GA_Downed가 호출). 시간이 다 되면 OnDownedCountdownExpired 브로드캐스트
+	void StartDownedCountdown(float Duration);
+
+	// 26.11.06 추가 - [서버] 카운트다운 정지·초기화 (넉다운 종료 시)
+	void StopDownedCountdown();
+
+	// 26.11.06 추가 - [서버] 부활 채널링 시작/종료. 부활시키는 사람이 1명이라도 있으면 사망 카운트다운이 멈춘다
+	void AddReviver();
+	void RemoveReviver();
+
+	// 26.11.06 추가 - 사망까지 남은 시간(초). 서버·클라이언트 모두 사용 (복제된 값 + 서버 시간으로 계산)
+	float GetDownedRemainingTime() const;
+
+	// 26.11.06 추가 - 부활 중이라 카운트다운이 멈춰 있는지
+	bool IsDownedCountdownPaused() const { return DownedPausedRemaining >= 0.0f; }
+
+	// 26.11.06 추가 - [서버] 사망 카운트다운이 끝났을 때 (GA_Downed가 구독해 사망 처리)
+	FSimpleMulticastDelegate OnDownedCountdownExpired;
+
 	//~IInteractableTarget interface
 	// 26.11.02 추가 - 넉다운 상태일 때 살아 있는 아군에게 "부활" 상호작용 옵션을 제공
 	virtual void GatherInteractionOptions(const FInteractionQuery& InteractQuery, FInteractionOptionBuilder& OptionBuilder) override;
@@ -202,6 +225,26 @@ protected:
 	// 26.11.04 추가 - 부활 게이지를 그리는 WidgetComponent (처음 ShowReviveGauge 때 로컬에서만 생성)
 	UPROPERTY(Transient)
 	TObjectPtr<class UWidgetComponent> ReviveGaugeComponent;
+
+	// 26.11.06 추가 - [복제] 카운트다운 진행 중일 때 사망 예정 서버 시간 (-1 = 넉다운 아님)
+	UPROPERTY(Replicated)
+	float DownedDeathServerTime = -1.0f;
+
+	// 26.11.06 추가 - [복제] 부활 중이라 멈춰 있을 때 남은 시간 (-1 = 진행 중)
+	UPROPERTY(Replicated)
+	float DownedPausedRemaining = -1.0f;
+
+	// 26.11.06 추가 - [서버] 사망 카운트다운 타이머와 부활시키는 사람 수
+	FTimerHandle DownedCountdownHandle;
+	int32 ActiveReviverCount = 0;
+
+	// 26.11.06 추가 - [서버] 카운트다운 만료 콜백
+	void HandleDownedCountdownExpired();
+
+	// 26.11.06 추가 - 부활 프롬프트 문구 캐시 (남은 초나 이름이 바뀔 때만 새로 만들어 프롬프트가 매 스캔 다시 그려지지 않게 한다)
+	FText CachedReviveInteractionText;
+	int32 CachedReviveSeconds = -1;
+	FString CachedReviveName;
 
 	virtual void OnMovementModeChanged(EMovementMode PrevMovementMode, uint8 PreviousCustomMode) override;
 	void SetMovementModeTag(EMovementMode MovementMode, uint8 CustomMovementMode, bool bTagEnabled);

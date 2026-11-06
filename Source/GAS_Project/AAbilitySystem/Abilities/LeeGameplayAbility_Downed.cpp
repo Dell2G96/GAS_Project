@@ -54,7 +54,12 @@ void ULeeGameplayAbility_Downed::ActivateAbility(const FGameplayAbilitySpecHandl
 			HealthComponent->OnDeathStarted.AddUniqueDynamic(this, &ThisClass::HandleDeathStarted);
 		}
 
-		GetWorld()->GetTimerManager().SetTimer(DownedTimerHandle, this, &ThisClass::HandleDownedTimeout, DownedDuration, false);
+		// 26.11.06 수정 - 사망 카운트다운을 캐릭터가 관리 (부활 채널링 중 일시정지 + 남은 시간을 클라이언트에 복제)
+		if (ALeeCharacter* DownedCharacter = GetLeeCharacterFromActorInfo())
+		{
+			DownedCharacter->StartDownedCountdown(DownedDuration);
+			CountdownExpiredHandle = DownedCharacter->OnDownedCountdownExpired.AddUObject(this, &ThisClass::HandleDownedTimeout);
+		}
 
 		// 동료의 GA_Revive가 보내는 부활 이벤트 대기
 		UAbilityTask_WaitGameplayEvent* WaitReviveTask = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(this, MyTags::Souls::GameplayEvent_Revive, nullptr, /*OnlyTriggerOnce*/true);
@@ -110,7 +115,13 @@ void ULeeGameplayAbility_Downed::EndAbility(const FGameplayAbilitySpecHandle Han
 {
 	if (HasAuthority(&ActivationInfo))
 	{
-		GetWorld()->GetTimerManager().ClearTimer(DownedTimerHandle);
+		// 26.11.06 수정 - 캐릭터의 사망 카운트다운 정지 + 구독 해제
+		if (ALeeCharacter* DownedCharacter = GetLeeCharacterFromActorInfo())
+		{
+			DownedCharacter->OnDownedCountdownExpired.Remove(CountdownExpiredHandle);
+			DownedCharacter->StopDownedCountdown();
+		}
+		CountdownExpiredHandle.Reset();
 
 		if (ULeeHealthComponent* HealthComponent = ULeeHealthComponent::FindHealthComponent(GetAvatarActorFromActorInfo()))
 		{

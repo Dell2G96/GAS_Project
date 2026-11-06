@@ -45,5 +45,6 @@ protected:
 	float ReviveHealthRatio = 0.5f;
 
 private:
-	FTimerHandle DownedTimerHandle;
+	// 26.11.06 수정 - 타이머는 캐릭터가 관리. 카운트다운 만료 델리게이트 구독 핸들만 보관
+	FDelegateHandle CountdownExpiredHandle;
 };

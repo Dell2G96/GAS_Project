@@ -58,6 +58,13 @@ void ULeeGameplayAbility_Revive::ActivateAbility(const FGameplayAbilitySpecHandl
 		{
 			HealthComponent->OnHealthChanged.AddUniqueDynamic(this, &ThisClass::HandleReviverHealthChanged);
 		}
+
+		// 26.11.06 추가 - 부활하는 동안 대상의 사망 카운트다운을 멈춘다 (EndAbility에서 다시 진행)
+		if (ALeeCharacter* TargetCharacter = Cast<ALeeCharacter>(ReviveTarget.Get()))
+		{
+			TargetCharacter->AddReviver();
+			bAddedAsReviver = true;
+		}
 	}
 
 	// 26.11.04 추가 - 부활시키는 사람의 화면에만 대상 가슴에 진행 게이지 표시
@@ -151,7 +158,14 @@ void ULeeGameplayAbility_Revive::EndAbility(const FGameplayAbilitySpecHandle Han
 	if (ALeeCharacter* TargetCharacter = Cast<ALeeCharacter>(ReviveTarget.Get()))
 	{
 		TargetCharacter->HideReviveGauge();
+
+		// 26.11.06 추가 - [서버] 부활 취소·완료 → 사망 카운트다운 재개 (완료 시에는 넉다운이 먼저 끝나 무시됨)
+		if (bAddedAsReviver)
+		{
+			TargetCharacter->RemoveReviver();
+		}
 	}
+	bAddedAsReviver = false;
 
 	if (ULeeHealthComponent* HealthComponent = ULeeHealthComponent::FindHealthComponent(GetAvatarActorFromActorInfo()))
 	{
