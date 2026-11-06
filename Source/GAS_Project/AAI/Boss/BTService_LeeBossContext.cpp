@@ -15,7 +15,8 @@
 
 namespace
 {
-	float GetCapsuleRadius(const AActor* Actor)
+	// ACharacter면 스케일 적용된 캡슐 반경, 아니면 0 (Unity 빌드 이름 충돌을 피하려고 고유 이름 사용)
+	float GetBossContextCapsuleRadius(const AActor* Actor)
 	{
 		const ACharacter* Character = Cast<ACharacter>(Actor);
 		return (Character && Character->GetCapsuleComponent()) ? Character->GetCapsuleComponent()->GetScaledCapsuleRadius() : 0.f;
@@ -84,7 +85,7 @@ void UBTService_LeeBossContext::TickNode(UBehaviorTreeComponent& OwnerComp, uint
 	{
 		// 캡슐 반경을 뺀 표면-표면 수평 거리 (StateTree Evaluator의 DistanceToTarget과 같은 기준)
 		Distance = FMath::Max(0.f, FVector::Dist2D(Pawn->GetActorLocation(), Target->GetActorLocation())
-			- GetCapsuleRadius(Pawn) - GetCapsuleRadius(Target));
+			- GetBossContextCapsuleRadius(Pawn) - GetBossContextCapsuleRadius(Target));
 
 		if (const UAbilitySystemComponent* TargetASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(Target))
 		{
