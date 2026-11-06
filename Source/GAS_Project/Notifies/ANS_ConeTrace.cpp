@@ -138,6 +138,7 @@ void UANS_ConeTrace::HandleHit(AActor* OwnerActor, AActor* HitActor, const FVect
 	Payload.Instigator = OwnerActor;
 	Payload.Target = HitActor;
 	Payload.ContextHandle = ContextHandle;
+	Payload.OptionalObject = this; // [타격별 Override] GA가 ILeeHitOverrideProvider로 HitOverride를 읽는다
 	Payload.TargetData.Add(new FGameplayAbilityTargetData_SingleTargetHit(HitResult));
 
 	// 공격자(Owner)에게 전송 → LeeGA_AttackMelee의 WaitGameplayEvent가 수신하여 데미지 GE 적용

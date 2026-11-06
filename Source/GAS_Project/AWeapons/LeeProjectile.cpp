@@ -64,51 +64,9 @@ void ALeeProjectile::InitProjectile(const FGameplayEffectSpecHandle& InDamageSpe
 }
 
 // 명중 시 사용할 넉백 값 저장 (발사 직전 GA가 호출)
-void ALeeProjectile::InitKnockback(const FVector& InOffset, float InDuration, float InGuardScale)
+void ALeeProjectile::InitKnockback(const FLeeKnockbackParams& InKnockback)
 {
-	KnockbackOffset = InOffset;
-	KnockbackDuration = InDuration;
-	GuardKnockbackScale = InGuardScale;
-}
-
-// [넉백][서버] 투사체 비행 방향(수평) 기준 오프셋을 월드 오프셋으로 변환해 피해자에게 이벤트 전송
-void ALeeProjectile::SendKnockbackEvent(AActor* HitActor, const UAbilitySystemComponent* HitASC, bool bPerfectGuard) const
-{
-	if (bPerfectGuard || KnockbackOffset.IsNearlyZero() || KnockbackDuration <= 0.0f)
-	{
-		return;
-	}
-
-	// 사망 중인 대상은 밀지 않는다 (사망 몽타주 우선)
-	if (HitASC->HasMatchingGameplayTag(MyTags::Souls::Status_Death_Dying))
-	{
-		return;
-	}
-
-	// 가드 중이면 가드 배율 적용
-	const float Scale = HitASC->HasMatchingGameplayTag(MyTags::Souls::Status_Guard_Active) ? GuardKnockbackScale : 1.0f;
-	if (Scale <= 0.0f)
-	{
-		return;
-	}
-
-	// bRotationFollowsVelocity=true라 액터 회전 = 비행 방향. Yaw만 사용해 X/Y는 지면과 평행
-	const FRotator FlightYaw(0.0f, GetActorRotation().Yaw, 0.0f);
-	const FVector WorldOffset = FlightYaw.RotateVector(KnockbackOffset * Scale);
-
-	// 근접과 동일 규약 — 월드 오프셋은 TargetData(LocationInfo)에, 이동 시간은 EventMagnitude에 싣는다
-	FGameplayAbilityTargetData_LocationInfo* OffsetData = new FGameplayAbilityTargetData_LocationInfo();
-	OffsetData->TargetLocation.LocationType = EGameplayAbilityTargetingLocationType::LiteralTransform;
-	OffsetData->TargetLocation.LiteralTransform = FTransform(WorldOffset);
-
-	FGameplayEventData Payload;
-	Payload.EventTag = MyTags::Souls::Event_Combat_Knockback;
-	Payload.Instigator = InstigatorActorRef;
-	Payload.Target = HitActor;
-	Payload.EventMagnitude = KnockbackDuration;
-	Payload.TargetData.Add(OffsetData);
-
-	UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(HitActor, MyTags::Souls::Event_Combat_Knockback, Payload);
+	Knockback = InKnockback;
 }
 
 // 서버 권위에서만 피해 판정 — 클라이언트는 리플리케이트된 이동만 본다
@@ -146,7 +104,11 @@ void ALeeProjectile::OnProjectileHit(UPrimitiveComponent* HitComponent, AActor* 
 			DamageSpec.Data->GetContext().AddHitResult(Hit);
 			TargetASC->ApplyGameplayEffectSpecToSelf(*DamageSpec.Data.Get());
 
-			SendKnockbackEvent(OtherActor, TargetASC, bPerfectGuard);
+			// [넉백] 퍼펙트 가드면 생략. bRotationFollowsVelocity=true라 액터 Yaw = 비행 방향
+			if (!bPerfectGuard)
+			{
+				ULeeGameplayAbility_Knockback::SendKnockbackEvent(InstigatorActorRef, OtherActor, Knockback, GetActorRotation().Yaw);
+			}
 		}
 	}
 

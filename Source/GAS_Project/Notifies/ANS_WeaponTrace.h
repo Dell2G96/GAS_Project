@@ -4,6 +4,7 @@
 #include "GameplayTagContainer.h"
 #include "GenericTeamAgentInterface.h"
 #include "Animation/AnimNotifies/AnimNotifyState.h"
+#include "GAS_Project/AAbilitySystem/Abilities/LeeHitOverride.h"
 #include "ANS_WeaponTrace.generated.h"
 
 class UMeshComponent;
@@ -34,7 +35,7 @@ struct FLeeWeaponTraceTarget
 // 메시 소켓(자루→칼끝 2점)을 매 틱 스윕하고, 히트 시 ANS_ToggleTrace와 동일한
 // GameplayEvent 규약(Abilities.Enemy.Trace + HitResult)을 공격자에게 전송한다.
 UCLASS()
-class GAS_PROJECT_API UANS_WeaponTrace : public UAnimNotifyState
+class GAS_PROJECT_API UANS_WeaponTrace : public UAnimNotifyState, public ILeeHitOverrideProvider
 {
 	GENERATED_BODY()
 
@@ -92,6 +93,13 @@ public:
 	// 서버에서만 판정(멀티 권장)
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="WeaponTrace|Network")
 	bool bServerOnly = true;
+
+	/** [타격별 Override] 이 판정 구간의 히트에만 적용할 데미지·넉백. 체크하지 않으면 공격 GA의 AttackData 값 사용 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="WeaponTrace|HitOverride")
+	FLeeHitOverride HitOverride;
+
+	// ILeeHitOverrideProvider — 공격 GA가 히트 이벤트의 OptionalObject로 이 값을 읽는다
+	virtual const FLeeHitOverride& GetHitOverride() const override { return HitOverride; }
 
 	// 디버그 드로우
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="WeaponTrace|Debug")

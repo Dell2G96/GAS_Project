@@ -276,6 +276,7 @@ void UANS_WeaponTrace::HandleHit(AActor* OwnerActor, const FHitResult& HitResult
 	Payload.Instigator = OwnerActor;
 	Payload.Target = HitActor;
 	Payload.ContextHandle = ContextHandle;
+	Payload.OptionalObject = this; // [타격별 Override] GA가 ILeeHitOverrideProvider로 HitOverride를 읽는다
 
 	FGameplayAbilityTargetData_SingleTargetHit* TargetData = new FGameplayAbilityTargetData_SingleTargetHit(HitResult);
 	Payload.TargetData.Add(TargetData);

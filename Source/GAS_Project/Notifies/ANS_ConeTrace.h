@@ -3,13 +3,14 @@
 #include "CoreMinimal.h"
 #include "GenericTeamAgentInterface.h"
 #include "Animation/AnimNotifies/AnimNotifyState.h"
+#include "GAS_Project/AAbilitySystem/Abilities/LeeHitOverride.h"
 #include "ANS_ConeTrace.generated.h"
 
 // 모래 뿌리기처럼 "앞으로 퍼지는" 근접 공격의 히트 판정용 AnimNotifyState.
 // 소켓 위치를 꼭짓점으로 하는 전방 원뿔(거리 + 좌우 각도) 안의 대상을 찾아,
 // ANS_WeaponTrace와 동일한 GameplayEvent 규약(Abilities.Enemy.Trace + HitResult)으로 공격자에게 전송한다.
 UCLASS()
-class GAS_PROJECT_API UANS_ConeTrace : public UAnimNotifyState
+class GAS_PROJECT_API UANS_ConeTrace : public UAnimNotifyState, public ILeeHitOverrideProvider
 {
 	GENERATED_BODY()
 
@@ -46,6 +47,13 @@ public:
 	// 서버에서만 판정(멀티 권장)
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="ConeTrace|Network")
 	bool bServerOnly = true;
+
+	/** [타격별 Override] 이 판정 구간의 히트에만 적용할 데미지·넉백. 체크하지 않으면 공격 GA의 AttackData 값 사용 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="ConeTrace|HitOverride")
+	FLeeHitOverride HitOverride;
+
+	// ILeeHitOverrideProvider — 공격 GA가 히트 이벤트의 OptionalObject로 이 값을 읽는다
+	virtual const FLeeHitOverride& GetHitOverride() const override { return HitOverride; }
 
 	// 디버그 드로우
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="ConeTrace|Debug")

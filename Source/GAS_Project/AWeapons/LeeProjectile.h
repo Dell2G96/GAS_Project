@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 #include "GameplayEffectTypes.h"
+#include "GAS_Project/AAbilitySystem/Abilities/LeeGameplayAbility_Knockback.h"
 #include "LeeProjectile.generated.h"
 
 class USphereComponent;
@@ -29,7 +30,7 @@ public:
 	void InitProjectile(const FGameplayEffectSpecHandle& InDamageSpec, AActor* InInstigatorActor);
 
 	/** GA가 발사 직전에 호출 — 명중 시 넉백 값(비행 방향 기준 오프셋/시간/가드 배율)을 주입한다 */
-	void InitKnockback(const FVector& InOffset, float InDuration, float InGuardScale);
+	void InitKnockback(const FLeeKnockbackParams& InKnockback);
 
 protected:
 	virtual void BeginPlay() override;
@@ -48,15 +49,10 @@ protected:
 	void OnProjectileHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp,
 		FVector NormalImpulse, const FHitResult& Hit);
 
-	/** [넉백][서버] 비행 방향 기준 오프셋을 월드 오프셋으로 바꿔 피해자에게 넉백 이벤트를 보낸다 */
-	void SendKnockbackEvent(AActor* HitActor, const UAbilitySystemComponent* HitASC, bool bPerfectGuard) const;
-
 private:
 	FGameplayEffectSpecHandle DamageSpec;
 
-	FVector KnockbackOffset = FVector::ZeroVector;
-	float KnockbackDuration = 0.2f;
-	float GuardKnockbackScale = 0.5f;
+	FLeeKnockbackParams Knockback;
 
 	UPROPERTY()
 	TObjectPtr<AActor> InstigatorActorRef;

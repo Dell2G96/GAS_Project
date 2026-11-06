@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "LeeGameplayAbility.h"
 #include "ActiveGameplayEffectHandle.h"
+#include "LeeGameplayAbility_Knockback.h"
 #include "LeeGameplayAbility_AttackMelee.generated.h"
 
 class UAnimMontage;
@@ -67,19 +68,11 @@ struct FLeeMeleeAttackData
 	FGameplayTag CooldownTag;
 
 	/**
-	 * [넉백] 피해자를 밀어낼 거리(cm) — 공격자 기준 방향. X=공격자 전방(밀어내기), Y=공격자 오른쪽, Z=위
-	 * 예: (300, 0, 0) → 공격자 반대편으로 3m, (0, 0, 150) → 위로 1.5m 띄움. 0이면 넉백 없음
+	 * [넉백] 이 몽타주의 기본 넉백 (공격자 Yaw 기준. X=전방, Y=오른쪽, Z=위). Offset이 0이면 넉백 없음.
+	 * 다단 공격에서 타격별로 다르게 하려면 판정 노티파이(WeaponTrace/ConeTrace)의 HitOverride를 쓴다.
 	 */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Lee|Attack|Knockback")
-	FVector KnockbackOffset = FVector::ZeroVector;
-
-	/** [넉백] 위 거리를 이동하는 데 걸리는 시간(초) */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Lee|Attack|Knockback", meta = (ClampMin = "0.01"))
-	float KnockbackDuration = 0.2f;
-
-	/** [넉백] 피해자가 가드 중일 때 거리 배율 (0이면 가드 시 넉백 없음). 패리 성공 시에는 항상 넉백 없음 */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Lee|Attack|Knockback", meta = (ClampMin = "0.0"))
-	float GuardKnockbackScale = 0.5f;
+	FLeeKnockbackParams Knockback;
 };
 
 /**
@@ -303,6 +296,4 @@ private:
 	UFUNCTION()
 	void OnTraceEventReceived(FGameplayEventData Payload);
 
-	/** [넉백][서버] CurrentAttackData의 넉백 값을 월드 방향으로 바꿔 피해자에게 Knockback 이벤트로 보낸다 */
-	void SendKnockbackEvent(const AActor* AttackerActor, AActor* HitActor, const UAbilitySystemComponent* HitASC) const;
 };
