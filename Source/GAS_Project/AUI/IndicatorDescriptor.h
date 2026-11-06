@@ -48,6 +48,13 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	void SetDataObject(UObject* InDataObject) { DataObject = InDataObject; }
+
+	// 26.11.06 추가 - 인디케이터 위젯에 보여줄 문구 (상호작용 프롬프트의 Option.Text 등)
+	UFUNCTION(BlueprintCallable)
+	const FText& GetDisplayText() const { return DisplayText; }
+
+	UFUNCTION(BlueprintCallable)
+	void SetDisplayText(const FText& InDisplayText) { DisplayText = InDisplayText; }
     
     UFUNCTION(BlueprintCallable)
     USceneComponent* GetSceneComponent() const { return Component; }
@@ -220,6 +227,10 @@ public:
 
 
 private:
+	// 26.11.06 추가 - 위젯에 표시할 문구
+	UPROPERTY()
+	FText DisplayText;
+
 	UPROPERTY()
 	bool bVisible = true;
 	UPROPERTY()

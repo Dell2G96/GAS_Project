@@ -55,6 +55,7 @@ void ULeeGameplayAbility_Interact::UpdateInteractions(const TArray<FInteractionO
 				
 				UIndicatorDescriptor* Indicator = NewObject<UIndicatorDescriptor>();
 				Indicator->SetDataObject(InteractableTargetActor);
+				Indicator->SetDisplayText(InteractionOption.Text);	// 26.11.06 추가 - 프롬프트 위젯이 옵션 문구를 표시하도록 전달
 				Indicator->SetSceneComponent(InteractableTargetActor->GetRootComponent());
 				Indicator->SetIndicatorClass(InteractionWidgetClass);
 				IndicatorManager->AddIndicator(Indicator);
