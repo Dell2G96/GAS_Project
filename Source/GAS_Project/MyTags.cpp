@@ -113,6 +113,7 @@ namespace MyTags
 		UE_DEFINE_GAMEPLAY_TAG(Ability_AssassinationVictim, "Souls.Abilities.AssassinationVictim")
 		UE_DEFINE_GAMEPLAY_TAG(Ability_TargetLock, "Souls.Abilities.TargetLock")
 		UE_DEFINE_GAMEPLAY_TAG(Ability_Estus, "Souls.Abilities.Estus")
+		UE_DEFINE_GAMEPLAY_TAG(Ability_Revive, "Souls.Abilities.Revive")
 		UE_DEFINE_GAMEPLAY_TAG(Ability_Type_Action_BowAim, "Souls.Ability.Type.Action.BowAim")
 		UE_DEFINE_GAMEPLAY_TAG(Ability_Type_Action_BowFire, "Souls.Ability.Type_Action.BowFire")
 		UE_DEFINE_GAMEPLAY_TAG(Ability_Behavior_SurvivesDeath, "Souls.Ability.Behavior.SurvivesDeath")

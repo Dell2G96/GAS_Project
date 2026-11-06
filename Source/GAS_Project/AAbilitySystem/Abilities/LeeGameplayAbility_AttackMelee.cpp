@@ -37,6 +37,9 @@ ULeeGameplayAbility_AttackMelee::ULeeGameplayAbility_AttackMelee(const FObjectIn
 	// TryActivateAbilitiesByTag 호출 시 이 태그로 매칭됨
 	AbilityTags.AddTag(MyTags::Souls::Status_Attack_Melee);
 
+	// 26.11.06 추가 - 부활 중 공격 입력 → 부활을 끊고 공격 (적은 부활 어빌리티가 없어 영향 없음)
+	CancelAbilitiesWithTag.AddTag(MyTags::Souls::Ability_Revive);
+
 	// ANS_ToggleTrace와의 약속 — 기존 코드 그대로 재사용
 	TraceEventTag = MyTags::Abilities::Enemy::Trace;
 

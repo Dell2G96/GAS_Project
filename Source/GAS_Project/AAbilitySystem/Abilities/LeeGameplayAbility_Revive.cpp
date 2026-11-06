@@ -18,6 +18,9 @@ ULeeGameplayAbility_Revive::ULeeGameplayAbility_Revive(const FObjectInitializer&
 {
 	InstancingPolicy = EGameplayAbilityInstancingPolicy::InstancedPerActor;
 	NetExecutionPolicy = EGameplayAbilityNetExecutionPolicy::LocalPredicted;
+
+	// 26.11.06 추가 - 식별 태그. 가드·구르기·공격이 CancelAbilitiesWithTag로 부활을 끊는다
+	AbilityTags.AddTag(MyTags::Souls::Ability_Revive);
 }
 
 // 대상 확인 → 몽타주 → ReviveDuration 대기 시작, 취소 조건 감시 시작
@@ -141,7 +144,9 @@ void ULeeGameplayAbility_Revive::HandleReviveDelayFinished()
 		bReviveSucceeded = true;
 	}
 
-	EndAbility(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo, true, false);
+	// 26.11.06 수정 - 서버만 종료를 복제한다.
+	// 클라이언트(예측)가 먼저 끝나 종료를 복제하면 서버 타이머가 끝나기 전에 어빌리티가 끝나 부활 이벤트가 전송되지 않는다.
+	EndAbility(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo, HasAuthority(&CurrentActivationInfo), false);
 }
 
 // 감시 타이머·피격 구독 해제 후 BP 종료 이벤트 호출

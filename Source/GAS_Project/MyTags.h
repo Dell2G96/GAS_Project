@@ -107,6 +107,8 @@ namespace MyTags
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Ability_TargetLock);
 		// 26.10.30 추가 - 에스트 마시기 어빌리티 식별 태그
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Ability_Estus);
+		// 26.11.06 추가 - 동료 부활 어빌리티 식별 태그 (가드·구르기·공격 입력 시 부활 취소용)
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Ability_Revive);
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Ability_Type_Action_BowAim)
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Ability_Type_Action_BowFire)
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Ability_Behavior_SurvivesDeath)

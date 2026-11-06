@@ -31,6 +31,9 @@ ULeeGameplayAbility_Dodge::ULeeGameplayAbility_Dodge(const FObjectInitializer& O
 
 	// 가드 중 회피 입력 → 가드를 캔슬하고 회피 (AbilityTags = Souls.Abilities.Guard 매칭)
 	CancelAbilitiesWithTag.AddTag(MyTags::Souls::Ability_Guard);
+
+	// 26.11.06 추가 - 부활 중 회피 입력 → 부활을 끊고 회피
+	CancelAbilitiesWithTag.AddTag(MyTags::Souls::Ability_Revive);
 }
 
 // 활성화 — 몽타주 재생 + 서버 i-frame 타이머 예약 + 퍼펙트 회피 이벤트 대기

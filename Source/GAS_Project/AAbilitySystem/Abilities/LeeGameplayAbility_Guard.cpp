@@ -28,6 +28,9 @@ ULeeGameplayAbility_Guard::ULeeGameplayAbility_Guard(const FObjectInitializer& O
 	// 회피 중/그로기 중에는 가드 시작 불가
 	ActivationBlockedTags.AddTag(MyTags::Souls::Status_Dodge_Active);
 	ActivationBlockedTags.AddTag(MyTags::Souls::Status_Groggy);
+
+	// 26.11.06 추가 - 부활 중 가드 입력 → 부활을 끊고 가드
+	CancelAbilitiesWithTag.AddTag(MyTags::Souls::Ability_Revive);
 }
 
 // 활성화 — 퍼펙트 윈도우 GE 적용 + 판정 이벤트/입력 해제 대기 등록
