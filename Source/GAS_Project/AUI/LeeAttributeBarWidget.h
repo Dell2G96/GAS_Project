@@ -33,6 +33,14 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Lee|AttributeBar")
 	float GetNormalizedValue() const;
 
+	// 26.11.07 추가 - 지정한 액터(보스 등)의 HealthComponent에 바인딩. nullptr이면 바인딩 해제
+	UFUNCTION(BlueprintCallable, Category = "Lee|AttributeBar")
+	void BindToActor(AActor* Actor);
+
+	// 26.11.07 추가 - 지금 바인딩된 HealthComponent (없으면 nullptr). BP 연출 이벤트에 넘겨 줄 때 사용
+	UFUNCTION(BlueprintPure, Category = "Lee|AttributeBar")
+	ULeeHealthComponent* GetBoundHealthComponent() const;
+
 protected:
 	/**
 	 * 바 표시 갱신 이벤트 (BP에서 바 머티리얼 파라미터를 갱신).
@@ -46,12 +54,17 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Lee|AttributeBar")
 	ELeeAttributeBarType AttributeType = ELeeAttributeBarType::Health;
 
+	// 26.11.07 추가 - true면 내 Pawn에 자동 바인딩(플레이어 HUD). 보스 바처럼 다른 액터를 보여줄 땐 false로 두고 BindToActor를 호출
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Lee|AttributeBar")
+	bool bBindToOwningPawn = true;
+
 	// 숫자가 새 값으로 굴러가는 최대 시간(초)
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Lee|AttributeBar", meta = (ClampMin = "0.0"))
 	float NumberInterpolationDuration = 0.5f;
 
 	// 숫자 표시 (기존 BP의 위젯 이름 그대로 사용). 기존 BP 그래프의 값 변경 연출이 읽을 수 있게 BlueprintReadOnly
-	UPROPERTY(BlueprintReadOnly, meta = (BindWidget))
+	// 26.11.07 수정 - 보스 바처럼 숫자가 없는 바도 쓰도록 BindWidgetOptional로 변경
+	UPROPERTY(BlueprintReadOnly, meta = (BindWidgetOptional))
 	TObjectPtr<UCommonNumericTextBlock> HealthNumber;
 
 private:
@@ -64,7 +77,6 @@ private:
 	UFUNCTION()
 	void HandleMaxValueChanged(ULeeHealthComponent* HealthComponent, float OldValue, float NewValue, AActor* Instigator);
 
-	void BindToPawn(APawn* Pawn);
 	void UnbindFromHealthComponent();
 
 	// 현재 값으로 숫자와 바를 즉시 맞춘다

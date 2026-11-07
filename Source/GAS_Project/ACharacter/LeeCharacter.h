@@ -92,6 +92,10 @@ public:
 	// 26.11.03 수정 - protected → public. 세이브 포인트 리셋이 Controller를 떼기 전에 BP OnDeathFinished(인벤토리 정리)까지 즉시 실행하기 위해 호출
 	void DestroyDueToDeath();
 
+	// 26.11.07 추가 - 화면에 보여줄 캐릭터 이름 (보스 HUD의 보스 이름 등). 캐릭터 BP Class Defaults에서 지정
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Lee|Display")
+	FText CharacterDisplayName;
+
 	// 26.11.02 추가 - 보스전 넉다운 진입 시 GA_Downed가 재생할 몽타주 (캐릭터 BP Class Defaults에서 지정, 비우면 생략)
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Lee|Downed")
 	TObjectPtr<class UAnimMontage> DownedMontage;

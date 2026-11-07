@@ -168,6 +168,12 @@ private:
 	float LineOfSightLostElapsed = 0.0f;
 	float SwitchCooldownRemaining = 0.0f;
 
+	/** [LockOn] 진단 로그용 — 이 머신이 서버/클라 중 어디인지와 로컬 조종 여부를 문자열로 만든다 */
+	FString GetNetDebugString() const;
+
+	/** [LockOn] 진단 로그 — 락온 중 1초마다 회전 상태를 남기기 위한 누적 시간 */
+	float DiagLogElapsed = 0.0f;
+
 	bool bMovementFlagsCached = false;
 	bool bSavedOrientRotationToMovement = true;
 	float CachedMaxWalkSpeed = 0.0f;

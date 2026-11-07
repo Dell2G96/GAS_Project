@@ -4,15 +4,22 @@
 #include "GameFramework/PlayerController.h"
 #include "GAS_Project/ACharacter/LeeHealthComponent.h"
 
-// 위젯 생성 시 Pawn 변경(리스폰)을 구독하고 현재 Pawn에 바로 바인딩
+// 위젯 생성 시 Pawn 변경(리스폰)을 구독하고 현재 Pawn에 바로 바인딩 (bBindToOwningPawn일 때만)
 void ULeeAttributeBarWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
 
+	if (!bBindToOwningPawn)
+	{
+		// 보스 바 등: 외부(부모 위젯)가 BindToActor를 호출할 때까지 빈 바로 둔다
+		RefreshInstant();
+		return;
+	}
+
 	if (APlayerController* PlayerController = GetOwningPlayer())
 	{
 		PlayerController->OnPossessedPawnChanged.AddUniqueDynamic(this, &ThisClass::HandlePossessedPawnChanged);
-		BindToPawn(PlayerController->GetPawn());
+		BindToActor(PlayerController->GetPawn());
 	}
 }
 
@@ -31,15 +38,15 @@ void ULeeAttributeBarWidget::NativeDestruct()
 // 새 Pawn에 빙의(리스폰)하면 새 HealthComponent로 다시 바인딩
 void ULeeAttributeBarWidget::HandlePossessedPawnChanged(APawn* OldPawn, APawn* NewPawn)
 {
-	BindToPawn(NewPawn);
+	BindToActor(NewPawn);
 }
 
-// Pawn의 HealthComponent에서 이 바의 값/최대값 변경 이벤트를 구독하고, 현재 값으로 즉시 갱신
-void ULeeAttributeBarWidget::BindToPawn(APawn* Pawn)
+// 액터의 HealthComponent에서 이 바의 값/최대값 변경 이벤트를 구독하고, 현재 값으로 즉시 갱신
+void ULeeAttributeBarWidget::BindToActor(AActor* Actor)
 {
 	UnbindFromHealthComponent();
 
-	ULeeHealthComponent* HealthComponent = ULeeHealthComponent::FindHealthComponent(Pawn);
+	ULeeHealthComponent* HealthComponent = ULeeHealthComponent::FindHealthComponent(Actor);
 	if (!HealthComponent)
 	{
 		return;
@@ -59,6 +66,12 @@ void ULeeAttributeBarWidget::BindToPawn(APawn* Pawn)
 
 	// 핵심: 이벤트를 기다리지 않고 지금 값으로 맞춘다 (초기화 브로드캐스트가 바인딩보다 먼저 지나간 경우 대비)
 	RefreshInstant();
+}
+
+// 지금 바인딩된 HealthComponent 반환 (BP 연출 이벤트에 넘겨 주는 용도)
+ULeeHealthComponent* ULeeAttributeBarWidget::GetBoundHealthComponent() const
+{
+	return BoundHealthComponent.Get();
 }
 
 // 이전 HealthComponent 구독 해제

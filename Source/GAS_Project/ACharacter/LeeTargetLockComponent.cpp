@@ -10,6 +10,7 @@
 #include "GameFramework/GameplayMessageSubsystem.h"
 #include "GameFramework/PlayerController.h"
 #include "GAS_Project/MyTags.h"
+#include "GAS_Project/LeeLogChannels.h"
 #include "GAS_Project/ACharacter/LeeTargetLockTargetComponent.h"
 #include "GAS_Project/ATeam/LeeTeamSubsystem.h"
 #include "GAS_Project/AUI/IndicatorDescriptor.h"
@@ -62,6 +63,7 @@ void ULeeTargetLockComponent::TickComponent(float DeltaTime, ELevelTick TickType
 	APawn* OwnerPawn = GetPawn<APawn>();
 	if (!IsValid(Target) || !OwnerPawn)
 	{
+		UE_LOG(LogLee, Log, TEXT("[LockOn] %s 자동 해제: 타겟/Pawn 무효"), *GetNetDebugString());
 		BreakLock();
 		return;
 	}
@@ -72,6 +74,7 @@ void ULeeTargetLockComponent::TickComponent(float DeltaTime, ELevelTick TickType
 		TargetASC->HasMatchingGameplayTag(MyTags::Souls::Status_Death_Dying) ||
 		TargetASC->HasMatchingGameplayTag(MyTags::Souls::Status_Death_Dead))
 	{
+		UE_LOG(LogLee, Log, TEXT("[LockOn] %s 자동 해제: 타겟 사망/ASC 없음 Target=%s"), *GetNetDebugString(), *GetNameSafe(Target));
 		BreakLock();
 		return;
 	}
@@ -80,6 +83,8 @@ void ULeeTargetLockComponent::TickComponent(float DeltaTime, ELevelTick TickType
 	const float DistSq = FVector::DistSquared(OwnerPawn->GetActorLocation(), Target->GetActorLocation());
 	if (DistSq > FMath::Square(BreakRadius))
 	{
+		UE_LOG(LogLee, Log, TEXT("[LockOn] %s 자동 해제: 거리 초과 Dist=%.0f Break=%.0f"),
+			*GetNetDebugString(), FMath::Sqrt(DistSq), BreakRadius);
 		BreakLock();
 		return;
 	}
@@ -98,6 +103,8 @@ void ULeeTargetLockComponent::TickComponent(float DeltaTime, ELevelTick TickType
 				LineOfSightLostElapsed += DeltaTime;
 				if (LineOfSightLostElapsed >= LineOfSightGraceTime)
 				{
+					UE_LOG(LogLee, Log, TEXT("[LockOn] %s 자동 해제: 시야 상실 %.2f초 ViewLoc=%s"),
+						*GetNetDebugString(), LineOfSightLostElapsed, *ViewLoc.ToCompactString());
 					BreakLock();
 					return;
 				}
@@ -111,10 +118,28 @@ void ULeeTargetLockComponent::TickComponent(float DeltaTime, ELevelTick TickType
 
 	// 가드 스탠스 갱신 — 여기까지 왔다면 락온·타겟 유효성이 모두 보장된 상태
 	UpdateGuardStance();
+
+	// [LockOn] 진단: 1초마다 이 머신의 회전 방식과 회전값을 남긴다 (서버/클라 비교용)
+	DiagLogElapsed += DeltaTime;
+	if (DiagLogElapsed >= 1.0f)
+	{
+		DiagLogElapsed = 0.0f;
+		const ACharacter* Character = Cast<ACharacter>(OwnerPawn);
+		const UCharacterMovementComponent* MoveComp = Character ? Character->GetCharacterMovement() : nullptr;
+		UE_LOG(LogLee, Log, TEXT("[LockOn] %s 상태 Target=%s OrientToMove=%d UseCtrlDesired=%d ActorYaw=%.1f CtrlYaw=%.1f"),
+			*GetNetDebugString(), *GetNameSafe(Target),
+			MoveComp ? MoveComp->bOrientRotationToMovement : -1,
+			MoveComp ? MoveComp->bUseControllerDesiredRotation : -1,
+			OwnerPawn->GetActorRotation().Yaw,
+			OwnerPawn->GetControlRotation().Yaw);
+	}
 }
 
 bool ULeeTargetLockComponent::ToggleLock()
 {
+	UE_LOG(LogLee, Log, TEXT("[LockOn] %s ToggleLock 호출 (현재 %s)"),
+		*GetNetDebugString(), IsLocked() ? TEXT("락온 중 → 해제") : TEXT("해제 상태 → 시작 시도"));
+
 	if (IsLocked())
 	{
 		BreakLock();
@@ -129,6 +154,7 @@ bool ULeeTargetLockComponent::TryStartLock()
 	APlayerController* PC = OwnerPawn ? Cast<APlayerController>(OwnerPawn->GetController()) : nullptr;
 	if (!PC)
 	{
+		UE_LOG(LogLee, Log, TEXT("[LockOn] %s 시작 실패: PlayerController 없음"), *GetNetDebugString());
 		return false;
 	}
 
@@ -141,6 +167,10 @@ bool ULeeTargetLockComponent::TryStartLock()
 	TArray<AActor*> Candidates;
 	GatherCandidates(Candidates);
 
+	// [LockOn] 진단: 이 머신이 어떤 시점으로 판정했는지 (서버의 원격 PC 시점이 게스트 카메라와 같은지 비교)
+	UE_LOG(LogLee, Log, TEXT("[LockOn] %s 시작 판정 ViewLoc=%s ViewRot=%s 후보=%d"),
+		*GetNetDebugString(), *ViewLoc.ToCompactString(), *ViewRot.ToCompactString(), Candidates.Num());
+
 	AActor* Best = nullptr;
 	float BestScore = -1.0f;
 
@@ -150,11 +180,14 @@ bool ULeeTargetLockComponent::TryStartLock()
 		const float Dot = FVector::DotProduct(ViewForward, ToCandidate);
 		if (Dot < MinDot)
 		{
+			UE_LOG(LogLee, Log, TEXT("[LockOn] %s   제외(시야각) %s Dot=%.2f Min=%.2f"),
+				*GetNetDebugString(), *GetNameSafe(Candidate), Dot, MinDot);
 			continue;
 		}
 
 		if (bRequireLineOfSight && !HasLineOfSight(ViewLoc, Candidate))
 		{
+			UE_LOG(LogLee, Log, TEXT("[LockOn] %s   제외(시야 가림) %s"), *GetNetDebugString(), *GetNameSafe(Candidate));
 			continue;
 		}
 
@@ -174,9 +207,11 @@ bool ULeeTargetLockComponent::TryStartLock()
 
 	if (!Best)
 	{
+		UE_LOG(LogLee, Log, TEXT("[LockOn] %s 시작 실패: 조건을 통과한 후보 없음"), *GetNetDebugString());
 		return false;
 	}
 
+	UE_LOG(LogLee, Log, TEXT("[LockOn] %s 시작 성공 Target=%s"), *GetNetDebugString(), *GetNameSafe(Best));
 	StartLockOnActor(Best);
 	return true;
 }
@@ -273,6 +308,10 @@ bool ULeeTargetLockComponent::SwitchTarget(bool bWantRight)
 		// 화면 좌/우에 후보가 없음 (Wrap은 1차 구현 범위 밖 — 필요 시 반대쪽 끝으로 확장)
 		return false;
 	}
+
+	// [LockOn] 진단: 타겟 전환은 입력을 받은 머신(소유 클라)에서만 실행된다 → 서버 타겟과 달라지는지 확인
+	UE_LOG(LogLee, Log, TEXT("[LockOn] %s 타겟 전환 %s → %s"),
+		*GetNetDebugString(), *GetNameSafe(LockedTarget.Get()), *GetNameSafe(Best));
 
 	// 대상만 교체 — 이동 플래그/태그는 유지, 인디케이터만 갱신 (카메라는 RInterpTo로 자연스럽게 새 타겟으로 이동)
 	UpdateIndicator(false);
@@ -566,4 +605,14 @@ void ULeeTargetLockComponent::SetGuardLeftFootBack(bool bNewValue)
 void ULeeTargetLockComponent::Server_SetGuardLeftFootBack_Implementation(bool bNewValue)
 {
 	bGuardLeftFootBack = bNewValue;
+}
+
+// [LockOn] 진단 로그 접두어 — "서버/클라 · 로컬 조종 여부 · Pawn 이름"
+FString ULeeTargetLockComponent::GetNetDebugString() const
+{
+	const APawn* OwnerPawn = GetPawn<APawn>();
+	const ENetMode NetMode = GetWorld() ? GetWorld()->GetNetMode() : NM_Standalone;
+	const TCHAR* MachineText = (NetMode == NM_Client) ? TEXT("Client") : TEXT("Server");
+	const bool bLocal = OwnerPawn && OwnerPawn->IsLocallyControlled();
+	return FString::Printf(TEXT("[%s %s %s]"), MachineText, bLocal ? TEXT("Local") : TEXT("Remote"), *GetNameSafe(OwnerPawn));
 }
