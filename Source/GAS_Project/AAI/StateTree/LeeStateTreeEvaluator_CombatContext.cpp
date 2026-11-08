@@ -13,6 +13,9 @@
 #include "GAS_Project/AAI/Token/LeeAttackTokenComponent.h"
 #include "GAS_Project/AAI/Token/LeeAttackerProfileComponent.h"
 #include "GAS_Project/ACharacter/LeeTargetLockTargetComponent.h"
+#include "GAS_Project/AAbilitySystem/Abilities/LeeGameplayAbility_Guard.h"
+#include "GAS_Project/LeeLogChannels.h"
+#include "GAS_Project/MyTags.h"
 
 namespace
 {
@@ -111,6 +114,11 @@ void FLeeStateTreeEvaluator_CombatContext::Tick(FStateTreeExecutionContext& Cont
 		Data.bIsMidTier = false;
 		Data.bIsFarTier = false;
 		Data.bIsAttackSuppressed = false;
+		// 26.11.08 추가 - 타깃이 없으면 가드 위협도 없다
+		Data.GuardThreat.Reset();
+		Data.bGuardThreatActive = false;
+		Data.bShouldGuardNow = false;
+		Data.bShouldRefreshPerfect = false;
 		return;
 	}
 
@@ -190,5 +198,39 @@ void FLeeStateTreeEvaluator_CombatContext::Tick(FStateTreeExecutionContext& Cont
 			Candidates.Add(Data.AttackerProfileComponent->RangedAttack);
 		}
 		Data.bIsAttackSuppressed = !Data.AttackTokenComponent->CanClaimAny(Data.Actor, Candidates);
+	}
+
+	// 26.11.08 추가 - 반응 가드: 플레이어 공격의 다음 타격 시점을 보고 가드/퍼펙트 여부를 정한다
+	const FLeeGuardThreatResult Threat = (Data.GuardChance > 0.f)
+		? LeeGuardThreat::Update(Data.GuardThreat, Data.TargetActor, Data.GuardChance, Data.PerfectGuardChance, Data.PerfectGuardLeadTime)
+		: FLeeGuardThreatResult();
+	Data.bGuardThreatActive = Threat.bThreatActive;
+	Data.bShouldGuardNow = Threat.bShouldGuardNow;
+	Data.bShouldRefreshPerfect = Threat.bShouldRefreshPerfect;
+}
+
+// 26.11.08 추가 - 퍼펙트를 노리는 설정인데 리드 타임이 GA_Guard의 퍼펙트 판정 시간 이상이면 퍼펙트가 절대 나오지 않으므로 경고한다
+void FLeeStateTreeEvaluator_CombatContext::TreeStart(FStateTreeExecutionContext& Context) const
+{
+	const FInstanceDataType& Data = Context.GetInstanceData(*this);
+	if (Data.PerfectGuardChance <= 0.f || !Data.Actor)
+	{
+		return;
+	}
+
+	const UAbilitySystemComponent* ASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(Data.Actor);
+	if (!ASC)
+	{
+		return;
+	}
+
+	for (const FGameplayAbilitySpec& Spec : ASC->GetActivatableAbilities())
+	{
+		const ULeeGameplayAbility_Guard* Guard = Cast<ULeeGameplayAbility_Guard>(Spec.Ability);
+		if (Guard && Data.PerfectGuardLeadTime >= Guard->GetPerfectGuardWindow())
+		{
+			UE_LOG(LogLee, Warning, TEXT("[LeeCombatContext] %s: PerfectGuardLeadTime(%.2f)이 GA_Guard의 PerfectGuardWindow(%.2f) 이상이라 퍼펙트 가드가 나오지 않습니다."),
+				*GetNameSafe(Data.Actor), Data.PerfectGuardLeadTime, Guard->GetPerfectGuardWindow());
+		}
 	}
 }

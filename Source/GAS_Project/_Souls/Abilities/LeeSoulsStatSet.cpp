@@ -222,7 +222,8 @@ void ULeeSoulsStatSet::PostGameplayEffectExecute(const FGameplayEffectModCallbac
                 MyTags::Souls::DamageResult_HitReact,
                 MyTags::Souls::DamageResult_GuardHit,
                 MyTags::Souls::DamageResult_PerfectGuard,
-                MyTags::Souls::DamageResult_PerfectDodge });
+                MyTags::Souls::DamageResult_PerfectDodge,
+                MyTags::Souls::DamageResult_ShieldHit }); // 26.11.08 추가 - 마법 쉴드 피격도 DefenseComponent로 전달
         
         if (Data.EffectSpec.GetDynamicAssetTags().HasAny(DamageResultTags))
         {

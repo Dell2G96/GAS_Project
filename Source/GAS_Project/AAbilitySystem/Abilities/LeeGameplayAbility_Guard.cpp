@@ -79,6 +79,14 @@ void ULeeGameplayAbility_Guard::ActivateAbility(
 	PerfectGuardTask->EventReceived.AddDynamic(this, &ThisClass::OnPerfectGuardEventReceived);
 	PerfectGuardTask->ReadyForActivation();
 
+	// 26.11.08 추가 - 퍼펙트 판정 시간 다시 열기 (가드를 계속 든 AI 방패 적이 타격 직전에 보낸다)
+	UAbilityTask_WaitGameplayEvent* RefreshPerfectTask =
+		UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(
+			this, MyTags::Souls::Event_Guard_RefreshPerfectWindow,
+			/*OptionalExternalOwner*/nullptr, /*OnlyTriggerOnce*/false, /*OnlyMatchExact*/true);
+	RefreshPerfectTask->EventReceived.AddDynamic(this, &ThisClass::OnRefreshPerfectWindowEventReceived);
+	RefreshPerfectTask->ReadyForActivation();
+
 	// 플레이어는 입력을 놓으면 종료하고, AI는 StateTree가 상태를 이탈할 때 종료한다.
 	const APawn* Pawn = Cast<APawn>(GetAvatarActorFromActorInfo());
 	if (!Pawn || Pawn->IsPlayerControlled())
@@ -168,6 +176,17 @@ void ULeeGameplayAbility_Guard::PlayGuardMontageWithStance(UAnimMontage* Montage
 void ULeeGameplayAbility_Guard::OnInputReleased(float /*TimeHeld*/)
 {
 	EndAbility(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo, /*Replicate*/true, /*WasCancelled*/false);
+}
+
+// 26.11.08 추가 - 퍼펙트 판정 시간 다시 열기: 남아 있는 윈도우 GE를 지우고 새로 적용한다
+void ULeeGameplayAbility_Guard::OnRefreshPerfectWindowEventReceived(FGameplayEventData /*Payload*/)
+{
+	UAbilitySystemComponent* ASC = GetAbilitySystemComponentFromActorInfo();
+	if (ASC && PerfectGuardWindowHandle.IsValid())
+	{
+		ASC->RemoveActiveGameplayEffect(PerfectGuardWindowHandle);
+	}
+	PerfectGuardWindowHandle = ApplyDurationEffect(PerfectGuardWindowEffect, PerfectGuardWindow);
 }
 
 // SetByCaller Duration 방식 GE 적용 헬퍼 — BP 애셋의 Duration이 SetByCaller(Souls.SetByCaller.Duration)여야 한다

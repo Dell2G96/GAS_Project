@@ -114,12 +114,14 @@ namespace MyTags
 		UE_DEFINE_GAMEPLAY_TAG(Ability_TargetLock, "Souls.Abilities.TargetLock")
 		UE_DEFINE_GAMEPLAY_TAG(Ability_Estus, "Souls.Abilities.Estus")
 		UE_DEFINE_GAMEPLAY_TAG(Ability_Revive, "Souls.Abilities.Revive")
+		UE_DEFINE_GAMEPLAY_TAG(Ability_MagicShield, "Souls.Abilities.MagicShield")
 		UE_DEFINE_GAMEPLAY_TAG(Ability_Type_Action_BowAim, "Souls.Ability.Type.Action.BowAim")
 		UE_DEFINE_GAMEPLAY_TAG(Ability_Type_Action_BowFire, "Souls.Ability.Type_Action.BowFire")
 		UE_DEFINE_GAMEPLAY_TAG(Ability_Behavior_SurvivesDeath, "Souls.Ability.Behavior.SurvivesDeath")
 
 		// ----- 쿨다운 -----
 		UE_DEFINE_GAMEPLAY_TAG(Cooldown_BowFire, "Souls.Cooldown.BowFire")
+		UE_DEFINE_GAMEPLAY_TAG(Cooldown_MagicShield, "Souls.Cooldown.MagicShield")
 
 		// ----- 공통 게임플레이 -----
 		UE_DEFINE_GAMEPLAY_TAG(Gameplay_Damage, "Souls.Gameplay.Damage")
@@ -141,6 +143,8 @@ namespace MyTags
 		UE_DEFINE_GAMEPLAY_TAG(Status_Estus_Drinking, "Souls.Status.Estus.Drinking")
 		UE_DEFINE_GAMEPLAY_TAG(Status_Dodge_Perfect, "Souls.Status.Dodge.Perfect")
 		UE_DEFINE_GAMEPLAY_TAG(Status_CounterWindow, "Souls.Status.CounterWindow")
+		UE_DEFINE_GAMEPLAY_TAG(Status_Shield_Active, "Souls.Status.Shield.Active")
+		UE_DEFINE_GAMEPLAY_TAG(Event_Guard_RefreshPerfectWindow, "Souls.Events.Guard.RefreshPerfectWindow")
 		UE_DEFINE_GAMEPLAY_TAG(Status_Stamina_RegenBlocked, "Souls.Status.Stamina.RegenBlocked")
 		UE_DEFINE_GAMEPLAY_TAG(Status_Invincible, "Souls.Status.Invincible")
 		UE_DEFINE_GAMEPLAY_TAG(Status_Downed, "Souls.Status.Downed")
@@ -184,6 +188,7 @@ namespace MyTags
 		UE_DEFINE_GAMEPLAY_TAG(Event_Defense_GuardHit, "Souls.Events.Defense.GuardHit")
 		UE_DEFINE_GAMEPLAY_TAG(Event_Defense_PerfectGuard, "Souls.Events.Defense.PerfectGuard")
 		UE_DEFINE_GAMEPLAY_TAG(Event_Defense_PerfectDodge, "Souls.Events.Defense.PerfectDodge")
+		UE_DEFINE_GAMEPLAY_TAG(Event_Defense_ShieldHit, "Souls.Events.Defense.ShieldHit")
 
 		// ----- 이벤트 - 피격 리액션 -----
 		UE_DEFINE_GAMEPLAY_TAG(Event_Combat_HitReact, "Souls.Events.Combat.HitReact")
@@ -223,6 +228,7 @@ namespace MyTags
 		UE_DEFINE_GAMEPLAY_TAG(DamageResult_GuardHit, "Souls.DamageResult.GuardHit")
 		UE_DEFINE_GAMEPLAY_TAG(DamageResult_PerfectGuard, "Souls.DamageResult.PerfectGuard")
 		UE_DEFINE_GAMEPLAY_TAG(DamageResult_PerfectDodge, "Souls.DamageResult.PerfectDodge")
+		UE_DEFINE_GAMEPLAY_TAG(DamageResult_ShieldHit, "Souls.DamageResult.ShieldHit")
 
 		// ----- 데미지 속성 / 원인 -----
 		// 강공격 속성 태그 (공격 GE Spec의 DynamicAssetTag로 전달)
@@ -250,6 +256,8 @@ namespace MyTags
 		UE_DEFINE_GAMEPLAY_TAG(GameplayCue_SandBlind, "GameplayCue.Souls.SandBlind")
 		UE_DEFINE_GAMEPLAY_TAG(GameplayCue_Attack_PerfectGuardOnly, "GameplayCue.Souls.Attack.PerfectGuardOnly")
 		UE_DEFINE_GAMEPLAY_TAG(GameplayCue_Attack_Unblockable, "GameplayCue.Souls.Attack.Unblockable")
+		UE_DEFINE_GAMEPLAY_TAG(GameplayCue_Shield_Active, "GameplayCue.Souls.Shield.Active")
+		UE_DEFINE_GAMEPLAY_TAG(GameplayCue_Shield_Hit, "GameplayCue.Souls.Shield.Hit")
 
 		// 근접 공격 몽타주별 쿨다운 태그의 부모
 		UE_DEFINE_GAMEPLAY_TAG(Cooldown, "Souls.Cooldown")

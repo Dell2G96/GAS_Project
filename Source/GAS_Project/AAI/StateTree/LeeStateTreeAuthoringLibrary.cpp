@@ -22,6 +22,7 @@
 #include "GAS_Project/AAI/StateTree/LeeStateTreeTask_ClaimAttackToken.h"
 #include "GAS_Project/AAI/StateTree/LeeStateTreeTask_FaceTarget.h"
 #include "GAS_Project/AAI/StateTree/LeeStateTreeTask_MaintainGuard.h"
+#include "GAS_Project/AAI/StateTree/LeeStateTreeNodes_Guard.h"
 #include "GAS_Project/AAI/StateTree/LeeStateTreeTask_MoveToEQSLocation.h"
 #include "GAS_Project/AAI/StateTree/LeeStateTreeTask_SetMovementGait.h"
 #include "GAS_Project/AAI/StateTree/LeeStateTreeTask_StrafeAroundTarget.h"
@@ -127,6 +128,95 @@ UStateTree* ULeeStateTreeAuthoringLibrary::BuildEnemyCombatStateTree(const FStri
 
 	UStateTreeState& Root = EditorData->AddRootState();
 	Root.SelectionBehavior = EStateTreeStateSelectionBehavior::TrySelectChildrenInOrder;
+
+	// ---------------------------------------------------------------------
+	// 26.11.08 추가 - 반응 가드 / 방패 / 마법 쉴드 (Root 맨 앞 = 가장 먼저 검사)
+	// ---------------------------------------------------------------------
+	const bool bUseReactiveGuard = Config.GuardStyle == ELeeEnemyGuardStyle::Reactive
+		|| Config.GuardStyle == ELeeEnemyGuardStyle::ShieldFocused;
+	const bool bShieldFocused = Config.GuardStyle == ELeeEnemyGuardStyle::ShieldFocused;
+	UStateTreeState* ReactiveGuardState = nullptr;
+
+	if (Config.GuardStyle != ELeeEnemyGuardStyle::None)
+	{
+		// 평가기가 플레이어 공격을 감지하도록 확률을 넣는다 (0이면 감지하지 않음)
+		FLeeCombatContextInstanceData& EvalData = Eval.GetInstanceData();
+		EvalData.GuardChance = Config.GuardChance;
+		EvalData.PerfectGuardChance = (Config.GuardStyle == ELeeEnemyGuardStyle::MagicShield) ? 0.f : Config.PerfectGuardChance;
+		EvalData.PerfectGuardLeadTime = Config.PerfectGuardLeadTime;
+	}
+
+	if (bUseReactiveGuard)
+	{
+		// 반격: 퍼펙트 가드 성공 시 GA_Guard가 거는 CounterWindow 태그가 있는 동안 반격 공격
+		const FGameplayTag CounterTag = Config.CounterAttackAbilityTag.IsValid() ? Config.CounterAttackAbilityTag : Config.LightAttackAbilityTag;
+		if (CounterTag.IsValid())
+		{
+			UStateTreeState& Counter = Root.AddChildState(TEXT("Counter"));
+			TStateTreeEditorNode<FLeeStateTreeCondition_SelfHasGameplayTag>& WindowCond =
+				Counter.AddEnterCondition<FLeeStateTreeCondition_SelfHasGameplayTag>();
+			WindowCond.GetInstanceData().Tag = MyTags::Souls::Status_CounterWindow;
+
+			TStateTreeEditorNode<FLeeStateTreeTask_ActivateAbility>& CounterTask = Counter.AddTask<FLeeStateTreeTask_ActivateAbility>();
+			CounterTask.GetInstanceData().AbilityTag = CounterTag;
+
+			Counter.AddTransition(EStateTreeTransitionTrigger::OnStateCompleted, EStateTreeTransitionType::GotoState, &Root);
+			Counter.AddTransition(EStateTreeTransitionTrigger::OnStateFailed, EStateTreeTransitionType::GotoState, &Root);
+		}
+
+		// 반응 가드: 근접 거리에서 플레이어 공격을 감지하면 제자리 가드
+		UStateTreeState& Guard = Root.AddChildState(TEXT("Reactive Guard"));
+		LeeAuthoring::AddBoolTierCondition(*EditorData, Guard, Eval, TEXT("bIsCloseTier"));
+		TStateTreeEditorNode<FLeeStateTreeCondition_CanReactWithGuard>& GuardCond =
+			Guard.AddEnterCondition<FLeeStateTreeCondition_CanReactWithGuard>();
+		EditorData->AddPropertyBinding(Eval, TEXT("bShouldGuardNow"), GuardCond, TEXT("bShouldGuardNow"));
+		EditorData->AddPropertyBinding(Eval, TEXT("bIsTargetInFront"), GuardCond, TEXT("bIsTargetInFront"));
+
+		TStateTreeEditorNode<FLeeStateTreeTask_ReactiveGuard>& GuardTask = Guard.AddTask<FLeeStateTreeTask_ReactiveGuard>();
+		GuardTask.GetInstanceData().MinDuration = 10.f; // 위협 종료로 끝나므로 시간으로는 끝나지 않게
+		GuardTask.GetInstanceData().MaxDuration = 10.f;
+		EditorData->AddPropertyBinding(Eval, TEXT("TargetActor"), GuardTask, TEXT("TargetActor"));
+		EditorData->AddPropertyBinding(Eval, TEXT("bGuardThreatActive"), GuardTask, TEXT("bGuardThreatActive"));
+
+		Guard.AddTransition(EStateTreeTransitionTrigger::OnStateCompleted, EStateTreeTransitionType::GotoState, &Root);
+		Guard.AddTransition(EStateTreeTransitionTrigger::OnStateFailed, EStateTreeTransitionType::GotoState, &Root);
+		ReactiveGuardState = &Guard;
+	}
+	else if (Config.GuardStyle == ELeeEnemyGuardStyle::MagicShield)
+	{
+		// 마법 쉴드: 근접 거리에서 플레이어 공격을 감지하면 쉴드 (재사용 대기 중이면 건너뜀)
+		UStateTreeState& Shield = Root.AddChildState(TEXT("Magic Shield"));
+		LeeAuthoring::AddBoolTierCondition(*EditorData, Shield, Eval, TEXT("bIsCloseTier"));
+		LeeAuthoring::AddBoolTierCondition(*EditorData, Shield, Eval, TEXT("bShouldGuardNow"));
+		TStateTreeEditorNode<FLeeStateTreeCondition_SelfHasGameplayTag>& CooldownCond =
+			Shield.AddEnterCondition<FLeeStateTreeCondition_SelfHasGameplayTag>();
+		CooldownCond.GetInstanceData().Tag = MyTags::Souls::Cooldown_MagicShield;
+		CooldownCond.GetInstanceData().bInvert = true;
+
+		TStateTreeEditorNode<FLeeStateTreeTask_ActivateAbility>& ShieldTask = Shield.AddTask<FLeeStateTreeTask_ActivateAbility>();
+		ShieldTask.GetInstanceData().AbilityTag = MyTags::Souls::Ability_MagicShield;
+		// 쉴드는 공격 태그(Status_Attack_Attacking)가 없으므로 태그 폴링으로 끝내면 안 된다
+		ShieldTask.GetInstanceData().bUseTagPollingFallback = false;
+
+		// 26.11.08 추가 - 쉴드 중에는 플레이어를 바라본 채 옆·뒤로 스트레이프하며 거리를 벌린다.
+		// 상태 종료는 쉴드 어빌리티 종료로만 결정되게 하고(완료 판정 제외), 2초 안에 거리가 벌어지도록 반경 회복을 빠르게 한다.
+		TStateTreeEditorNode<FLeeStateTreeTask_SetMovementGait>& ShieldGait = Shield.AddTask<FLeeStateTreeTask_SetMovementGait>();
+		// 26.11.08 수정 - Run(450)은 다른 스트레이프(Walk 200)보다 2배 이상 빨라 부자연스러워 Walk로 통일
+		ShieldGait.GetInstanceData().Gait = ELeeMovementGait::Walk;
+
+		TStateTreeEditorNode<FLeeStateTreeTask_StrafeAroundTarget>& ShieldStrafe = Shield.AddTask<FLeeStateTreeTask_StrafeAroundTarget>();
+		EditorData->AddPropertyBinding(Eval, TEXT("TargetActor"), ShieldStrafe, TEXT("TargetActor"));
+		ShieldStrafe.GetNode().bConsideredForCompletion = false;
+		ShieldStrafe.GetInstanceData().StrafeRadius = Config.RangedCloseRetreatRadius;
+		ShieldStrafe.GetInstanceData().RadiusRecoverySpeed = 450.f;
+		ShieldStrafe.GetInstanceData().MinDuration = 10.f;
+		ShieldStrafe.GetInstanceData().MaxDuration = 10.f;
+
+		Shield.AddTransition(EStateTreeTransitionTrigger::OnStateCompleted, EStateTreeTransitionType::GotoState, &Root);
+		FStateTreeTransition& ShieldFailed = Shield.AddTransition(EStateTreeTransitionTrigger::OnStateFailed, EStateTreeTransitionType::GotoState, &Root);
+		ShieldFailed.bDelayTransition = true;
+		ShieldFailed.DelayDuration = 0.5f;
+	}
 
 	// 거리 티어를 State로 나누는 이유: Consideration 하나로 뭉치면 "가까운데 원거리를 쏘는" 조합을
 	// 점수로만 막아야 해서 튜닝이 어렵다. 티어는 진입 조건으로 잘라내는 편이 예측 가능하다.
@@ -235,6 +325,38 @@ UStateTree* ULeeStateTreeAuthoringLibrary::BuildEnemyCombatStateTree(const FStri
 		BuildMeleeChild(TEXT("HeavyAttack"), TEXT("HeavyAttack"), Config.HeavyAttackAbilityTag, true);
 	}
 
+	// 26.11.08 추가 - (방패 위주) 스태미나가 낮으면 가드한 채 크게 돌며 물러난다. Close 맨 앞에 둔다
+	if (bShieldFocused)
+	{
+		UStateTreeState& Retreat = CloseState.AddChildState(TEXT("Retreat"));
+		CloseState.Children.RemoveSingle(&Retreat);
+		CloseState.Children.Insert(&Retreat, 0);
+
+		TStateTreeEditorNode<FStateTreeCompareFloatCondition>& LowStamina =
+			Retreat.AddEnterCondition<FStateTreeCompareFloatCondition>(EGenericAICheck::Less);
+		LowStamina.GetInstanceData().Right = Config.RetreatStaminaRatio;
+		EditorData->AddPropertyBinding(Eval, TEXT("SelfStaminaRatio"), LowStamina, TEXT("Left"));
+
+		TStateTreeEditorNode<FLeeStateTreeTask_SetMovementGait>& GaitTask = Retreat.AddTask<FLeeStateTreeTask_SetMovementGait>();
+		GaitTask.GetInstanceData().Gait = ELeeMovementGait::Walk;
+
+		TStateTreeEditorNode<FLeeStateTreeTask_ShieldGuard>& ShieldTask = Retreat.AddTask<FLeeStateTreeTask_ShieldGuard>();
+		EditorData->AddPropertyBinding(Eval, TEXT("TargetActor"), ShieldTask, TEXT("TargetActor"));
+		EditorData->AddPropertyBinding(Eval, TEXT("bShouldRefreshPerfect"), ShieldTask, TEXT("bShouldRefreshPerfect"));
+
+		TStateTreeEditorNode<FLeeStateTreeTask_StrafeAroundTarget>& StrafeTask = Retreat.AddTask<FLeeStateTreeTask_StrafeAroundTarget>();
+		EditorData->AddPropertyBinding(Eval, TEXT("TargetActor"), StrafeTask, TEXT("TargetActor"));
+		StrafeTask.GetInstanceData().StrafeRadius = 900.f;
+
+		// 스태미나가 충분히(+0.2) 돌아오면 다시 판단한다
+		FStateTreeTransition& Recovered = Retreat.AddTransition(EStateTreeTransitionTrigger::OnTick, EStateTreeTransitionType::GotoState, &Root);
+		TStateTreeEditorNode<FStateTreeCompareFloatCondition>& RecoveredCond =
+			Recovered.AddCondition<FStateTreeCompareFloatCondition>(EGenericAICheck::GreaterOrEqual);
+		RecoveredCond.GetInstanceData().Right = Config.RetreatStaminaRatio + 0.2f;
+		EditorData->AddPropertyBinding(Eval, TEXT("SelfStaminaRatio"), RecoveredCond, TEXT("Left"));
+		Retreat.AddTransition(EStateTreeTransitionTrigger::OnStateCompleted, EStateTreeTransitionType::GotoState, &Root);
+	}
+
 	// 근접 공격 유무와 상관없이 Close의 대기 행동은 항상 만든다.
 	{
 		// 토큰을 못 잡았을 때의 대기 행동. 가드 스트래핑을 먼저 두어
@@ -247,9 +369,22 @@ UStateTree* ULeeStateTreeAuthoringLibrary::BuildEnemyCombatStateTree(const FStri
 				GuardStrafe.AddTask<FLeeStateTreeTask_SetMovementGait>();
 			GaitTask.GetInstanceData().Gait = ELeeMovementGait::Walk;
 
-			TStateTreeEditorNode<FLeeStateTreeTask_MaintainGuard>& GuardTask =
-				GuardStrafe.AddTask<FLeeStateTreeTask_MaintainGuard>();
-			EditorData->AddPropertyBinding(Eval, TEXT("TargetActor"), GuardTask, TEXT("TargetActor"));
+			// 26.11.08 수정 - 방패 위주면 시간으로 끝나지 않는 방패 가드(퍼펙트 갱신 포함)를 쓴다
+			if (bShieldFocused)
+			{
+				TStateTreeEditorNode<FLeeStateTreeTask_ShieldGuard>& ShieldTask =
+					GuardStrafe.AddTask<FLeeStateTreeTask_ShieldGuard>();
+				EditorData->AddPropertyBinding(Eval, TEXT("TargetActor"), ShieldTask, TEXT("TargetActor"));
+				EditorData->AddPropertyBinding(Eval, TEXT("bShouldRefreshPerfect"), ShieldTask, TEXT("bShouldRefreshPerfect"));
+			}
+			// 26.11.08 수정 - 마법 쉴드 Enemy는 가드 어빌리티가 없으므로 가드 유지 없이 스트레이프만 한다
+			// (가드 유지 Task가 "Ability_Guard 매칭 0개"로 실패해 후퇴 스트레이프가 끊기던 문제)
+			else if (Config.GuardStyle != ELeeEnemyGuardStyle::MagicShield)
+			{
+				TStateTreeEditorNode<FLeeStateTreeTask_MaintainGuard>& GuardTask =
+					GuardStrafe.AddTask<FLeeStateTreeTask_MaintainGuard>();
+				EditorData->AddPropertyBinding(Eval, TEXT("TargetActor"), GuardTask, TEXT("TargetActor"));
+			}
 
 			TStateTreeEditorNode<FLeeStateTreeTask_StrafeAroundTarget>& StrafeTask =
 				GuardStrafe.AddTask<FLeeStateTreeTask_StrafeAroundTarget>();
@@ -368,9 +503,18 @@ UStateTree* ULeeStateTreeAuthoringLibrary::BuildEnemyCombatStateTree(const FStri
 		FailedTransition.DelayRandomVariance = 0.2f;
 	};
 
-	auto BuildApproachState = [&](UStateTreeState& Parent, ELeeMovementGait Gait, const TCHAR* AcceptanceRadiusSourceProperty) -> void
+	auto BuildApproachState = [&](UStateTreeState& Parent, ELeeMovementGait Gait, const TCHAR* AcceptanceRadiusSourceProperty, bool bWithShieldGuard) -> void
 	{
 		UStateTreeState& Approach = Parent.AddChildState(TEXT("Approach"));
+
+		// 26.11.08 추가 - 방패 위주: 가드를 든 채 걸어서 접근한다
+		if (bWithShieldGuard)
+		{
+			Gait = ELeeMovementGait::Walk;
+			TStateTreeEditorNode<FLeeStateTreeTask_ShieldGuard>& ShieldTask = Approach.AddTask<FLeeStateTreeTask_ShieldGuard>();
+			EditorData->AddPropertyBinding(Eval, TEXT("TargetActor"), ShieldTask, TEXT("TargetActor"));
+			EditorData->AddPropertyBinding(Eval, TEXT("bShouldRefreshPerfect"), ShieldTask, TEXT("bShouldRefreshPerfect"));
+		}
 
 		TStateTreeEditorNode<FLeeStateTreeTask_SetMovementGait>& GaitTask =
 			Approach.AddTask<FLeeStateTreeTask_SetMovementGait>();
@@ -409,8 +553,36 @@ UStateTree* ULeeStateTreeAuthoringLibrary::BuildEnemyCombatStateTree(const FStri
 	// 그렇지 않으면 MoveTo 기본 동작대로 거의 붙을 때까지 다가가버린다(26.10.20 발견).
 	// Mid의 Approach는 "쿨다운 등으로 원거리 공격을 못 쓸 때"의 대체 행동인데, 원거리 아키타입이면
 	// 여기도 거리 제한이 없으면 결국 근접 거리까지 계속 걸어가 버린다(26.10.20 발견).
-	BuildApproachState(MidState, ELeeMovementGait::Walk, Config.bCanRangedAttack ? TEXT("CloseExitDistance") : nullptr);
-	BuildApproachState(FarState, ELeeMovementGait::Run, Config.bCanRangedAttack ? TEXT("FarExitDistance") : nullptr);
+	BuildApproachState(MidState, ELeeMovementGait::Walk, Config.bCanRangedAttack ? TEXT("CloseExitDistance") : nullptr, bShieldFocused);
+	BuildApproachState(FarState, ELeeMovementGait::Run, Config.bCanRangedAttack ? TEXT("FarExitDistance") : nullptr, false);
+
+	// 26.11.08 추가 - 이동·대기 중에도 플레이어 공격을 감지하면 바로 반응 가드로 넘어간다 (보스 AddReactiveGuard와 같은 방식)
+	if (ReactiveGuardState)
+	{
+		for (UStateTreeState* Tier : { &CloseState, &MidState })
+		{
+			for (UStateTreeState* Child : Tier->Children)
+			{
+				const bool bIsMoveState = Child && Child->Tasks.ContainsByPredicate([](const FStateTreeEditorNode& Node)
+				{
+					const UScriptStruct* Type = Node.Node.GetScriptStruct();
+					return Type == FLeeStateTreeTask_StrafeAroundTarget::StaticStruct()
+						|| Type == FStateTreeMoveToTask::StaticStruct();
+				});
+				if (!bIsMoveState)
+				{
+					continue;
+				}
+
+				FStateTreeTransition& ToGuard = Child->AddTransition(EStateTreeTransitionTrigger::OnTick, EStateTreeTransitionType::GotoState, ReactiveGuardState);
+				ToGuard.Priority = EStateTreeTransitionPriority::High;
+				TStateTreeEditorNode<FLeeStateTreeCondition_CanReactWithGuard>& Cond =
+					ToGuard.AddCondition<FLeeStateTreeCondition_CanReactWithGuard>();
+				EditorData->AddPropertyBinding(Eval, TEXT("bShouldGuardNow"), Cond, TEXT("bShouldGuardNow"));
+				EditorData->AddPropertyBinding(Eval, TEXT("bIsTargetInFront"), Cond, TEXT("bIsTargetInFront"));
+			}
+		}
+	}
 
 	// ---------------------------------------------------------------------
 	// Idle: 타겟이 없어 Close/Mid/Far 중 아무 티어도 진입 조건을 만족 못할 때의 fallback.
@@ -672,7 +844,13 @@ UStateTree* ULeeStateTreeAuthoringLibrary::BuildEnemyCombatStateTreeByTagNames(
 	float RangedCloseRetreatRadius,
 	float RangedMinFireInterval,
 	FName RangedCooldownTagName,
-	UEnvQuery* RangedRepositionQuery)
+	UEnvQuery* RangedRepositionQuery,
+	FName GuardStyleName,
+	float GuardChance,
+	float PerfectGuardChance,
+	float PerfectGuardLeadTime,
+	float RetreatStaminaRatio,
+	FName CounterAttackTagName)
 {
 	bool bHadError = false;
 
@@ -687,6 +865,27 @@ UStateTree* ULeeStateTreeAuthoringLibrary::BuildEnemyCombatStateTreeByTagNames(
 	ResolveTagName(HeavyAttackTagName, Config.HeavyAttackAbilityTag, bHadError);
 	ResolveTagName(RangedAttackTagName, Config.RangedAttackAbilityTag, bHadError);
 	ResolveTagName(TargetVulnerableTagName, Config.TargetVulnerableTag, bHadError);
+
+	// 26.11.08 추가 - 가드 성향 (이름이 비어 있으면 None)
+	Config.GuardChance = GuardChance;
+	Config.PerfectGuardChance = PerfectGuardChance;
+	Config.PerfectGuardLeadTime = PerfectGuardLeadTime;
+	Config.RetreatStaminaRatio = RetreatStaminaRatio;
+	ResolveTagName(CounterAttackTagName, Config.CounterAttackAbilityTag, bHadError);
+	if (!GuardStyleName.IsNone())
+	{
+		const UEnum* StyleEnum = StaticEnum<ELeeEnemyGuardStyle>();
+		const int64 StyleValue = StyleEnum->GetValueByNameString(GuardStyleName.ToString());
+		if (StyleValue == INDEX_NONE)
+		{
+			UE_LOG(LogTemp, Error, TEXT("[LeeAuthoring] 알 수 없는 GuardStyle 이름입니다: %s (None/Reactive/ShieldFocused/MagicShield)"), *GuardStyleName.ToString());
+			bHadError = true;
+		}
+		else
+		{
+			Config.GuardStyle = static_cast<ELeeEnemyGuardStyle>(StyleValue);
+		}
+	}
 
 	// 태그 하나라도 잘못되면 만들지 않는다. 잘못된 태그로 생성하면
 	// 에셋은 멀쩡해 보이는데 런타임에 어빌리티를 못 찾아 원인 추적이 어려워진다.

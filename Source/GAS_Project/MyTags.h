@@ -109,12 +109,16 @@ namespace MyTags
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Ability_Estus);
 		// 26.11.06 추가 - 동료 부활 어빌리티 식별 태그 (가드·구르기·공격 입력 시 부활 취소용)
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Ability_Revive);
+		// 26.11.08 추가 - 마법 Enemy 쉴드 어빌리티 식별 태그
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Ability_MagicShield);
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Ability_Type_Action_BowAim)
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Ability_Type_Action_BowFire)
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Ability_Behavior_SurvivesDeath)
 
 		// ----- 쿨다운 -----
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Cooldown_BowFire)
+		// 26.11.08 추가 - 마법 쉴드 재사용 대기
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Cooldown_MagicShield);
 
 		// ----- 공통 게임플레이 -----
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Gameplay_Damage)
@@ -134,6 +138,10 @@ namespace MyTags
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Status_Dodge_Active);
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Status_Dodge_Perfect);
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Status_CounterWindow);
+		// 26.11.08 추가 - 마법 쉴드 작동 중 (쉴드 어빌리티 ActivationOwnedTags)
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Status_Shield_Active);
+		// 26.11.08 추가 - 가드를 든 채 퍼펙트 판정 시간을 다시 연다 (AI 방패 적 → GA_Guard)
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Event_Guard_RefreshPerfectWindow);
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Status_Stamina_RegenBlocked);
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Status_Invincible);
 		// 26.10.30 추가 - 에스트 마시는 중 (ActivationOwnedTags, 이동 감속 판정)
@@ -182,6 +190,8 @@ namespace MyTags
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Event_Defense_GuardHit);
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Event_Defense_PerfectGuard);
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Event_Defense_PerfectDodge);
+		// 26.11.08 추가 - 쉴드 피격 (EventMagnitude = 원래 피해량)
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Event_Defense_ShieldHit);
 
 		// ----- 이벤트 - 피격 리액션 -----
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Event_Combat_HitReact);
@@ -229,6 +239,8 @@ namespace MyTags
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(DamageResult_GuardHit);
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(DamageResult_PerfectGuard);
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(DamageResult_PerfectDodge);
+		// 26.11.08 추가 - 마법 쉴드가 피해를 흡수함
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(DamageResult_ShieldHit);
 
 		// ----- 데미지 속성 / 원인 -----
 		// [신규] 강공격 속성 태그 — 공격 GE Spec의 DynamicAssetTag로 전달 (추후 강공격 피격 리액션에서 사용)
@@ -259,6 +271,9 @@ namespace MyTags
 		// [신규 26.11.03] 퍼펙트 가드 전용(파란색) / 퍼펙트 회피 전용(빨간색) 공격 예고 무기 발광 Cue
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(GameplayCue_Attack_PerfectGuardOnly);
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(GameplayCue_Attack_Unblockable);
+		// 26.11.08 추가 - 마법 쉴드 표시(유지) / 피격(금 갱신·파괴)
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(GameplayCue_Shield_Active);
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(GameplayCue_Shield_Hit);
 
 		// ----- 쿨타임 -----
 		// [신규 26.10.20] 근접 공격 몽타주별 쿨다운 태그의 부모. 개별 태그(Souls.Cooldown.<Enemy>.<Attack>)는 DefaultGameplayTags.ini에 추가

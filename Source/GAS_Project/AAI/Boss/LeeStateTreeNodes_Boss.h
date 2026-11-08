@@ -5,7 +5,7 @@
 #include "CoreMinimal.h"
 #include "StateTreeConditionBase.h"
 #include "StateTreeTaskBase.h"
-#include "GAS_Project/AAI/StateTree/LeeStateTreeTask_MaintainGuard.h"
+#include "GAS_Project/AAI/StateTree/LeeStateTreeNodes_Guard.h"
 #include "LeeStateTreeNodes_Boss.generated.h"
 
 class AAIController;
@@ -27,6 +27,10 @@ struct FLeeBossGuardConditionData
 
 	UPROPERTY(EditAnywhere, Category="Input")
 	bool bIsTargetInFront = false;
+
+	/** 26.11.08 추가 - 평가기 bShouldGuardNow (플레이어 공격 감지 결과) */
+	UPROPERTY(EditAnywhere, Category="Input")
+	bool bShouldGuardNow = false;
 };
 
 /** 보스가 공격 사이에 정면의 근접 공격을 막을 수 있는지 확인한다. */
@@ -39,13 +43,14 @@ struct GAS_PROJECT_API FLeeBossCanReactWithGuard : public FStateTreeConditionCom
 	virtual bool TestCondition(FStateTreeExecutionContext& Context) const override;
 };
 
-/** 기존 가드를 재사용하고 감지한 근접 공격이 끝나면 방패를 내린다. */
-USTRUCT(meta=(DisplayName="Lee Boss Reactive Guard", Category="Lee|AI|Action"))
-struct GAS_PROJECT_API FLeeBossReactiveGuard : public FLeeStateTreeTask_MaintainGuard
+/**
+ * 26.11.08 수정 - 공용 반응 가드(FLeeStateTreeTask_ReactiveGuard)로 옮겼다.
+ * 이전에 만든 보스 StateTree 에셋이 깨지지 않도록 이름만 남겨 둔다. 새 트리는 공용 Task를 쓴다.
+ */
+USTRUCT(meta=(DisplayName="Lee Boss Reactive Guard (구버전)", Category="Lee|AI|Action"))
+struct GAS_PROJECT_API FLeeBossReactiveGuard : public FLeeStateTreeTask_ReactiveGuard
 {
 	GENERATED_BODY()
-	virtual EStateTreeRunStatus EnterState(FStateTreeExecutionContext& Context, const FStateTreeTransitionResult& Transition) const override;
-	virtual EStateTreeRunStatus Tick(FStateTreeExecutionContext& Context, const float DeltaTime) const override;
 };
 
 /** FLeeStateTreeCondition_DistanceInRange 데이터 */

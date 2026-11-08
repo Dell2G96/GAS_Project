@@ -45,6 +45,9 @@ public:
 		const FGameplayAbilityActivationInfo ActivationInfo,
 		bool bReplicateEndAbility,
 		bool bWasCancelled) override;
+
+	/** 26.11.08 추가 - 퍼펙트 판정 시간(초). AI 평가기가 PerfectGuardLeadTime 설정 검사에 쓴다 */
+	float GetPerfectGuardWindow() const { return PerfectGuardWindow; }
 	
 	
 private:
@@ -59,6 +62,10 @@ private:
 	/** 가드 입력 해제 → 어빌리티 종료 */
 	UFUNCTION()
 	void OnInputReleased(float TimeHeld);
+
+	/** 26.11.08 추가 - 가드를 든 채 퍼펙트 판정 시간을 다시 연다 (AI 방패 적 전용, 플레이어는 보내는 곳 없음) */
+	UFUNCTION()
+	void OnRefreshPerfectWindowEventReceived(FGameplayEventData Payload);
 
 	/** SetByCaller Duration 방식 GE 적용 헬퍼 */
 	FActiveGameplayEffectHandle ApplyDurationEffect(TSubclassOf<UGameplayEffect> EffectClass, float Duration);

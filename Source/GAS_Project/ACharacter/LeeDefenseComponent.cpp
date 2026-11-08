@@ -153,6 +153,19 @@ void ULeeDefenseComponent::HandleDamageResolved(AActor* EffectInstigator, AActor
 		return;
 	}
 
+	// ── 26.11.08 추가 - 마법 쉴드 피격: 원래 피해량을 실어 쉴드 어빌리티에 알린다 (리액션 없음) ──
+	if (ResultTags.HasTagExact(MyTags::Souls::DamageResult_ShieldHit))
+	{
+		FGameplayEventData Payload;
+		Payload.EventTag = MyTags::Souls::Event_Defense_ShieldHit;
+		Payload.Instigator = Attacker;
+		Payload.Target = Owner;
+		// SetByCaller 피해량은 음수(Health 감소량)이므로 절댓값을 쓴다
+		Payload.EventMagnitude = FMath::Abs(EffectSpec->GetSetByCallerMagnitude(MyTags::Souls::SetByCaller_Damage, /*WarnIfNotFound*/false, 0.0f));
+		UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(Owner, MyTags::Souls::Event_Defense_ShieldHit, Payload);
+		return;
+	}
+
 	// ── 퍼펙트 가드 (패리 연쇄): 방어자 패리 몽타주 + 공격자 스태미나 감소/패리당함 리액션 ──
 	if (ResultTags.HasTagExact(MyTags::Souls::DamageResult_PerfectGuard))
 	{

@@ -61,7 +61,6 @@ void ULeeBossBrainComponent::HandlePossessedPawnChanged(APawn* OldPawn, APawn* N
 {
 	bStarted = false;
 	AttackStaminaRecoveryTarget = 0.f;
-	UpdateGuardThreat(nullptr);
 	if (UWorld* World = GetWorld()) World->GetTimerManager().ClearTimer(StartTimer);
 	if (!NewPawn)
 	{
@@ -112,52 +111,6 @@ bool ULeeBossBrainComponent::IsRecoveringAttackStamina()
 
 	AttackStaminaRecoveryTarget = 0.f;
 	return false;
-}
-
-// 현재 플레이어의 근접 공격을 식별하고, 새 공격마다 확률을 한 번만 판정한다.
-void ULeeBossBrainComponent::UpdateGuardThreat(AActor* Target)
-{
-	FGameplayAbilitySpecHandle ActiveAttack;
-	const APawn* TargetPawn = Cast<APawn>(Target);
-	if (TargetPawn && TargetPawn->IsPlayerControlled())
-	{
-		if (const auto* ASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(Target))
-		{
-			for (const FGameplayAbilitySpec& Spec : ASC->GetActivatableAbilities())
-			{
-				if (Spec.IsActive() && Spec.Ability && Spec.Ability->IsA<ULeeGameplayAbility_AttackMelee>())
-				{
-					ActiveAttack = Spec.Handle;
-					break;
-				}
-			}
-		}
-	}
-
-	if (GuardThreatTarget.Get() != Target || GuardThreatAttack != ActiveAttack)
-	{
-		GuardThreatTarget = Target;
-		GuardThreatAttack = ActiveAttack;
-		bGuardOpportunity = ActiveAttack.IsValid() && FMath::FRand() < ReactiveGuardChance;
-	}
-}
-
-// 같은 근접 공격에 방패를 반복해서 들지 않도록 남은 기회를 확인한다.
-bool ULeeBossBrainComponent::CanReactToGuardThreat(const AActor* Target) const
-{
-	return bGuardOpportunity && IsGuardThreatActive(Target);
-}
-
-// 대상이 바뀌거나 감지한 근접 공격이 끝났으면 가드 유지도 끝낸다.
-bool ULeeBossBrainComponent::IsGuardThreatActive(const AActor* Target) const
-{
-	return Target && GuardThreatTarget.Get() == Target && GuardThreatAttack.IsValid();
-}
-
-// 이번 공격의 가드 기회를 사용한다.
-void ULeeBossBrainComponent::ConsumeGuardOpportunity()
-{
-	bGuardOpportunity = false;
 }
 
 void ULeeBossBrainComponent::StartBossBrain()

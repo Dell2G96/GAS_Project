@@ -111,6 +111,21 @@ void ULeeExecCalc_Damage::Execute_Implementation(
 		return;
 	}
 
+	// 26.11.08 추가 - 마법 쉴드: 쉴드가 켜져 있으면 방향·공격 속성과 상관없이 피해를 전부 흡수한다.
+	// 쉴드 HP 감소는 DefenseComponent → 쉴드 어빌리티가 원래 피해량(SetByCaller)으로 처리한다.
+	if (TargetASC->HasMatchingGameplayTag(MyTags::Souls::Status_Shield_Active))
+	{
+		if (MutableSpec)
+		{
+			MutableSpec->AddDynamicAssetTag(MyTags::Souls::DamageResult_ShieldHit);
+		}
+
+		// PostGameplayEffectExecute(Health 분기) → OnDamageResolved가 호출되도록 0 크기 Health Modifier만 출력
+		OutExecutionOutput.AddOutputModifier(FGameplayModifierEvaluatedData(
+			ULeeSoulsStatSet::GetHealthAttribute(), EGameplayModOp::Additive, 0.0f));
+		return;
+	}
+
 	// 가드불가 공격 — 가드/퍼펙트가드 판정을 건너뛰고 무조건 일반 피격으로 강제한다
 	// (퍼펙트 회피는 위에서 이미 처리됨. 일반 회피 무적은 관통해서 여기로 내려온다)
 	const bool bUnblockable = DamageTypeTags.HasTagExact(MyTags::Souls::DamageType_Attack_Unblockable);

@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "StateTreeEvaluatorBase.h"
+#include "GAS_Project/AAI/StateTree/LeeGuardThreat.h"
 #include "LeeStateTreeEvaluator_CombatContext.generated.h"
 
 class AAIController;
@@ -50,6 +51,19 @@ struct FLeeCombatContextInstanceData
 	UPROPERTY(EditAnywhere, Category = "Parameter", meta = (ClampMin = "0.0"))
 	float FarExitDistance = 800.f;
 
+	// --- 26.11.08 추가 - 반응 가드 (0이면 감지하지 않음, 트리 자동 생성 설정이 넣는다) ---
+	/** 플레이어 공격 판정 구간 1회당 가드(또는 쉴드)할 확률 */
+	UPROPERTY(EditAnywhere, Category = "Parameter|Guard", meta = (ClampMin = "0.0", ClampMax = "1.0"))
+	float GuardChance = 0.f;
+
+	/** 가드하기로 했을 때 그중 퍼펙트 가드를 노릴 확률 */
+	UPROPERTY(EditAnywhere, Category = "Parameter|Guard", meta = (ClampMin = "0.0", ClampMax = "1.0"))
+	float PerfectGuardChance = 0.f;
+
+	/** 판정 시작 몇 초 전에 가드를 올릴지 — GA_Guard의 PerfectGuardWindow보다 작아야 퍼펙트가 성립한다 */
+	UPROPERTY(EditAnywhere, Category = "Parameter|Guard", meta = (ClampMin = "0.0"))
+	float PerfectGuardLeadTime = 0.1f;
+
 	// --- Output ---
 	UPROPERTY(EditAnywhere, Category = "Output")
 	TObjectPtr<AActor> TargetActor = nullptr;
@@ -93,6 +107,18 @@ struct FLeeCombatContextInstanceData
 	UPROPERTY(EditAnywhere, Category = "Output")
 	bool bIsAttackSuppressed = false;
 
+	/** 26.11.08 추가 - 플레이어 근접 공격의 판정 구간이 진행 중이거나 다가오는 중 */
+	UPROPERTY(EditAnywhere, Category = "Output")
+	bool bGuardThreatActive = false;
+
+	/** 26.11.08 추가 - 지금 가드(또는 쉴드)를 올려야 함 */
+	UPROPERTY(EditAnywhere, Category = "Output")
+	bool bShouldGuardNow = false;
+
+	/** 26.11.08 추가 - 이번 틱에 퍼펙트 판정 시간을 다시 열어야 함 (방패 적) */
+	UPROPERTY(EditAnywhere, Category = "Output")
+	bool bShouldRefreshPerfect = false;
+
 	// --- 내부 상태 ---
 	/** 타겟 변경 감지용 — 바뀐 프레임에만 AttackTokenComponent를 재해석한다 */
 	UPROPERTY()
@@ -101,6 +127,10 @@ struct FLeeCombatContextInstanceData
 	/** 거리 티어 이력 (0=Close, 1=Mid, 2=Far) — 히스테리시스 상태 머신의 현재 상태 */
 	UPROPERTY()
 	uint8 CurrentTier = 1;
+
+	/** 26.11.08 추가 - 플레이어 공격 감지 기억 (구간마다 확률 1회) */
+	UPROPERTY()
+	FLeeGuardThreatState GuardThreat;
 };
 
 /**
@@ -119,4 +149,7 @@ struct GAS_PROJECT_API FLeeStateTreeEvaluator_CombatContext : public FStateTreeE
 	virtual const UStruct* GetInstanceDataType() const override { return FInstanceDataType::StaticStruct(); }
 
 	virtual void Tick(FStateTreeExecutionContext& Context, const float DeltaTime) const override;
+
+	/** 26.11.08 추가 - 트리 시작 시 PerfectGuardLeadTime이 GA_Guard의 퍼펙트 판정 시간보다 짧은지 검사 */
+	virtual void TreeStart(FStateTreeExecutionContext& Context) const override;
 };

@@ -108,11 +108,8 @@ void UBTService_LeeBossContext::TickNode(UBehaviorTreeComponent& OwnerComp, uint
 		BB->SetValueAsInt(PhaseKey, Phase);
 	}
 
+	// 26.11.08 수정 - 반응 가드 감지는 StateTree 평가기(Lee Combat Context)로 옮겼다
 	ULeeBossBrainComponent* Brain = AIC->FindComponentByClass<ULeeBossBrainComponent>();
-	if (Brain)
-	{
-		Brain->UpdateGuardThreat(Target);
-	}
 	const float Threshold = Brain ? Brain->Phase2HealthThreshold : Phase2HealthThreshold;
 	if (Phase < 2 && !bDead && HealthRatio <= Threshold)
 	{

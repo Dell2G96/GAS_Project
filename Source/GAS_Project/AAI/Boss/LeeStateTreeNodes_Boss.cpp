@@ -15,8 +15,9 @@ bool FLeeBossCanReactWithGuard::TestCondition(FStateTreeExecutionContext& Contex
 {
 	const auto& Data = Context.GetInstanceData(*this);
 	auto* Brain = ULeeBossBrainComponent::FindForPawn(Data.Actor);
-	if (!Data.bIsCloseTier || !Data.bIsTargetInFront || !Brain
-		|| !Brain->CanReactToGuardThreat(Data.TargetActor) || Brain->IsRecoveringAttackStamina())
+	// 26.11.08 수정 - 공격 감지는 평가기 bShouldGuardNow로 받는다 (보스 전용: 공격 스태미나 회복 중이면 가드 안 함)
+	if (!Data.bIsCloseTier || !Data.bIsTargetInFront || !Data.bShouldGuardNow || !Brain
+		|| Brain->IsRecoveringAttackStamina())
 	{
 		return false;
 	}
@@ -24,39 +25,6 @@ bool FLeeBossCanReactWithGuard::TestCondition(FStateTreeExecutionContext& Contex
 	const auto* ASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(Data.Actor);
 	return ASC && !ASC->HasMatchingGameplayTag(MyTags::Souls::Status_Attack_Attacking)
 		&& ASC->GetNumericAttribute(ULeeSoulsStatSet::GetStaminaAttribute()) > 0.f;
-}
-
-// 이번 공격의 가드 기회를 사용하고 기존 가드 어빌리티를 시작한다.
-EStateTreeRunStatus FLeeBossReactiveGuard::EnterState(FStateTreeExecutionContext& Context, const FStateTreeTransitionResult& Transition) const
-{
-	const auto& Data = Context.GetInstanceData(*this);
-	auto* Brain = ULeeBossBrainComponent::FindForPawn(Data.Actor);
-	if (!Brain || !Brain->CanReactToGuardThreat(Data.TargetActor))
-	{
-		return EStateTreeRunStatus::Failed;
-	}
-
-	Brain->ConsumeGuardOpportunity();
-	const EStateTreeRunStatus Result = FLeeStateTreeTask_MaintainGuard::EnterState(Context, Transition);
-	if (Result == EStateTreeRunStatus::Running && Data.AIController)
-	{
-		Data.AIController->StopMovement();
-	}
-	return Result;
-}
-
-// 근접 공격이 끝나거나 가드가 깨지면 가드 상태를 종료한다.
-EStateTreeRunStatus FLeeBossReactiveGuard::Tick(FStateTreeExecutionContext& Context, const float DeltaTime) const
-{
-	const auto& Data = Context.GetInstanceData(*this);
-	const auto* Brain = ULeeBossBrainComponent::FindForPawn(Data.Actor);
-	const auto* ASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(Data.Actor);
-	if (!Brain || !Brain->IsGuardThreatActive(Data.TargetActor)
-		|| !ASC || !ASC->HasMatchingGameplayTag(MyTags::Souls::Status_Guard_Active))
-	{
-		return EStateTreeRunStatus::Succeeded;
-	}
-	return FLeeStateTreeTask_MaintainGuard::Tick(Context, DeltaTime);
 }
 
 bool FLeeStateTreeCondition_DistanceInRange::TestCondition(FStateTreeExecutionContext& Context) const

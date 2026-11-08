@@ -25,6 +25,9 @@ ULeeGameplayAbility_EnemyRangedAttack::ULeeGameplayAbility_EnemyRangedAttack(con
 	// StateTree의 Lee Activate Ability Task가 태그 폴링 fallback으로 종료를 판정하는 경로이므로 필수.
 	ActivationOwnedTags.AddTag(MyTags::Souls::Status_Attack_Attacking);
 
+	// 26.11.08 추가 - 마법 쉴드 중에는 투사체 공격을 하지 않는다 (AOE 공격은 막지 않음)
+	ActivationBlockedTags.AddTag(MyTags::Souls::Status_Shield_Active);
+
 	FireEventTag = MyTags::Souls::Event_Attack_Fire;
 }
 

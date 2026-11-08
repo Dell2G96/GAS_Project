@@ -33,9 +33,7 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Lee|Boss", meta=(ClampMin="0", ClampMax="1"))
 	float Phase2HealthThreshold = 0.5f;
 
-	/** 감지한 근접 공격당 한 번 판정하는 가드 확률. 0은 비활성, 1은 항상 가드한다. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Lee|Boss|Guard", meta=(ClampMin="0", ClampMax="1"))
-	float ReactiveGuardChance = 0.5f;
+	// 26.11.08 이동 - 반응 가드 확률은 StateTree 평가기(Lee Combat Context)의 GuardChance로 옮겼다
 
 	/** [서버] StateTree를 멈추고 BossBehaviorTree를 (재)시작한다 */
 	UFUNCTION(BlueprintCallable, Category = "Lee|Boss")
@@ -48,11 +46,6 @@ public:
 	void BeginAttackStaminaRecovery(float SpentStamina);
 	bool IsRecoveringAttackStamina();
 
-	void UpdateGuardThreat(AActor* Target);
-	bool CanReactToGuardThreat(const AActor* Target) const;
-	bool IsGuardThreatActive(const AActor* Target) const;
-	void ConsumeGuardOpportunity();
-
 protected:
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
@@ -61,9 +54,6 @@ private:
 	FTimerHandle StartTimer;
 	bool bStarted = false;
 	float AttackStaminaRecoveryTarget = 0.f;
-	TWeakObjectPtr<AActor> GuardThreatTarget;
-	FGameplayAbilitySpecHandle GuardThreatAttack;
-	bool bGuardOpportunity = false;
 	UFUNCTION()
 	void HandlePossessedPawnChanged(APawn* OldPawn, APawn* NewPawn);
 

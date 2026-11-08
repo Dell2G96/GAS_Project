@@ -38,6 +38,8 @@ void UBTDecorator_LeeBossKey::Configure(FName Key, bool bInteger, int32 Value)
 #include "LeeBossAttackNodes.h"
 #include "GAS_Project/AAI/StateTree/LeeStateTreeConsiderations_Combat.h"
 #include "LeeStateTreeNodes_Boss.h"
+#include "GAS_Project/AAI/StateTree/LeeStateTreeConditions_Combat.h"
+#include "GAS_Project/AAI/LeeStateTreeTask_MeleeAttack.h"
 #include "BTService_LeeBossContext.h"
 #include "BTTask_LeeActivateAbilityByTag.h"
 #include "GAS_Project/AAI/StateTree/LeeStateTreeAuthoringLibrary.h"
@@ -135,28 +137,77 @@ namespace
 		return NewObject<T>(CreatePackage(*(Path / Name)), *Name, RF_Public | RF_Standalone | RF_Transactional);
 	}
 
-	// 공격 상태는 건드리지 않고, 가드에 진입할 수 있는 대기·이동 상태만 연결한다.
-	bool AddReactiveGuard(UStateTreeEditorData& Data, UStateTreeState& Root, const FStateTreeEditorNode& Eval)
+	// 26.11.08 추가 - 이전에 만든 반응 가드·반격 상태와, 그 상태로 가는 전이를 지운다 (새 바인딩으로 다시 만들기 위해)
+	void RemoveReactiveGuardStates(UStateTreeState& Root)
 	{
 		const FName GuardName(TEXT("Reactive Guard"));
-		if (Root.Children.ContainsByPredicate([GuardName](const UStateTreeState* Child) { return Child && Child->Name == GuardName; }))
+		const FName CounterName(TEXT("Counter"));
+		TArray<FGuid> RemovedIds;
+		for (int32 Index = Root.Children.Num() - 1; Index >= 0; --Index)
 		{
-			return true;
+			UStateTreeState* Child = Root.Children[Index];
+			if (Child && (Child->Name == GuardName || Child->Name == CounterName))
+			{
+				RemovedIds.Add(Child->ID);
+				Root.Children.RemoveAt(Index);
+			}
+		}
+		for (UStateTreeState* Child : Root.Children)
+		{
+			if (Child)
+			{
+				Child->Transitions.RemoveAll([&RemovedIds](const FStateTreeTransition& Transition)
+				{
+					return RemovedIds.Contains(Transition.State.ID);
+				});
+			}
+		}
+	}
+
+	// 공격 상태는 건드리지 않고, 가드에 진입할 수 있는 대기·이동 상태만 연결한다.
+	// 26.11.08 수정 - 공격 감지는 평가기(bShouldGuardNow/bGuardThreatActive)로 받고, 퍼펙트 가드 후 반격(Counter) 상태를 함께 만든다
+	bool AddReactiveGuard(UStateTreeEditorData& Data, UStateTreeState& Root, FStateTreeEditorNode& Eval)
+	{
+		RemoveReactiveGuardStates(Root);
+
+		// 평가기가 플레이어 공격을 감지하도록 보스 확률을 넣는다 (이전 보스 브레인 ReactiveGuardChance = 0.5)
+		if (FLeeCombatContextInstanceData* EvalData = Eval.Instance.GetMutablePtr<FLeeCombatContextInstanceData>())
+		{
+			EvalData->GuardChance = 0.5f;
+			EvalData->PerfectGuardChance = 0.3f;
+			EvalData->PerfectGuardLeadTime = 0.1f;
 		}
 
+		const FName GuardName(TEXT("Reactive Guard"));
 		auto BindCondition = [&](const FStateTreeEditorNode& Node)
 		{
 			Data.AddPropertyBinding(Eval, TEXT("TargetActor"), Node, TEXT("TargetActor"));
 			Data.AddPropertyBinding(Eval, TEXT("bIsCloseTier"), Node, TEXT("bIsCloseTier"));
 			Data.AddPropertyBinding(Eval, TEXT("bIsTargetInFront"), Node, TEXT("bIsTargetInFront"));
+			Data.AddPropertyBinding(Eval, TEXT("bShouldGuardNow"), Node, TEXT("bShouldGuardNow"));
 		};
 		UStateTreeState& Guard = Root.AddChildState(GuardName);
 		Root.Children.RemoveSingle(&Guard);
 		Root.Children.Insert(&Guard, 0);
 		BindCondition(Guard.AddEnterCondition<FLeeBossCanReactWithGuard>());
-		auto& Task = Guard.AddTask<FLeeBossReactiveGuard>();
+		auto& Task = Guard.AddTask<FLeeStateTreeTask_ReactiveGuard>();
+		Task.GetInstanceData().MinDuration = 10.f; // 위협 종료로 끝나므로 시간으로는 끝나지 않게
+		Task.GetInstanceData().MaxDuration = 10.f;
 		Data.AddPropertyBinding(Eval, TEXT("TargetActor"), Task, TEXT("TargetActor"));
+		Data.AddPropertyBinding(Eval, TEXT("bGuardThreatActive"), Task, TEXT("bGuardThreatActive"));
 		Guard.AddTransition(EStateTreeTransitionTrigger::OnStateCompleted, EStateTreeTransitionType::GotoState, &Root);
+		Guard.AddTransition(EStateTreeTransitionTrigger::OnStateFailed, EStateTreeTransitionType::GotoState, &Root);
+
+		// 반격: 퍼펙트 가드 성공 시 GA_Guard가 거는 CounterWindow 태그가 있는 동안 약공격 (가드보다 먼저 검사)
+		UStateTreeState& Counter = Root.AddChildState(TEXT("Counter"));
+		Root.Children.RemoveSingle(&Counter);
+		Root.Children.Insert(&Counter, 0);
+		auto& WindowCond = Counter.AddEnterCondition<FLeeStateTreeCondition_SelfHasGameplayTag>();
+		WindowCond.GetInstanceData().Tag = MyTags::Souls::Status_CounterWindow;
+		auto& CounterTask = Counter.AddTask<FLeeStateTreeTask_ActivateAbility>();
+		CounterTask.GetInstanceData().AbilityTag = MyTags::Souls::Ability_Attack_Melee_Light;
+		Counter.AddTransition(EStateTreeTransitionTrigger::OnStateCompleted, EStateTreeTransitionType::GotoState, &Root);
+		Counter.AddTransition(EStateTreeTransitionTrigger::OnStateFailed, EStateTreeTransitionType::GotoState, &Root);
 
 		for (UStateTreeState* Child : Root.Children)
 		{
@@ -362,7 +413,7 @@ bool ULeeBossTreeLibrary::AddReactiveGuardToPhase(UStateTree* Tree)
 	{
 		return false;
 	}
-	const FStateTreeEditorNode* Eval = Data->Evaluators.FindByPredicate([](const FStateTreeEditorNode& Node)
+	FStateTreeEditorNode* Eval = Data->Evaluators.FindByPredicate([](const FStateTreeEditorNode& Node)
 	{
 		return Node.Node.GetScriptStruct() == FLeeStateTreeEvaluator_CombatContext::StaticStruct();
 	});

@@ -11,6 +11,20 @@
 class UStateTree;
 class UEnvQuery;
 
+/** 26.11.08 추가 - Enemy가 플레이어 공격을 막는 방식 (트리 자동 생성 시 선택) */
+UENUM(BlueprintType)
+enum class ELeeEnemyGuardStyle : uint8
+{
+	/** 반응 가드 없음 (기존 동작) */
+	None,
+	/** 플레이어 공격에 확률적으로 가드 + 퍼펙트 가드 후 반격 */
+	Reactive,
+	/** 방패 위주: 가드한 채 접근, 높은 가드 확률, 스태미나가 낮으면 후퇴 */
+	ShieldFocused,
+	/** 마법 Enemy: 가드 대신 마법 쉴드 (퍼펙트 없음) */
+	MagicShield,
+};
+
 /**
  * Enemy 전투 StateTree를 생성할 때 쓰는 빌드 설정.
  * 어빌리티 태그를 C++에 하드코딩하지 않고 호출 측(파이썬/BP)에서 넘기도록 분리했다.
@@ -70,6 +84,30 @@ struct FLeeEnemyTreeBuildConfig
 	 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Lee|AI|Authoring")
 	TObjectPtr<UEnvQuery> RangedRepositionQuery = nullptr;
+
+	// --- 26.11.08 추가 - 반응 가드 / 방패 / 마법 쉴드 ---
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Lee|AI|Authoring|Guard")
+	ELeeEnemyGuardStyle GuardStyle = ELeeEnemyGuardStyle::None;
+
+	/** 플레이어 공격 판정 구간 1회당 가드(또는 쉴드)할 확률 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Lee|AI|Authoring|Guard")
+	float GuardChance = 0.5f;
+
+	/** 가드하기로 했을 때 퍼펙트 가드를 노릴 확률 (MagicShield는 무시) */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Lee|AI|Authoring|Guard")
+	float PerfectGuardChance = 0.3f;
+
+	/** 판정 시작 몇 초 전에 가드를 올릴지 (GA_Guard PerfectGuardWindow보다 작게) */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Lee|AI|Authoring|Guard")
+	float PerfectGuardLeadTime = 0.1f;
+
+	/** (방패 위주) 스태미나 비율이 이 값보다 낮으면 후퇴 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Lee|AI|Authoring|Guard")
+	float RetreatStaminaRatio = 0.3f;
+
+	/** 퍼펙트 가드 후 반격 어빌리티 태그. 비어 있으면 LightAttackAbilityTag를 쓴다 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Lee|AI|Authoring|Guard")
+	FGameplayTag CounterAttackAbilityTag;
 };
 
 /**
@@ -120,7 +158,13 @@ public:
 		float RangedCloseRetreatRadius = 900.f,
 		float RangedMinFireInterval = 2.0f,
 		FName RangedCooldownTagName = NAME_None,
-		UEnvQuery* RangedRepositionQuery = nullptr);
+		UEnvQuery* RangedRepositionQuery = nullptr,
+		FName GuardStyleName = NAME_None,
+		float GuardChance = 0.5f,
+		float PerfectGuardChance = 0.3f,
+		float PerfectGuardLeadTime = 0.1f,
+		float RetreatStaminaRatio = 0.3f,
+		FName CounterAttackTagName = NAME_None);
 #pragma endregion
 
 #pragma region 26.10.21 추가 - 원거리 재배치용 EQS 자동 생성
