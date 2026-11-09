@@ -97,6 +97,10 @@ namespace MyTags
 		UE_DEFINE_GAMEPLAY_TAG(InputTag_TargetLock_SwitchRight,"InputTag.TargetLock.SwitchRight")
 		// 26.10.30 추가 - 에스트 입력 태그
 		UE_DEFINE_GAMEPLAY_TAG(InputTag_Estus,"InputTag.Estus")
+		// 26.11.09 추가 - 퀵슬롯 1/2/3 무기 선택 입력 태그
+		UE_DEFINE_GAMEPLAY_TAG(InputTag_QuickSlot_1,"InputTag.QuickSlot.1")
+		UE_DEFINE_GAMEPLAY_TAG(InputTag_QuickSlot_2,"InputTag.QuickSlot.2")
+		UE_DEFINE_GAMEPLAY_TAG(InputTag_QuickSlot_3,"InputTag.QuickSlot.3")
 
 		// ----- 어빌리티 식별 태그 (AbilityTags / CancelAbilities 매칭용) -----
 		// 약공격/강공격 어빌리티 식별 태그 (각 BP의 AbilityTags에서 사용)
@@ -170,6 +174,8 @@ namespace MyTags
 		UE_DEFINE_GAMEPLAY_TAG(GameplayEvent_Downed, "Souls.GameplayEvent.Downed")
 		UE_DEFINE_GAMEPLAY_TAG(GameplayEvent_Revive, "Souls.GameplayEvent.Revive")
 		UE_DEFINE_GAMEPLAY_TAG(GameplayEvent_Bow_SpawnArrow, "Souls.GameplayEvent.Bow.SpawnArrow")
+		// 26.11.09 추가 - 조준 중 좌클릭 발사 요청
+		UE_DEFINE_GAMEPLAY_TAG(GameplayEvent_Bow_ReleaseShot, "Souls.GameplayEvent.Bow.ReleaseShot")
 		UE_DEFINE_GAMEPLAY_TAG(Event_Movement_BowAnim, "Souls.Event.Movement.BowAnim")
 
 		// ----- 이벤트 - 공격 (몽타주 AnimNotify 발신) -----
@@ -218,6 +224,8 @@ namespace MyTags
 		// ----- UI 메시지 채널 (GameplayMessageSubsystem) -----
 		UE_DEFINE_GAMEPLAY_TAG(Message_Finisher_Prompt, "Souls.Message.Finisher.Prompt")
 		UE_DEFINE_GAMEPLAY_TAG(Message_TargetLock, "Souls.Message.TargetLock")
+		// 26.11.09 추가 - 활 차지 UI 메시지
+		UE_DEFINE_GAMEPLAY_TAG(Message_Bow_Charge, "Souls.Message.Bow.Charge")
 		UE_DEFINE_GAMEPLAY_TAG(Message_Death_YouDied, "Souls.Message.Death.YouDied")
 		UE_DEFINE_GAMEPLAY_TAG(Message_Death_Respawn, "Souls.Message.Death.Respawn")
 		UE_DEFINE_GAMEPLAY_TAG(Message_Death_PartyWiped, "Souls.Message.Death.PartyWiped")

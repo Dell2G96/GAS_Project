@@ -86,6 +86,10 @@ namespace MyTags
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(InputTag_TargetLock_SwitchRight)
 		// 26.10.30 추가 - 에스트(회복약) 마시기 입력 — InputConfig에서 IA_SelfHeal과 연결
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(InputTag_Estus)
+		// 26.11.09 추가 - 퀵슬롯 1/2/3 무기 선택 입력 (NativeInputActions)
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(InputTag_QuickSlot_1)
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(InputTag_QuickSlot_2)
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(InputTag_QuickSlot_3)
 
 		// ----- 어빌리티 식별 태그 (AbilityTags / CancelAbilities 매칭용) -----
 		// 약공격 어빌리티 식별 태그 — 약공격 BP의 AbilityTags에서 사용
@@ -171,6 +175,8 @@ namespace MyTags
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(GameplayEvent_Downed)
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(GameplayEvent_Revive)
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(GameplayEvent_Bow_SpawnArrow)
+		// 26.11.09 추가 - 조준 중 좌클릭 발사 요청 (GA_BowFire → GA_BowAim)
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(GameplayEvent_Bow_ReleaseShot)
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Event_Movement_BowAnim)
 
 		// ----- 이벤트 - 공격 (몽타주 AnimNotify 발신) -----
@@ -224,6 +230,8 @@ namespace MyTags
 		// ----- UI 메시지 채널 (GameplayMessageSubsystem) -----
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Message_Finisher_Prompt);
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Message_TargetLock);
+		// 26.11.09 추가 - 활 차지 시작/종료 UI 메시지 (ULeeGameplayAbility_BowAim → ULeeBowChargeWidget)
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Message_Bow_Charge);
 		// 26.10.29 추가 - 플레이어 사망/부활 UI 메시지 (ULeeSavePointSubsystem → ULeeDeathScreenWidget)
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Message_Death_YouDied);
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Message_Death_Respawn);

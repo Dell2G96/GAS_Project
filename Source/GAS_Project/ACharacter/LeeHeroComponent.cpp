@@ -16,6 +16,7 @@
 #include "GAS_Project/ACamera/LeeCameraComponent.h"
 #include "GAS_Project/ACamera/LeeCameraMode.h"
 #include "GAS_Project/ACharacter/LeeTargetLockComponent.h"
+#include "GAS_Project/AEquipment/LeeQuickBarComponent.h"
 #include "GAS_Project/AInput/LeeInputComponent.h"
 #include "GAS_Project/AInput/LeeMappableConfigPair.h"
 #include "GAS_Project/APlayer/LeePlayerController.h"
@@ -369,6 +370,10 @@ void ULeeHeroComponent::InitializePlayerInput(UInputComponent* PlayerInputCompon
 						LeeIC->BindNativeAction(InputConfig, MyTags::Lyra::InputTag_Look_Mouse, ETriggerEvent::Triggered, this, &ThisClass::Input_LookMouse,false);
 						LeeIC->BindNativeAction(InputConfig, MyTags::Souls::InputTag_TargetLock_SwitchLeft, ETriggerEvent::Triggered, this, &ThisClass::Input_TargetLockSwitchLeft,false);
 						LeeIC->BindNativeAction(InputConfig, MyTags::Souls::InputTag_TargetLock_SwitchRight, ETriggerEvent::Triggered, this, &ThisClass::Input_TargetLockSwitchRight,false);
+						// 26.11.09 추가 - 퀵슬롯 1/2/3 무기 선택
+						LeeIC->BindNativeAction(InputConfig, MyTags::Souls::InputTag_QuickSlot_1, ETriggerEvent::Started, this, &ThisClass::Input_QuickSlot1,false);
+						LeeIC->BindNativeAction(InputConfig, MyTags::Souls::InputTag_QuickSlot_2, ETriggerEvent::Started, this, &ThisClass::Input_QuickSlot2,false);
+						LeeIC->BindNativeAction(InputConfig, MyTags::Souls::InputTag_QuickSlot_3, ETriggerEvent::Started, this, &ThisClass::Input_QuickSlot3,false);
 					}
 				}
 			}
@@ -450,6 +455,82 @@ void ULeeHeroComponent::Input_TargetLockSwitchRight(const FInputActionValue& Inp
 	{
 		TargetLock->SwitchTarget(/*bWantRight*/true);
 	}
+}
+
+// 1번 키 → 퀵바 첫 번째 슬롯 무기 선택
+void ULeeHeroComponent::Input_QuickSlot1(const FInputActionValue& InputActionValue)
+{
+	SelectQuickSlot(0);
+}
+
+// 2번 키 → 퀵바 두 번째 슬롯 무기 선택
+void ULeeHeroComponent::Input_QuickSlot2(const FInputActionValue& InputActionValue)
+{
+	SelectQuickSlot(1);
+}
+
+// 3번 키 → 퀵바 세 번째 슬롯 무기 선택
+void ULeeHeroComponent::Input_QuickSlot3(const FInputActionValue& InputActionValue)
+{
+	SelectQuickSlot(2);
+}
+
+// 행동 중이 아니고 슬롯에 아이템이 있을 때만 퀵바 활성 슬롯을 바꾼다 (SetActiveSlotIndex는 서버 RPC)
+void ULeeHeroComponent::SelectQuickSlot(int32 SlotIndex)
+{
+	const APawn* Pawn = GetPawn<APawn>();
+	AController* Controller = Pawn ? Pawn->GetController() : nullptr;
+	if (!Controller)
+	{
+		return;
+	}
+
+	// 공격·가드·구르기·조준·에스트·그로기·피니셔·넉다운·사망 중에는 교체하지 않는다
+	if (const ULeePawnExtensionComponent* PawnExtComp = ULeePawnExtensionComponent::FindPawnExtensionComponent(Pawn))
+	{
+		if (const ULeeAbilitySystemComponent* LeeASC = PawnExtComp->GetLeeAbilitySystemComponent())
+		{
+			FGameplayTagContainer BlockTags;
+			BlockTags.AddTag(MyTags::Souls::Status_Attack_Attacking);
+			BlockTags.AddTag(MyTags::Souls::Status_Guard_Active);
+			BlockTags.AddTag(MyTags::Souls::Status_Dodge_Active);
+			BlockTags.AddTag(MyTags::Souls::Ability_Type_Action_BowAim);
+			BlockTags.AddTag(MyTags::Souls::Status_Estus_Drinking);
+			BlockTags.AddTag(MyTags::Souls::Status_Groggy);
+			BlockTags.AddTag(MyTags::Souls::Status_Executing);
+			BlockTags.AddTag(MyTags::Souls::Status_Assassinating);
+			BlockTags.AddTag(MyTags::Souls::Status_Finisher_Victim);
+			BlockTags.AddTag(MyTags::Souls::Status_Downed);
+			BlockTags.AddTag(MyTags::Souls::Status_Death_Dying);
+			BlockTags.AddTag(MyTags::Souls::Status_Death_Dead);
+
+			if (LeeASC->HasAnyMatchingGameplayTags(BlockTags))
+			{
+				return;
+			}
+		}
+	}
+
+	ULeeQuickBarComponent* QuickBar = Controller->FindComponentByClass<ULeeQuickBarComponent>();
+	if (!QuickBar)
+	{
+		return;
+	}
+
+	// 빈 슬롯이면 현재 무기를 그대로 둔다
+	const TArray<ULeeInventoryItemInstance*> Slots = QuickBar->GetSlots();
+	if (!Slots.IsValidIndex(SlotIndex) || Slots[SlotIndex] == nullptr)
+	{
+		return;
+	}
+
+	// 이미 든 슬롯이면 RPC를 보내지 않는다
+	if (QuickBar->GetActiveSlotIndex() == SlotIndex)
+	{
+		return;
+	}
+
+	QuickBar->SetActiveSlotIndex(SlotIndex);
 }
 
 void ULeeHeroComponent::Input_AbilityInputTagPressed(FGameplayTag InputTag)

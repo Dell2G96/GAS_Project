@@ -64,6 +64,12 @@ public:
 	void Input_TargetLockSwitchLeft(const FInputActionValue& InputActionValue);
 	void Input_TargetLockSwitchRight(const FInputActionValue& InputActionValue);
 
+	// 26.11.09 추가 - 1/2/3 키로 퀵바 슬롯 무기 선택
+	void Input_QuickSlot1(const FInputActionValue& InputActionValue);
+	void Input_QuickSlot2(const FInputActionValue& InputActionValue);
+	void Input_QuickSlot3(const FInputActionValue& InputActionValue);
+	void SelectQuickSlot(int32 SlotIndex);
+
 protected:
 	UPROPERTY(EditAnywhere)
 	TArray<struct FInputMappingContextAndPriority> DefaultInputMappings;

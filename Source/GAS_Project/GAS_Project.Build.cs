@@ -38,6 +38,8 @@ public class GAS_Project : ModuleRules
 			"SlateCore",
 			"Slate",
 			"Niagara",
+			// 26.11.09 추가 - 활 차지 카메라 쉐이크 (WaveOscillatorCameraShakePattern)
+			"EngineCameras",
 			"NavigationSystem",
 			"ModularGameplay",
 			"GameFeatures",

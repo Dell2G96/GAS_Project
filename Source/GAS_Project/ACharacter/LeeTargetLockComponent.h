@@ -85,6 +85,9 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Lee|TargetLock")
 	bool IsGuardLeftFootBack() const { return bGuardLeftFootBack; }
 
+	/** 락온 해제 때 복구할 "원래 회전 방식" 값을 바꾼다 (락온 중에 다른 시스템이 회전 방식을 바꿨다가 되돌릴 때 사용 — 예: 활 조준) */
+	void SetSavedOrientRotationToMovement(bool bNewValue) { bSavedOrientRotationToMovement = bNewValue; }
+
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
 	/** ULeeHeroComponent::DetermineCameraMode()가 락온 중일 때 반환할 카메라 모드 */
