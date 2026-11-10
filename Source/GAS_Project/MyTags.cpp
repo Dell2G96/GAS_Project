@@ -109,6 +109,8 @@ namespace MyTags
 #pragma region 26.09.22 추가 - Enemy 원거리 공격 어빌리티 식별 태그
 		UE_DEFINE_GAMEPLAY_TAG(Ability_Attack_Ranged, "Souls.Abilities.Attack.Ranged")
 #pragma endregion
+		// Enemy AOE 공격 어빌리티 부모 태그
+		UE_DEFINE_GAMEPLAY_TAG(Ability_Attack_Aoe, "Souls.Abilities.Attack.Aoe")
 		UE_DEFINE_GAMEPLAY_TAG(Ability_Guard, "Souls.Abilities.Guard")
 		UE_DEFINE_GAMEPLAY_TAG(Ability_Dodge, "Souls.Abilities.Dodge")
 		UE_DEFINE_GAMEPLAY_TAG(Ability_HitReaction, "Souls.Abilities.HitReaction")
@@ -252,6 +254,8 @@ namespace MyTags
 		UE_DEFINE_GAMEPLAY_TAG(DamageType_Attack_Projectile, "Souls.DamageType.Attack.Projectile")
 		// 모래 공격 속성 태그 (피격 시 시야 방해)
 		UE_DEFINE_GAMEPLAY_TAG(DamageType_Attack_Sand, "Souls.DamageType.Attack.Sand")
+		// AOE(범위) 공격 속성 태그
+		UE_DEFINE_GAMEPLAY_TAG(DamageType_Attack_Aoe, "Souls.DamageType.Attack.Aoe")
 
 		// ----- SetByCaller -----
 		UE_DEFINE_GAMEPLAY_TAG(SetByCaller_Damage, "Souls.SetByCaller.Damage")

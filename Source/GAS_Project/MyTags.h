@@ -101,6 +101,8 @@ namespace MyTags
 		// StateTree의 Lee Activate Ability Task가 이 태그로 어빌리티를 찾아 활성화한다.
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Ability_Attack_Ranged);
 #pragma endregion
+		// 26.11.10 추가 - Enemy AOE 공격 어빌리티 부모 태그 (BP는 하위 .Self / .Target을 Ability Tag로 쓴다)
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Ability_Attack_Aoe);
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Ability_Guard);
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Ability_Dodge);
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Ability_HitReaction);
@@ -265,6 +267,8 @@ namespace MyTags
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(DamageType_Attack_Projectile);
 		// [신규 26.10.20] 모래 공격 속성 태그 — 피격 시 DefenseComponent가 시야 방해 GE(GE_SandBlind)를 건다
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(DamageType_Attack_Sand);
+		// 26.11.10 추가 - AOE(범위) 공격 속성 태그 — AOE 예고 액터가 폭발할 때 데미지 Spec에 붙는다
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(DamageType_Attack_Aoe);
 
 		// ----- SetByCaller -----
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(SetByCaller_Damage)
