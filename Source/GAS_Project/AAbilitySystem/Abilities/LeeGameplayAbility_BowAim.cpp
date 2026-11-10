@@ -2,6 +2,7 @@
 
 #include "LeeGameplayAbility_BowAim.h"
 
+#include "AbilitySystemComponent.h"
 #include "Abilities/Tasks/AbilityTask_PlayMontageAndWait.h"
 #include "Abilities/Tasks/AbilityTask_WaitGameplayEvent.h"
 #include "Abilities/Tasks/AbilityTask_WaitInputRelease.h"
@@ -41,7 +42,15 @@ void ULeeGameplayAbility_BowAim::ActivateAbility(const FGameplayAbilitySpecHandl
 	ChargeStartTime = 0.0f;
 	HeldArrow = nullptr;
 
-	SetAimRotation(true);
+	// 진행 중인 속사를 먼저 끝낸다 — 속사가 바꿔 둔 회전 방식을 먼저 되돌려야 조준이 원래 값을 제대로 기억한다
+	if (UAbilitySystemComponent* ASC = GetAbilitySystemComponentFromActorInfo())
+	{
+		FGameplayTagContainer QuickFireTags;
+		QuickFireTags.AddTag(MyTags::Souls::Ability_Type_Action_BowFire);
+		ASC->CancelAbilities(&QuickFireTags, nullptr, this);
+	}
+
+	SetFaceCameraRotation(true);
 
 	// 몽타주 안의 SpawnArrow 노티파이 = 다 당김
 	UAbilityTask_WaitGameplayEvent* WaitDrawn = UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(
@@ -104,7 +113,7 @@ void ULeeGameplayAbility_BowAim::EndAbility(const FGameplayAbilitySpecHandle Han
 	}
 	HeldArrow = nullptr;
 
-	SetAimRotation(false);
+	SetFaceCameraRotation(false);
 
 	Super::EndAbility(Handle, ActorInfo, ActivationInfo, bReplicateEndAbility, bWasCancelled);
 }
@@ -238,46 +247,6 @@ float ULeeGameplayAbility_BowAim::GetChargeRatio() const
 	}
 	const float Elapsed = GetWorld()->GetTimeSeconds() - ChargeStartTime;
 	return FMath::Clamp(Elapsed / FMath::Max(MaxChargeTime, KINDA_SMALL_NUMBER), 0.0f, 1.0f);
-}
-
-// 조준 중에는 이동 방향이 아니라 카메라 방향을 보게 한다.
-// 락온 중에는 락온 컴포넌트가 회전 방식의 주인이므로 건드리지 않는다.
-// 조준 중에 락온이 시작돼 종료 때까지 이어지면, 락온이 나중에 복구할 "원래 값"만 되돌려 준다(안 하면 락온 해제 후에도 회전이 안 돌아옴)
-void ULeeGameplayAbility_BowAim::SetAimRotation(bool bAiming)
-{
-	const ACharacter* Character = Cast<ACharacter>(GetAvatarActorFromActorInfo());
-	UCharacterMovementComponent* MoveComp = Character ? Character->GetCharacterMovement() : nullptr;
-	if (!MoveComp)
-	{
-		return;
-	}
-
-	ULeeTargetLockComponent* Lock = ULeeTargetLockComponent::FindTargetLockComponent(Character);
-	const bool bLocked = Lock && Lock->IsLocked();
-
-	if (bAiming)
-	{
-		if (!bLocked && MoveComp->bOrientRotationToMovement)
-		{
-			bOriginalOrientRotation = MoveComp->bOrientRotationToMovement;
-			MoveComp->bOrientRotationToMovement = false;
-			bChangedOrientRotation = true;
-		}
-	}
-	else if (bChangedOrientRotation)
-	{
-		bChangedOrientRotation = false;
-
-		if (bLocked)
-		{
-			// 락온 중: 플래그는 락온 것(false 유지). 락온 해제 때 복구할 값만 원래 값으로 정정
-			Lock->SetSavedOrientRotationToMovement(bOriginalOrientRotation);
-		}
-		else
-		{
-			MoveComp->bOrientRotationToMovement = bOriginalOrientRotation;
-		}
-	}
 }
 
 // [로컬] 차지 흔들림 시작 — 세기는 0에서 시작해 차지 비율에 따라 선형으로 커진다

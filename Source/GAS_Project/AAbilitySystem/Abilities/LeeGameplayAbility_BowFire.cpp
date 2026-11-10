@@ -53,6 +53,9 @@ void ULeeGameplayAbility_BowFire::ActivateAbility(const FGameplayAbilitySpecHand
 	bQuickShotReleased = false;
 	HeldArrow = nullptr;
 	SetBowStretched(true);
+
+	// 화살은 카메라 방향으로 날아가므로 캐릭터도 카메라 방향으로 돌린다 (이동 방향을 보면 뒤로 걸으며 쏠 때 정반대가 됨)
+	SetFaceCameraRotation(true);
 	if (IsServerSide())
 	{
 		HeldArrow = SpawnArrowInHand();
@@ -77,7 +80,7 @@ void ULeeGameplayAbility_BowFire::ActivateAbility(const FGameplayAbilitySpecHand
 	}
 }
 
-// 종료 — 쏘지 못한 손 화살 제거, 활 시위 원위치
+// 종료 — 쏘지 못한 손 화살 제거, 활 시위 원위치, 회전 방식 복구
 void ULeeGameplayAbility_BowFire::EndAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo,
 	const FGameplayAbilityActivationInfo ActivationInfo, bool bReplicateEndAbility, bool bWasCancelled)
 {
@@ -98,6 +101,9 @@ void ULeeGameplayAbility_BowFire::EndAbility(const FGameplayAbilitySpecHandle Ha
 	{
 		SetBowStretched(false);
 	}
+
+	// 속사가 바꿔 둔 회전 방식만 되돌린다 (조준 경유로 끝난 경우엔 바꾼 적이 없어 아무 일도 안 함)
+	SetFaceCameraRotation(false);
 
 	Super::EndAbility(Handle, ActorInfo, ActivationInfo, bReplicateEndAbility, bWasCancelled);
 }

@@ -77,4 +77,15 @@ protected:
 
 	/** 이 어빌리티를 조작하는 플레이어 화면(로컬)에서 실행 중인지 */
 	bool IsLocalSide() const;
+
+	/** 활을 쏘는 동안 캐릭터가 이동 방향 대신 카메라 방향을 보게 하고(true), 끝나면 되돌린다(false).
+	 *  락온 중이면 락온이 회전을 맡으므로 건드리지 않는다. 조준·속사가 함께 쓴다 */
+	void SetFaceCameraRotation(bool bFaceCamera);
+
+private:
+	/** 이 어빌리티가 bOrientRotationToMovement를 꺼 두었는지 (되돌릴 책임이 있는지) */
+	bool bChangedOrientRotation = false;
+
+	/** 바꾸기 전의 bOrientRotationToMovement 값 (되돌릴 값) */
+	bool bOriginalOrientRotation = true;
 };

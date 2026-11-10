@@ -4,7 +4,9 @@
 
 #include "AbilitySystemComponent.h"
 #include "GameFramework/Character.h"
+#include "GameFramework/CharacterMovementComponent.h"
 #include "Components/SkeletalMeshComponent.h"
+#include "GAS_Project/ACharacter/LeeTargetLockComponent.h"
 #include "GAS_Project/MyTags.h"
 #include "GAS_Project/AWeapons/LeeArrowProjectile.h"
 
@@ -160,4 +162,44 @@ bool ULeeGameplayAbility_BowBase::IsServerSide() const
 bool ULeeGameplayAbility_BowBase::IsLocalSide() const
 {
 	return CurrentActorInfo && CurrentActorInfo->IsLocallyControlled();
+}
+
+// 쏘는 동안 이동 방향이 아니라 카메라 방향을 보게 한다 (bUseControllerDesiredRotation이 켜져 있어 RotationRate 속도로 돈다).
+// 락온 중에는 락온 컴포넌트가 회전 방식의 주인이므로 건드리지 않는다.
+// 쏘는 도중 락온이 시작돼 종료 때까지 이어지면, 락온이 나중에 복구할 "원래 값"만 되돌려 준다(안 하면 락온 해제 후에도 회전이 안 돌아옴)
+void ULeeGameplayAbility_BowBase::SetFaceCameraRotation(bool bFaceCamera)
+{
+	const ACharacter* Character = Cast<ACharacter>(GetAvatarActorFromActorInfo());
+	UCharacterMovementComponent* MoveComp = Character ? Character->GetCharacterMovement() : nullptr;
+	if (!MoveComp)
+	{
+		return;
+	}
+
+	ULeeTargetLockComponent* Lock = ULeeTargetLockComponent::FindTargetLockComponent(Character);
+	const bool bLocked = Lock && Lock->IsLocked();
+
+	if (bFaceCamera)
+	{
+		if (!bLocked && MoveComp->bOrientRotationToMovement)
+		{
+			bOriginalOrientRotation = MoveComp->bOrientRotationToMovement;
+			MoveComp->bOrientRotationToMovement = false;
+			bChangedOrientRotation = true;
+		}
+	}
+	else if (bChangedOrientRotation)
+	{
+		bChangedOrientRotation = false;
+
+		if (bLocked)
+		{
+			// 락온 중: 플래그는 락온 것(false 유지). 락온 해제 때 복구할 값만 원래 값으로 정정
+			Lock->SetSavedOrientRotationToMovement(bOriginalOrientRotation);
+		}
+		else
+		{
+			MoveComp->bOrientRotationToMovement = bOriginalOrientRotation;
+		}
+	}
 }

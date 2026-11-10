@@ -117,9 +117,6 @@ private:
 	/** 현재 차지 비율 0~1 */
 	float GetChargeRatio() const;
 
-	/** 조준 중 캐릭터가 카메라 방향을 보도록 회전 방식 변경/복구 (락온 중이면 건드리지 않음) */
-	void SetAimRotation(bool bAiming);
-
 	void StartChargeShake();
 	void UpdateChargeShake();
 	void StopChargeShake();
@@ -129,10 +126,6 @@ private:
 
 	EAimPhase Phase = EAimPhase::Drawing;
 	float ChargeStartTime = 0.0f;
-	bool bChangedOrientRotation = false;
-
-	/** 조준이 바꾸기 전의 bOrientRotationToMovement 값 (조준 종료 때 되돌릴 값) */
-	bool bOriginalOrientRotation = true;
 
 	/** [서버] 손에 들고 있는 화살 */
 	UPROPERTY()
