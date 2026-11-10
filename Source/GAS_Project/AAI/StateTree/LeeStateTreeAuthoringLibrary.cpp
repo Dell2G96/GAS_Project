@@ -198,6 +198,16 @@ UStateTree* ULeeStateTreeAuthoringLibrary::BuildEnemyCombatStateTree(const FStri
 		// 쉴드는 공격 태그(Status_Attack_Attacking)가 없으므로 태그 폴링으로 끝내면 안 된다
 		ShieldTask.GetInstanceData().bUseTagPollingFallback = false;
 
+		// 26.11.10 추가 - 쉴드와 동시에 자기 중심 AOE로 붙은 플레이어를 떼어낸다.
+		// 완료 판정에서 빼서, 쿨다운으로 활성화에 실패해도 쉴드 상태는 그대로 이어지게 한다
+		// (UE 5.6 StateTreeExecutionContext: 완료 판정 제외 Task의 EnterState 실패는 상태 실패로 이어지지 않음)
+		if (Config.AoeSelfAbilityTag.IsValid())
+		{
+			TStateTreeEditorNode<FLeeStateTreeTask_ActivateAbility>& ShieldAoeTask = Shield.AddTask<FLeeStateTreeTask_ActivateAbility>();
+			ShieldAoeTask.GetInstanceData().AbilityTag = Config.AoeSelfAbilityTag;
+			ShieldAoeTask.GetNode().bConsideredForCompletion = false;
+		}
+
 		// 26.11.08 추가 - 쉴드 중에는 플레이어를 바라본 채 옆·뒤로 스트레이프하며 거리를 벌린다.
 		// 상태 종료는 쉴드 어빌리티 종료로만 결정되게 하고(완료 판정 제외), 2초 안에 거리가 벌어지도록 반경 회복을 빠르게 한다.
 		TStateTreeEditorNode<FLeeStateTreeTask_SetMovementGait>& ShieldGait = Shield.AddTask<FLeeStateTreeTask_SetMovementGait>();
@@ -355,6 +365,36 @@ UStateTree* ULeeStateTreeAuthoringLibrary::BuildEnemyCombatStateTree(const FStri
 		RecoveredCond.GetInstanceData().Right = Config.RetreatStaminaRatio + 0.2f;
 		EditorData->AddPropertyBinding(Eval, TEXT("SelfStaminaRatio"), RecoveredCond, TEXT("Left"));
 		Retreat.AddTransition(EStateTreeTransitionTrigger::OnStateCompleted, EStateTreeTransitionType::GotoState, &Root);
+	}
+
+	// 26.11.10 추가 - 자기 중심 AOE: 대상이 원 안에 있고 쿨다운이 아니면 근접 공격보다 먼저 쓴다 (Retreat가 있으면 그 다음)
+	if (Config.AoeSelfAbilityTag.IsValid())
+	{
+		UStateTreeState& AoeState = CloseState.AddChildState(TEXT("AoeAttack"));
+		CloseState.Children.RemoveSingle(&AoeState);
+		CloseState.Children.Insert(&AoeState, bShieldFocused ? 1 : 0);
+
+		if (Config.AoeSelfCooldownTag.IsValid())
+		{
+			TStateTreeEditorNode<FLeeStateTreeCondition_SelfHasGameplayTag>& CooldownCond =
+				AoeState.AddEnterCondition<FLeeStateTreeCondition_SelfHasGameplayTag>();
+			CooldownCond.GetInstanceData().Tag = Config.AoeSelfCooldownTag;
+			CooldownCond.GetInstanceData().bInvert = true;
+		}
+
+		TStateTreeEditorNode<FStateTreeCompareFloatCondition>& InRange =
+			AoeState.AddEnterCondition<FStateTreeCompareFloatCondition>(EGenericAICheck::LessOrEqual);
+		InRange.GetInstanceData().Right = Config.AoeSelfMaxDistance;
+		EditorData->AddPropertyBinding(Eval, TEXT("DistanceToTarget"), InRange, TEXT("Left"));
+
+		TStateTreeEditorNode<FLeeStateTreeTask_ActivateAbility>& AoeTask = AoeState.AddTask<FLeeStateTreeTask_ActivateAbility>();
+		AoeTask.GetInstanceData().AbilityTag = Config.AoeSelfAbilityTag;
+
+		AoeState.AddTransition(EStateTreeTransitionTrigger::OnStateCompleted, EStateTreeTransitionType::GotoState, &Root);
+		FStateTreeTransition& AoeFailed = AoeState.AddTransition(EStateTreeTransitionTrigger::OnStateFailed, EStateTreeTransitionType::GotoState, &Root);
+		AoeFailed.bDelayTransition = true;
+		AoeFailed.DelayDuration = 0.5f;
+		AoeFailed.DelayRandomVariance = 0.2f;
 	}
 
 	// 근접 공격 유무와 상관없이 Close의 대기 행동은 항상 만든다.
@@ -535,6 +575,39 @@ UStateTree* ULeeStateTreeAuthoringLibrary::BuildEnemyCombatStateTree(const FStri
 		Approach.AddTransition(EStateTreeTransitionTrigger::OnStateFailed,
 			EStateTreeTransitionType::GotoState, &Root);
 	};
+
+	// 26.11.10 추가 - 대상 발밑 AOE: 쿨다운이 아니면 투사체보다 먼저 쓴다 (쿨다운이 더 길어 투사체와 번갈아 나온다)
+	auto BuildAoeTargetState = [&](UStateTreeState& Parent) -> void
+	{
+		UStateTreeState& AoeState = Parent.AddChildState(TEXT("AoeTargetAttack"));
+
+		if (Config.AoeTargetCooldownTag.IsValid())
+		{
+			TStateTreeEditorNode<FLeeStateTreeCondition_SelfHasGameplayTag>& CooldownCond =
+				AoeState.AddEnterCondition<FLeeStateTreeCondition_SelfHasGameplayTag>();
+			CooldownCond.GetInstanceData().Tag = Config.AoeTargetCooldownTag;
+			CooldownCond.GetInstanceData().bInvert = true;
+		}
+
+		// 대상을 바라보게 하면서 AI Focus를 건다 — 어빌리티가 Focus 대상의 발밑에 원을 깐다
+		TStateTreeEditorNode<FLeeStateTreeTask_FaceTarget>& FaceTask = AoeState.AddTask<FLeeStateTreeTask_FaceTarget>();
+		EditorData->AddPropertyBinding(Eval, TEXT("TargetActor"), FaceTask, TEXT("TargetActor"));
+
+		TStateTreeEditorNode<FLeeStateTreeTask_ActivateAbility>& AoeTask = AoeState.AddTask<FLeeStateTreeTask_ActivateAbility>();
+		AoeTask.GetInstanceData().AbilityTag = Config.AoeTargetAbilityTag;
+
+		AoeState.AddTransition(EStateTreeTransitionTrigger::OnStateCompleted, EStateTreeTransitionType::GotoState, &Root);
+		FStateTreeTransition& AoeFailed = AoeState.AddTransition(EStateTreeTransitionTrigger::OnStateFailed, EStateTreeTransitionType::GotoState, &Root);
+		AoeFailed.bDelayTransition = true;
+		AoeFailed.DelayDuration = 0.5f;
+		AoeFailed.DelayRandomVariance = 0.2f;
+	};
+
+	if (Config.AoeTargetAbilityTag.IsValid())
+	{
+		BuildAoeTargetState(MidState);
+		BuildAoeTargetState(FarState);
+	}
 
 	if (Config.bCanRangedAttack)
 	{
@@ -850,7 +923,12 @@ UStateTree* ULeeStateTreeAuthoringLibrary::BuildEnemyCombatStateTreeByTagNames(
 	float PerfectGuardChance,
 	float PerfectGuardLeadTime,
 	float RetreatStaminaRatio,
-	FName CounterAttackTagName)
+	FName CounterAttackTagName,
+	FName AoeSelfTagName,
+	FName AoeSelfCooldownTagName,
+	float AoeSelfMaxDistance,
+	FName AoeTargetTagName,
+	FName AoeTargetCooldownTagName)
 {
 	bool bHadError = false;
 
@@ -872,6 +950,14 @@ UStateTree* ULeeStateTreeAuthoringLibrary::BuildEnemyCombatStateTreeByTagNames(
 	Config.PerfectGuardLeadTime = PerfectGuardLeadTime;
 	Config.RetreatStaminaRatio = RetreatStaminaRatio;
 	ResolveTagName(CounterAttackTagName, Config.CounterAttackAbilityTag, bHadError);
+
+	// 26.11.10 추가 - AOE 공격 (이름이 비어 있으면 해당 상태를 만들지 않음)
+	ResolveTagName(AoeSelfTagName, Config.AoeSelfAbilityTag, bHadError);
+	ResolveTagName(AoeSelfCooldownTagName, Config.AoeSelfCooldownTag, bHadError);
+	ResolveTagName(AoeTargetTagName, Config.AoeTargetAbilityTag, bHadError);
+	ResolveTagName(AoeTargetCooldownTagName, Config.AoeTargetCooldownTag, bHadError);
+	Config.AoeSelfMaxDistance = AoeSelfMaxDistance;
+
 	if (!GuardStyleName.IsNone())
 	{
 		const UEnum* StyleEnum = StaticEnum<ELeeEnemyGuardStyle>();

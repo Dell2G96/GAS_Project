@@ -108,6 +108,27 @@ struct FLeeEnemyTreeBuildConfig
 	/** 퍼펙트 가드 후 반격 어빌리티 태그. 비어 있으면 LightAttackAbilityTag를 쓴다 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Lee|AI|Authoring|Guard")
 	FGameplayTag CounterAttackAbilityTag;
+
+	// --- 26.11.10 추가 - AOE 공격 (비어 있으면 해당 상태를 만들지 않는다) ---
+	/** 자기 중심 AOE 어빌리티 태그 — Close 맨 앞 AoeAttack 상태 + 마법 쉴드 상태에서 함께 사용 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Lee|AI|Authoring|Aoe")
+	FGameplayTag AoeSelfAbilityTag;
+
+	/** 자기 중심 AOE 쿨다운 태그 — 이 태그가 있는 동안 AoeAttack 상태에 들어가지 않는다 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Lee|AI|Authoring|Aoe")
+	FGameplayTag AoeSelfCooldownTag;
+
+	/** 자기 중심 AOE를 쓰는 최대 대상 거리(cm) — AOE 반경보다 작게 둬야 원 안에 있을 때만 쓴다 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Lee|AI|Authoring|Aoe")
+	float AoeSelfMaxDistance = 350.f;
+
+	/** 대상 발밑 AOE 어빌리티 태그 — Mid/Far 맨 앞 AoeTargetAttack 상태에서 사용 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Lee|AI|Authoring|Aoe")
+	FGameplayTag AoeTargetAbilityTag;
+
+	/** 대상 발밑 AOE 쿨다운 태그 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Lee|AI|Authoring|Aoe")
+	FGameplayTag AoeTargetCooldownTag;
 };
 
 /**
@@ -164,7 +185,12 @@ public:
 		float PerfectGuardChance = 0.3f,
 		float PerfectGuardLeadTime = 0.1f,
 		float RetreatStaminaRatio = 0.3f,
-		FName CounterAttackTagName = NAME_None);
+		FName CounterAttackTagName = NAME_None,
+		FName AoeSelfTagName = NAME_None,
+		FName AoeSelfCooldownTagName = NAME_None,
+		float AoeSelfMaxDistance = 350.f,
+		FName AoeTargetTagName = NAME_None,
+		FName AoeTargetCooldownTagName = NAME_None);
 #pragma endregion
 
 #pragma region 26.10.21 추가 - 원거리 재배치용 EQS 자동 생성
