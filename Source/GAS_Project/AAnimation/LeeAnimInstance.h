@@ -27,7 +27,7 @@ protected:
 	void OnAbilitySystemInitialized();
 
 public:
-
+	
 	UPROPERTY(BlueprintReadOnly, Category="Character State Data")
 	float GroundDistance = -1.f;
 

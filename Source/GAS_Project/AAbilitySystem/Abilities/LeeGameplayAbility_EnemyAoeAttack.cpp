@@ -4,6 +4,7 @@
 
 #include "AbilitySystemComponent.h"
 #include "Abilities/Tasks/AbilityTask_PlayMontageAndWait.h"
+#include "Abilities/Tasks/AbilityTask_WaitDelay.h"
 #include "Abilities/Tasks/AbilityTask_WaitGameplayEvent.h"
 #include "AIController.h"
 #include "GameFramework/Character.h"
@@ -37,6 +38,8 @@ void ULeeGameplayAbility_EnemyAoeAttack::ActivateAbility(const FGameplayAbilityS
 	Super::ActivateAbility(Handle, ActorInfo, ActivationInfo, TriggerEventData);
 
 	bSpawned = false;
+	bCastMotionFinished = false;
+	bTelegraphFinished = false;
 
 	FVector Unused;
 	if (!TelegraphActorClass || !FindCenterLocation(Unused) || !CommitAbility(Handle, ActorInfo, ActivationInfo))
@@ -49,10 +52,12 @@ void ULeeGameplayAbility_EnemyAoeAttack::ActivateAbility(const FGameplayAbilityS
 		return;
 	}
 
+	// 26.11.11 수정 - 몽타주가 없어도 바로 끝내지 않고 원이 터질 때까지 기다린다 (그동안 다음 공격 금지)
 	if (!Montage)
 	{
+		bCastMotionFinished = true;
 		SpawnTelegraph();
-		EndAbility(Handle, ActorInfo, ActivationInfo, true, false);
+		TryEndAfterCast();
 		return;
 	}
 
@@ -78,11 +83,28 @@ void ULeeGameplayAbility_EnemyAoeAttack::OnCastEventReceived(FGameplayEventData 
 	SpawnTelegraph();
 }
 
-// 몽타주 끝 — 노티파이가 없던 몽타주라면 지금 깔고 종료
+// 몽타주 끝 — 노티파이가 없던 몽타주라면 지금 깔고, 원이 터질 때까지 기다렸다가 종료
 void ULeeGameplayAbility_EnemyAoeAttack::OnMontageCompleted()
 {
+	bCastMotionFinished = true;
 	SpawnTelegraph();
-	EndAbility(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo, true, false);
+	TryEndAfterCast();
+}
+
+// 26.11.11 추가 - 원이 터질 시간이 됨 → 몽타주도 끝났으면 종료
+void ULeeGameplayAbility_EnemyAoeAttack::OnTelegraphFinished()
+{
+	bTelegraphFinished = true;
+	TryEndAfterCast();
+}
+
+// 26.11.11 추가 - 몽타주와 원 대기가 모두 끝났을 때만 종료 (공격 중 태그가 그때 빠져 다음 공격이 나온다)
+void ULeeGameplayAbility_EnemyAoeAttack::TryEndAfterCast()
+{
+	if (bCastMotionFinished && bTelegraphFinished && IsActive())
+	{
+		EndAbility(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo, true, false);
+	}
 }
 
 // 피격 등으로 몽타주가 끊김 — 아직 안 깔았으면 깔지 않고 종료
@@ -94,17 +116,19 @@ void ULeeGameplayAbility_EnemyAoeAttack::OnMontageInterrupted()
 // [서버] 데미지 Spec(SetByCaller + AOE 속성 태그)을 만들어 예고 액터를 중심 위치에 스폰한다
 void ULeeGameplayAbility_EnemyAoeAttack::SpawnTelegraph()
 {
-	if (bSpawned || !GetActorInfo().IsNetAuthority())
+	if (bSpawned)
 	{
 		return;
 	}
 	bSpawned = true;
 
+	// 서버가 아니거나 깔 수 없으면 기다릴 원이 없으므로 대기 끝으로 친다
 	AActor* Avatar = GetAvatarActorFromActorInfo();
 	UAbilitySystemComponent* ASC = GetAbilitySystemComponentFromActorInfo();
 	FVector Center;
-	if (!Avatar || !ASC || !FindCenterLocation(Center))
+	if (!GetActorInfo().IsNetAuthority() || !Avatar || !ASC || !FindCenterLocation(Center))
 	{
+		bTelegraphFinished = true;
 		return;
 	}
 
@@ -135,6 +159,11 @@ void ULeeGameplayAbility_EnemyAoeAttack::SpawnTelegraph()
 		Telegraph->InitAoe(SpecHandle, Avatar, Radius, TelegraphTime, Knockback);
 		Telegraph->FinishSpawning(SpawnTransform);
 	}
+
+	// 26.11.11 추가 - 원이 터질 때까지 어빌리티를 붙잡아 둔다
+	UAbilityTask_WaitDelay* WaitTelegraph = UAbilityTask_WaitDelay::WaitDelay(this, TelegraphTime);
+	WaitTelegraph->OnFinish.AddDynamic(this, &ThisClass::OnTelegraphFinished);
+	WaitTelegraph->ReadyForActivation();
 
 	UE_LOG(LogTemp, Log, TEXT("[Aoe] Cast actor=%s mode=%s center=%s radius=%.0f time=%.2f"), *GetNameSafe(Avatar),
 		CenterMode == ELeeAoeCenterMode::Self ? TEXT("Self") : TEXT("Target"), *Center.ToCompactString(), Radius, TelegraphTime);

@@ -198,15 +198,8 @@ UStateTree* ULeeStateTreeAuthoringLibrary::BuildEnemyCombatStateTree(const FStri
 		// 쉴드는 공격 태그(Status_Attack_Attacking)가 없으므로 태그 폴링으로 끝내면 안 된다
 		ShieldTask.GetInstanceData().bUseTagPollingFallback = false;
 
-		// 26.11.10 추가 - 쉴드와 동시에 자기 중심 AOE로 붙은 플레이어를 떼어낸다.
-		// 완료 판정에서 빼서, 쿨다운으로 활성화에 실패해도 쉴드 상태는 그대로 이어지게 한다
-		// (UE 5.6 StateTreeExecutionContext: 완료 판정 제외 Task의 EnterState 실패는 상태 실패로 이어지지 않음)
-		if (Config.AoeSelfAbilityTag.IsValid())
-		{
-			TStateTreeEditorNode<FLeeStateTreeTask_ActivateAbility>& ShieldAoeTask = Shield.AddTask<FLeeStateTreeTask_ActivateAbility>();
-			ShieldAoeTask.GetInstanceData().AbilityTag = Config.AoeSelfAbilityTag;
-			ShieldAoeTask.GetNode().bConsideredForCompletion = false;
-		}
+		// 26.11.11 수정 - 쉴드와 자기 중심 AOE를 동시에 쓰면 너무 어려워 쉴드 상태에서 AOE를 뺐다.
+		// 근접 거리에서는 쉴드(이 상태) 또는 Close/AoeAttack 상태 중 하나만 고른다.
 
 		// 26.11.08 추가 - 쉴드 중에는 플레이어를 바라본 채 옆·뒤로 스트레이프하며 거리를 벌린다.
 		// 상태 종료는 쉴드 어빌리티 종료로만 결정되게 하고(완료 판정 제외), 2초 안에 거리가 벌어지도록 반경 회복을 빠르게 한다.

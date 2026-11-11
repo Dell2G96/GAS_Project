@@ -24,7 +24,8 @@ enum class ELeeAoeCenterMode : uint8
 /**
  * Enemy AOE 공격 (서버 실행).
  * 중심 위치를 정해 데미지 Spec을 실은 예고 액터(ALeeAoeTelegraphActor)를 바닥에 깐다. 실제 판정은 예고 액터가 시간이 되면 한다.
- * 몽타주가 비어 있으면 바로 깔고 끝나고, 있으면 Fire 이벤트(없으면 몽타주 끝) 시점에 깐다.
+ * 몽타주가 비어 있으면 바로 깔고, 있으면 Fire 이벤트(없으면 몽타주 끝) 시점에 깐다.
+ * 26.11.11 수정 - 원이 터질 때까지(TelegraphTime) 어빌리티를 끝내지 않는다. 공격 중 태그가 유지되어 그동안 투사체·다른 AOE가 나오지 않는다.
  * 같은 C++ 클래스를 BP 두 개(CenterMode만 다름)로 나눠 쓴다. Ability Tag·쿨다운 GE는 BP에서 지정한다.
  */
 UCLASS()
@@ -89,12 +90,23 @@ private:
 	UFUNCTION()
 	void OnMontageInterrupted();
 
-	/** [서버] 중심 위치를 정해 예고 액터를 한 번만 깐다 */
+	/** [서버] 중심 위치를 정해 예고 액터를 한 번만 깐다. 깔았으면 TelegraphTime 대기를 시작한다 */
 	void SpawnTelegraph();
+
+	/** 26.11.11 추가 - 원이 터질 시간이 됨 */
+	UFUNCTION()
+	void OnTelegraphFinished();
+
+	/** 26.11.11 추가 - 몽타주와 원 대기가 모두 끝났으면 어빌리티를 끝낸다 */
+	void TryEndAfterCast();
 
 	/** 중심 위치 계산 (대상 모드인데 대상이 없으면 false) */
 	bool FindCenterLocation(FVector& OutLocation) const;
 
 	/** 이번 시전에서 이미 깔았는지 */
 	bool bSpawned = false;
+
+	/** 26.11.11 추가 - 몽타주가 끝났는지(몽타주가 없으면 바로 true) / 원이 터졌는지 */
+	bool bCastMotionFinished = false;
+	bool bTelegraphFinished = false;
 };
