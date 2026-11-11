@@ -32,6 +32,8 @@ bool ULeeGameplayCueNotify_ShieldHit::OnExecute_Implementation(AActor* MyTarget,
 	{
 		Shield->AddCrackImpact(HitDirection, 1.0f - Remaining);
 		Shield->PlayHitFlash();
+		// 26.11.11 추가 - 팩 BP_Hit처럼 맞은 자리에서 퍼지는 파동 (깨질 때는 Shatter가 숨긴다)
+		Shield->PlayHitRipple(HitDirection);
 		EffectLocation = Shield->GetSurfacePoint(HitDirection);
 
 		// 깨짐 — 구를 유리 조각으로 흩뿌린다 (공격 반대쪽으로 더 밀려 나감)
