@@ -112,6 +112,12 @@ private:
 	void Client_SendDefenseEvent(FGameplayTag EventTag, AActor* InstigatorActor);
 
 	UAbilitySystemComponent* GetOwnerASC() const;
+
+	/** 26.11.11 - 슈퍼아머 태그로 이번 경직을 무시하는지 (bHeavyHit = 강공격 피격) */
+	static bool IsStaggerBlockedBySuperArmor(const UAbilitySystemComponent* ASC, bool bHeavyHit);
+
+	/** 26.11.11 - [서버] 공용 피격 이펙트·사운드 큐(GameplayCue.Souls.Hit.Impact) 실행 */
+	void ExecuteHitImpactCue(const struct FGameplayEffectSpec* EffectSpec, AActor* Attacker) const;
 	
 	
 	

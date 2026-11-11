@@ -150,6 +150,14 @@ namespace MyTags
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Event_Guard_RefreshPerfectWindow);
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Status_Stamina_RegenBlocked);
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Status_Invincible);
+		// 26.11.11 추가 - 슈퍼아머 (부모 태그는 판정용, 실제로는 자식 태그를 붙인다)
+		// Light: 데미지 받음/일반 경직만 무시, Heavy: 데미지 받음/강경직까지 무시, NoDamage: 데미지 0/모든 경직 무시
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Status_SuperArmor);
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Status_SuperArmor_Light);
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Status_SuperArmor_Heavy);
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Status_SuperArmor_NoDamage);
+		// 26.11.11 추가 - 보스 2페이즈 전환(포효) 예약 중 — 새 공격 시작을 막고, 하던 행동이 끝나면 포효한다
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Status_Boss_PhaseChangeQueued);
 		// 26.10.30 추가 - 에스트 마시는 중 (ActivationOwnedTags, 이동 감속 판정)
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Status_Estus_Drinking);
 		// 26.11.02 추가 - 보스전 넉다운 상태 (이동만 가능, 동료가 부활 가능)
@@ -251,6 +259,8 @@ namespace MyTags
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(DamageResult_PerfectDodge);
 		// 26.11.08 추가 - 마법 쉴드가 피해를 흡수함
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(DamageResult_ShieldHit);
+		// 26.11.11 추가 - 슈퍼아머(NoDamage)로 데미지 0 처리됨 — 경직 없이 히트 이펙트만 낸다
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(DamageResult_ArmorHit);
 
 		// ----- 데미지 속성 / 원인 -----
 		// [신규] 강공격 속성 태그 — 공격 GE Spec의 DynamicAssetTag로 전달 (추후 강공격 피격 리액션에서 사용)
@@ -286,6 +296,8 @@ namespace MyTags
 		// 26.11.08 추가 - 마법 쉴드 표시(유지) / 피격(금 갱신·파괴)
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(GameplayCue_Shield_Active);
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(GameplayCue_Shield_Hit);
+		// 26.11.11 추가 - 공용 피격 이펙트·사운드 (몸에 맞은 모든 피격)
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(GameplayCue_Hit_Impact);
 
 		// ----- 쿨타임 -----
 		// [신규 26.10.20] 근접 공격 몽타주별 쿨다운 태그의 부모. 개별 태그(Souls.Cooldown.<Enemy>.<Attack>)는 DefaultGameplayTags.ini에 추가

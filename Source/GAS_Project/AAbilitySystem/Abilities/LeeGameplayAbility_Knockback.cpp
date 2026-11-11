@@ -48,6 +48,12 @@ void ULeeGameplayAbility_Knockback::SendKnockbackEvent(AActor* InstigatorActor, 
 		return;
 	}
 
+	// 26.11.11 추가 - 슈퍼아머 중이면 단계(Light/Heavy/NoDamage)와 상관없이 밀지 않는다
+	if (VictimASC->HasMatchingGameplayTag(MyTags::Souls::Status_SuperArmor))
+	{
+		return;
+	}
+
 	// 가드 중이면 가드 배율 적용
 	const float Scale = VictimASC->HasMatchingGameplayTag(MyTags::Souls::Status_Guard_Active) ? Params.GuardScale : 1.0f;
 	if (Scale <= 0.0f)

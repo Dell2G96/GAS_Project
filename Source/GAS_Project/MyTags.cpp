@@ -153,6 +153,13 @@ namespace MyTags
 		UE_DEFINE_GAMEPLAY_TAG(Event_Guard_RefreshPerfectWindow, "Souls.Events.Guard.RefreshPerfectWindow")
 		UE_DEFINE_GAMEPLAY_TAG(Status_Stamina_RegenBlocked, "Souls.Status.Stamina.RegenBlocked")
 		UE_DEFINE_GAMEPLAY_TAG(Status_Invincible, "Souls.Status.Invincible")
+		// 26.11.11 추가 - 슈퍼아머
+		UE_DEFINE_GAMEPLAY_TAG(Status_SuperArmor, "Souls.Status.SuperArmor")
+		UE_DEFINE_GAMEPLAY_TAG(Status_SuperArmor_Light, "Souls.Status.SuperArmor.Light")
+		UE_DEFINE_GAMEPLAY_TAG(Status_SuperArmor_Heavy, "Souls.Status.SuperArmor.Heavy")
+		UE_DEFINE_GAMEPLAY_TAG(Status_SuperArmor_NoDamage, "Souls.Status.SuperArmor.NoDamage")
+		// 26.11.11 추가 - 보스 2페이즈 전환 예약
+		UE_DEFINE_GAMEPLAY_TAG(Status_Boss_PhaseChangeQueued, "Souls.Status.Boss.PhaseChangeQueued")
 		UE_DEFINE_GAMEPLAY_TAG(Status_Downed, "Souls.Status.Downed")
 
 		// ----- 상태 - 처형/암살 (피니셔) -----
@@ -239,6 +246,7 @@ namespace MyTags
 		UE_DEFINE_GAMEPLAY_TAG(DamageResult_PerfectGuard, "Souls.DamageResult.PerfectGuard")
 		UE_DEFINE_GAMEPLAY_TAG(DamageResult_PerfectDodge, "Souls.DamageResult.PerfectDodge")
 		UE_DEFINE_GAMEPLAY_TAG(DamageResult_ShieldHit, "Souls.DamageResult.ShieldHit")
+		UE_DEFINE_GAMEPLAY_TAG(DamageResult_ArmorHit, "Souls.DamageResult.ArmorHit")
 
 		// ----- 데미지 속성 / 원인 -----
 		// 강공격 속성 태그 (공격 GE Spec의 DynamicAssetTag로 전달)
@@ -270,6 +278,7 @@ namespace MyTags
 		UE_DEFINE_GAMEPLAY_TAG(GameplayCue_Attack_Unblockable, "GameplayCue.Souls.Attack.Unblockable")
 		UE_DEFINE_GAMEPLAY_TAG(GameplayCue_Shield_Active, "GameplayCue.Souls.Shield.Active")
 		UE_DEFINE_GAMEPLAY_TAG(GameplayCue_Shield_Hit, "GameplayCue.Souls.Shield.Hit")
+		UE_DEFINE_GAMEPLAY_TAG(GameplayCue_Hit_Impact, "GameplayCue.Souls.Hit.Impact")
 
 		// 근접 공격 몽타주별 쿨다운 태그의 부모
 		UE_DEFINE_GAMEPLAY_TAG(Cooldown, "Souls.Cooldown")

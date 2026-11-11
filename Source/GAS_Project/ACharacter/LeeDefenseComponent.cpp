@@ -110,13 +110,6 @@ void ULeeDefenseComponent::HandleDamageResolved(AActor* EffectInstigator, AActor
 		return;
 	}
 
-	// 26.11.03 추가 - 이번 피격으로 HP가 0 이하가 됐다면 사망(또는 다운) 처리가 이미 시작된 상태이므로 리액션을 하지 않는다
-	// (리액션의 CancelExclusiveAbilities가 방금 켜진 GA_Hero_Death를 취소하려다 "CanBeCanceled is false" 에러를 남기던 문제)
-	if (NewValue <= 0.0f)
-	{
-		return;
-	}
-
 	AActor* Owner = GetOwner();
 	UAbilitySystemComponent* OwnerASC = GetOwnerASC();
 	if (!Owner || !OwnerASC)
@@ -142,6 +135,26 @@ void ULeeDefenseComponent::HandleDamageResolved(AActor* EffectInstigator, AActor
 		{
 			Attacker = Causer;
 		}
+	}
+
+	// 26.11.11 추가 - 몸에 맞은 피격(일반 피격·슈퍼아머 피격)은 결과와 상관없이 히트 이펙트를 먼저 낸다 (죽는 타격 포함)
+	if (ResultTags.HasTagExact(MyTags::Souls::DamageResult_HitReact)
+		|| ResultTags.HasTagExact(MyTags::Souls::DamageResult_ArmorHit))
+	{
+		ExecuteHitImpactCue(EffectSpec, Attacker);
+	}
+
+	// 26.11.03 추가 - 이번 피격으로 HP가 0 이하가 됐다면 사망(또는 다운) 처리가 이미 시작된 상태이므로 리액션을 하지 않는다
+	// (리액션의 CancelExclusiveAbilities가 방금 켜진 GA_Hero_Death를 취소하려다 "CanBeCanceled is false" 에러를 남기던 문제)
+	if (NewValue <= 0.0f)
+	{
+		return;
+	}
+
+	// 26.11.11 추가 - 데미지 없는 슈퍼아머 피격: 히트 이펙트(위)만 내고 리액션 없음
+	if (ResultTags.HasTagExact(MyTags::Souls::DamageResult_ArmorHit))
+	{
+		return;
 	}
 
 	// ── 퍼펙트 회피: 방어자(Dodge 어빌리티)에게 알림 → 카운터윈도우 + 잔상 Cue ──
@@ -249,14 +262,22 @@ void ULeeDefenseComponent::HandleDamageResolved(AActor* EffectInstigator, AActor
 		// UE_LOG(LogLee, Warning, TEXT("[임시디버그][HitReact] Attacker(EffectInstigator)=%s Owner=%s"),
 		// 	*GetNameSafe(Attacker), *GetNameSafe(Owner));
 
-		CancelExclusiveAbilities(OwnerASC);
-
 		// 모래 공격 — 경직 리액션은 그대로 두고 시야 방해 GE만 추가로 건다 (화면 효과는 GE의 GameplayCue가 담당)
 		if (ResultTags.HasTagExact(MyTags::Souls::DamageType_Attack_Sand) && SandBlindEffect)
 		{
 			OwnerASC->ApplyGameplayEffectToSelf(
 				SandBlindEffect->GetDefaultObject<UGameplayEffect>(), /*Level*/1.0f, OwnerASC->MakeEffectContext());
 		}
+
+		// 26.11.11 추가 - 슈퍼아머: 데미지는 이미 들어갔으므로 공격 취소·경직만 건너뛴다
+		// (취소까지 건너뛰어야 "몽타주는 안 나오는데 공격만 끊기는" 문제가 생기지 않는다)
+		const bool bHeavyHit = ResultTags.HasTagExact(MyTags::Souls::DamageType_Attack_Heavy);
+		if (IsStaggerBlockedBySuperArmor(OwnerASC, bHeavyHit))
+		{
+			return;
+		}
+
+		CancelExclusiveAbilities(OwnerASC);
 
 		// 가드불가 / 퍼펙트 가드 전용 공격을 일반 가드 중에 맞으면 → 상태 변화 없이 연출만 가드브레이크 몽타주로 대체
 		// (그로기 GE·가드 어빌리티 강제종료는 하지 않음. 실제 가드브레이크는 스태미나 고갈 시 HandleOutOfStamina가 그대로 담당)
@@ -268,7 +289,7 @@ void ULeeDefenseComponent::HandleDamageResolved(AActor* EffectInstigator, AActor
 			return;
 		}
 
-		const FGameplayTag& HitReactEventTag = ResultTags.HasTagExact(MyTags::Souls::DamageType_Attack_Heavy)
+		const FGameplayTag& HitReactEventTag = bHeavyHit
 			? MyTags::Souls::Event_Combat_HitReactHeavy
 			: MyTags::Souls::Event_Combat_HitReact;
 		SendGameplayEventTo(Owner, HitReactEventTag, Attacker);
@@ -490,4 +511,53 @@ void ULeeDefenseComponent::Client_SendDefenseEvent_Implementation(FGameplayTag E
 UAbilitySystemComponent* ULeeDefenseComponent::GetOwnerASC() const
 {
 	return UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(GetOwner());
+}
+
+// 26.11.11 추가 - 슈퍼아머로 이번 경직을 무시하는지 (일반 경직: 슈퍼아머 아무거나 / 강경직: Heavy·NoDamage만)
+bool ULeeDefenseComponent::IsStaggerBlockedBySuperArmor(const UAbilitySystemComponent* ASC, bool bHeavyHit)
+{
+	if (!ASC)
+	{
+		return false;
+	}
+
+	if (bHeavyHit)
+	{
+		return ASC->HasMatchingGameplayTag(MyTags::Souls::Status_SuperArmor_Heavy)
+			|| ASC->HasMatchingGameplayTag(MyTags::Souls::Status_SuperArmor_NoDamage);
+	}
+
+	// 부모 태그로 검사 — Light/Heavy/NoDamage 중 하나라도 있으면 true
+	return ASC->HasMatchingGameplayTag(MyTags::Souls::Status_SuperArmor);
+}
+
+// 26.11.11 추가 - [서버] 공용 피격 이펙트 큐 실행. 근접 공격은 충돌 지점, 그 외는 피격자 위치에서 낸다 (모든 클라이언트에 복제)
+void ULeeDefenseComponent::ExecuteHitImpactCue(const FGameplayEffectSpec* EffectSpec, AActor* Attacker) const
+{
+	AActor* Owner = GetOwner();
+	UAbilitySystemComponent* OwnerASC = GetOwnerASC();
+	if (!Owner || !OwnerASC || !EffectSpec)
+	{
+		return;
+	}
+
+	FGameplayCueParameters Params;
+	Params.Instigator = Attacker;
+	Params.Location = Owner->GetActorLocation();
+
+	if (const FHitResult* HitResult = EffectSpec->GetContext().GetHitResult())
+	{
+		if (HitResult->bBlockingHit || !HitResult->ImpactPoint.IsZero())
+		{
+			Params.Location = HitResult->ImpactPoint;
+		}
+	}
+
+	// 공격이 들어온 방향 (공격자 → 피격자)
+	if (Attacker)
+	{
+		Params.Normal = (Owner->GetActorLocation() - Attacker->GetActorLocation()).GetSafeNormal2D();
+	}
+
+	OwnerASC->ExecuteGameplayCue(MyTags::Souls::GameplayCue_Hit_Impact, Params);
 }

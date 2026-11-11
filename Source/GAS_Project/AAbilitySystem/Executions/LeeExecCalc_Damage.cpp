@@ -111,6 +111,21 @@ void ULeeExecCalc_Damage::Execute_Implementation(
 		return;
 	}
 
+	// 26.11.11 추가 - 데미지 없는 슈퍼아머: 데미지 0 + 결과 태그만 남겨 히트 이펙트는 나오게 한다.
+	// 가드불가 분기보다 위에 있으므로 가드불가 공격도 뚫지 못한다.
+	if (TargetASC->HasMatchingGameplayTag(MyTags::Souls::Status_SuperArmor_NoDamage))
+	{
+		if (MutableSpec)
+		{
+			MutableSpec->AddDynamicAssetTag(MyTags::Souls::DamageResult_ArmorHit);
+		}
+
+		// PostGameplayEffectExecute(Health 분기) → OnDamageResolved가 호출되도록 0 크기 Health Modifier만 출력
+		OutExecutionOutput.AddOutputModifier(FGameplayModifierEvaluatedData(
+			ULeeSoulsStatSet::GetHealthAttribute(), EGameplayModOp::Additive, 0.0f));
+		return;
+	}
+
 	// 26.11.08 추가 - 마법 쉴드: 쉴드가 켜져 있으면 방향·공격 속성과 상관없이 피해를 전부 흡수한다.
 	// 쉴드 HP 감소는 DefenseComponent → 쉴드 어빌리티가 원래 피해량(SetByCaller)으로 처리한다.
 	if (TargetASC->HasMatchingGameplayTag(MyTags::Souls::Status_Shield_Active))
