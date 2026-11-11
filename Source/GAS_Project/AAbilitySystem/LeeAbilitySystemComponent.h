@@ -23,6 +23,9 @@ public:
 	virtual void InitAbilityActorInfo(AActor* InOwnerActor, AActor* InAvatarActor) override;
 
 	bool IsActivationGroupBlocked(ELeeAbilityActivationGroup Group) const;
+
+	/** 26.11.11 추가 - Exclusive 어빌리티(공격·피격 리액션·처형 등)가 하나라도 실행 중인지 */
+	bool HasActiveExclusiveAbility() const;
 	void AddAbilityToActivationGroup(ELeeAbilityActivationGroup Group, ULeeGameplayAbility* LeeAbility);
 
 	void CancelActivationGroupAbilities(ELeeAbilityActivationGroup Group, ULeeGameplayAbility* IgnoreAbility, bool bReplicateCancelAbility);

@@ -76,6 +76,13 @@ bool ULeeAbilitySystemComponent::IsActivationGroupBlocked(ELeeAbilityActivationG
 	return bBlocked;
 }
 
+// 26.11.11 추가 - Exclusive 그룹(Replaceable/Blocking) 어빌리티가 실행 중인지 — 보스 포효 대기 판정용
+bool ULeeAbilitySystemComponent::HasActiveExclusiveAbility() const
+{
+	return ActivationGroupCounts[(uint8)ELeeAbilityActivationGroup::Exclusive_Replaceable] > 0
+		|| ActivationGroupCounts[(uint8)ELeeAbilityActivationGroup::Exclusive_Blocking] > 0;
+}
+
 void ULeeAbilitySystemComponent::AddAbilityToActivationGroup(ELeeAbilityActivationGroup Group,
 	ULeeGameplayAbility* LeeAbility)
 {

@@ -38,6 +38,12 @@ EStateTreeRunStatus FLeeStateTreeTask_ActivateAbility::EnterState(FStateTreeExec
 		return EStateTreeRunStatus::Failed;
 	}
 
+	// 26.11.11 추가 - 보스 2페이즈 포효 예약 중에는 새 공격을 시작하지 않는다 (하던 행동이 끝나면 바로 포효하도록)
+	if (ASC->HasMatchingGameplayTag(MyTags::Souls::Status_Boss_PhaseChangeQueued))
+	{
+		return EStateTreeRunStatus::Failed;
+	}
+
 	// AbilityTag와 정확히 1개 매칭되는 Spec을 찾는다 (0개/2개 이상이면 어빌리티 BP 설정 오류)
 	FGameplayAbilitySpecHandle MatchedHandle;
 	int32 MatchCount = 0;

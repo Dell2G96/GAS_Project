@@ -12,6 +12,7 @@
 #include "GAS_Project/MyTags.h"
 #include "GAS_Project/_Souls/Abilities/LeeSoulsStatSet.h"
 #include "GAS_Project/AAI/LeeTargetSelectionComponent.h"
+#include "GAS_Project/AAbilitySystem/LeeAbilitySystemComponent.h"
 
 namespace
 {
@@ -111,12 +112,79 @@ void UBTService_LeeBossContext::TickNode(UBehaviorTreeComponent& OwnerComp, uint
 	// 26.11.08 수정 - 반응 가드 감지는 StateTree 평가기(Lee Combat Context)로 옮겼다
 	ULeeBossBrainComponent* Brain = AIC->FindComponentByClass<ULeeBossBrainComponent>();
 	const float Threshold = Brain ? Brain->Phase2HealthThreshold : Phase2HealthThreshold;
-	if (Phase < 2 && !bDead && HealthRatio <= Threshold)
+	if (Phase < 2)
 	{
-		// Pending을 먼저 켠다 — 더 높은 우선순위의 PhaseTransition 브랜치(포효)가 2페이즈 전투보다 먼저 선택되게
-		BB->SetValueAsBool(PhaseTransitionPendingKey, true);
-		BB->SetValueAsInt(PhaseKey, 2);
+		// 26.11.11 수정 - 즉시 전환하지 않고 "예약 → 하던 행동이 끝나면 전환"으로 바꿨다
+		UpdatePhaseTransition(*BB, UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(Pawn), NodeMemory,
+			HealthRatio, Threshold, bGroggy, bDead);
 	}
+}
+
+// 26.11.11 추가 - 포효 예약/대기/시작 판정 (Phase < 2일 때만 호출)
+void UBTService_LeeBossContext::UpdatePhaseTransition(UBlackboardComponent& BB, UAbilitySystemComponent* SelfASC, uint8* NodeMemory,
+	float HealthRatio, float Threshold, bool bGroggy, bool bDead) const
+{
+	FBTLeeBossContextMemory* Memory = CastInstanceNodeMemory<FBTLeeBossContextMemory>(NodeMemory);
+	if (!SelfASC || bDead)
+	{
+		return;
+	}
+
+	const bool bQueued = SelfASC->HasMatchingGameplayTag(MyTags::Souls::Status_Boss_PhaseChangeQueued);
+	const double Now = SelfASC->GetWorld() ? SelfASC->GetWorld()->GetTimeSeconds() : 0.0;
+
+	// 1) HP 기준 도달 → 예약 시작 (예약 태그가 붙어 있는 동안 새 공격을 시작하지 못한다)
+	if (!bQueued)
+	{
+		if (HealthRatio <= Threshold)
+		{
+			SelfASC->AddLooseGameplayTag(MyTags::Souls::Status_Boss_PhaseChangeQueued);
+			Memory->QueuedStartTime = Now;
+		}
+		return;
+	}
+
+	// 서비스 메모리가 초기화된 경우(BT 재시작 등) 지금부터 다시 센다
+	if (Memory->QueuedStartTime < 0.0)
+	{
+		Memory->QueuedStartTime = Now;
+	}
+
+	// 2) 그로기·처형당하는 중에는 시간과 상관없이 끝날 때까지 기다린다
+	//    (처형당하는 어빌리티는 Exclusive_Blocking이라 이때 포효를 시작하면 활성화에 실패해 포효가 생략된다)
+	if (bGroggy || SelfASC->HasMatchingGameplayTag(MyTags::Souls::Status_Finisher_Victim))
+	{
+		return;
+	}
+
+	// 3) 한가해졌거나(공격·피격 리액션 없음) 최대 대기 시간을 넘으면 → 전환 시작
+	const ULeeAbilitySystemComponent* LeeASC = Cast<ULeeAbilitySystemComponent>(SelfASC);
+	const bool bBusy = LeeASC && LeeASC->HasActiveExclusiveAbility();
+	const bool bTimedOut = (Now - Memory->QueuedStartTime) >= MaxPhaseChangeWaitSeconds;
+	if (bBusy && !bTimedOut)
+	{
+		return;
+	}
+
+	SelfASC->RemoveLooseGameplayTag(MyTags::Souls::Status_Boss_PhaseChangeQueued);
+	Memory->QueuedStartTime = -1.0;
+
+	// Pending을 먼저 켠다 — 더 높은 우선순위의 PhaseTransition 브랜치(포효)가 2페이즈 전투보다 먼저 선택되게
+	// (시간 초과로 들어온 경우 하던 공격은 기존처럼 끊기고 포효한다)
+	BB.SetValueAsBool(PhaseTransitionPendingKey, true);
+	BB.SetValueAsInt(PhaseKey, 2);
+}
+
+// 노드 메모리 크기 — AI마다 포효 예약 시각을 따로 보관
+uint16 UBTService_LeeBossContext::GetInstanceMemorySize() const
+{
+	return sizeof(FBTLeeBossContextMemory);
+}
+
+// 노드 메모리 초기화 — 예약 없음 상태로 시작
+void UBTService_LeeBossContext::InitializeMemory(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, EBTMemoryInit::Type InitType) const
+{
+	InitializeNodeMemory<FBTLeeBossContextMemory>(NodeMemory, InitType);
 }
 
 FString UBTService_LeeBossContext::GetStaticDescription() const

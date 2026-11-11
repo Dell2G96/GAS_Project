@@ -5,6 +5,7 @@
 #include "AbilitySystemComponent.h"
 #include "StateTreeExecutionContext.h"
 #include "GAS_Project/AAI/Token/LeeAttackerProfileComponent.h"
+#include "GAS_Project/MyTags.h"
 
 bool FLeeBossCanActivateAbility::TestCondition(FStateTreeExecutionContext& Context) const
 {
@@ -13,6 +14,8 @@ bool FLeeBossCanActivateAbility::TestCondition(FStateTreeExecutionContext& Conte
 	if (auto* Brain = ULeeBossBrainComponent::FindForPawn(Data.Actor); Brain && Brain->IsRecoveringAttackStamina()) return false;
 	const auto* ASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(Data.Actor);
 	if (!ASC) return false;
+	// 26.11.11 추가 - 2페이즈 포효 예약 중이면 공격 상태를 고르지 않는다
+	if (ASC->HasMatchingGameplayTag(MyTags::Souls::Status_Boss_PhaseChangeQueued)) return false;
 	const FGameplayAbilitySpec* Match = nullptr;
 	int32 Count = 0;
 	for (const auto& Spec : ASC->GetActivatableAbilities())
