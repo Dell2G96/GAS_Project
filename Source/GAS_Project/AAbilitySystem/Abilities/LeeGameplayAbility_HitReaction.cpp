@@ -18,6 +18,8 @@ ULeeGameplayAbility_HitReaction::ULeeGameplayAbility_HitReaction(const FObjectIn
 	ActivationGroup    = ELeeAbilityActivationGroup::Exclusive_Replaceable;
 
 	AbilityTags.AddTag(MyTags::Souls::Ability_HitReaction);
+	// 스태미나 고갈 등 다른 경로에서 리액션 이벤트가 와도 넉다운 중에는 재생하지 않는다.
+	ActivationBlockedTags.AddTag(MyTags::Souls::Status_Downed);
 
 	// 리액션 중 새 리액션 이벤트가 오면 기존 인스턴스를 재활성화 (예: 패리당함 직후 체간 붕괴)
 	bRetriggerInstancedAbility = true;

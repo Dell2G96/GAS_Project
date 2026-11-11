@@ -269,6 +269,12 @@ void ULeeDefenseComponent::HandleDamageResolved(AActor* EffectInstigator, AActor
 				SandBlindEffect->GetDefaultObject<UGameplayEffect>(), /*Level*/1.0f, OwnerASC->MakeEffectContext());
 		}
 
+		// 넉다운 진입 타격도 임시 HP가 채워진 뒤 여기에 도달하므로 상태 태그로 경직을 막는다.
+		if (OwnerASC->HasMatchingGameplayTag(MyTags::Souls::Status_Downed))
+		{
+			return;
+		}
+
 		// 26.11.11 추가 - 슈퍼아머: 데미지는 이미 들어갔으므로 공격 취소·경직만 건너뛴다
 		// (취소까지 건너뛰어야 "몽타주는 안 나오는데 공격만 끊기는" 문제가 생기지 않는다)
 		const bool bHeavyHit = ResultTags.HasTagExact(MyTags::Souls::DamageType_Attack_Heavy);
