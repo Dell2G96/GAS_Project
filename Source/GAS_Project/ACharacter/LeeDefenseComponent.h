@@ -117,7 +117,11 @@ private:
 	static bool IsStaggerBlockedBySuperArmor(const UAbilitySystemComponent* ASC, bool bHeavyHit);
 
 	/** 26.11.11 - [서버] 공용 피격 이펙트·사운드 큐(GameplayCue.Souls.Hit.Impact) 실행 */
-	void ExecuteHitImpactCue(const struct FGameplayEffectSpec* EffectSpec, AActor* Attacker) const;
+	// 26.11.12 수정 - CueTag를 받아 퍼펙트 가드 피드백 Cue에도 같은 위치·방향 계산을 쓴다
+	void ExecuteHitImpactCue(const struct FGameplayEffectSpec* EffectSpec, AActor* Attacker, FGameplayTag CueTag) const;
+
+	// 26.11.12 추가 - 데미지 Spec의 히트스톱 값으로 공격자·피격자 히트스톱 (싱글 전용)
+	void ApplyHitStop(const struct FGameplayEffectSpec* EffectSpec, AActor* Attacker) const;
 	
 	
 	

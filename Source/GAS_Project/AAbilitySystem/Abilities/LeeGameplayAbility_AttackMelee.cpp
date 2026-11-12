@@ -607,6 +607,7 @@ void ULeeGameplayAbility_AttackMelee::OnTraceEventReceived(FGameplayEventData Pa
 	const FLeeHitOverride* HitOverride = HitOverrideProvider ? &HitOverrideProvider->GetHitOverride() : nullptr;
 	const float HitDamage = (HitOverride && HitOverride->bOverrideDamage) ? HitOverride->BaseDamage : CurrentAttackData.BaseDamage;
 	const FLeeKnockbackParams& HitKnockback = (HitOverride && HitOverride->bOverrideKnockback) ? HitOverride->Knockback : CurrentAttackData.Knockback;
+	const FLeeHitStopParams& HitStop = (HitOverride && HitOverride->bOverrideHitStop) ? HitOverride->HitStop : CurrentAttackData.HitStop;	// 26.11.12 추가
 
 	// SetByCaller 방식으로 데미지 GE 적용
 	FGameplayEffectContextHandle Context = AttackerASC->MakeEffectContext();
@@ -619,6 +620,10 @@ void ULeeGameplayAbility_AttackMelee::OnTraceEventReceived(FGameplayEventData Pa
 	{
 		// 음수로 설정하여 Health 감소 (AttributeSet의 PostGameplayEffectExecute에서 처리)
 		SpecHandle.Data->SetSetByCallerMagnitude(MyTags::Souls::SetByCaller_Damage, -HitDamage);
+
+		// 26.11.12 추가 - 히트스톱 값을 Spec에 싣는다. 실제 적용 여부(판정 결과·싱글 여부)는 피격자의 ULeeDefenseComponent가 정한다
+		SpecHandle.Data->SetSetByCallerMagnitude(MyTags::Souls::SetByCaller_HitStopDuration, HitStop.Duration);
+		SpecHandle.Data->SetSetByCallerMagnitude(MyTags::Souls::SetByCaller_HitStopTimeScale, HitStop.TimeScale);
 
 		// 공격 속성 태그 전달 (DamageType_ParryCounter와 동일한 DynamicAssetTag 패턴)
 		for (const FGameplayTag& DamageTypeTag : CurrentAttackData.DamageTypeTags)

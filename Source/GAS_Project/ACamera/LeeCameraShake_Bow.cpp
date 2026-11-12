@@ -41,3 +41,22 @@ ULeeCameraShake_BowFullCharge::ULeeCameraShake_BowFullCharge(const FObjectInitia
 	Pattern->Yaw.Frequency = 27.0f;
 	SetRootShakePattern(Pattern);
 }
+
+// 26.11.12 추가 - 퍼펙트 가드 흔들림 — 높은 주파수로 짧게 '탁' 튀는 느낌
+ULeeCameraShake_PerfectGuard::ULeeCameraShake_PerfectGuard(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+	bSingleInstance = true;
+
+	UWaveOscillatorCameraShakePattern* Pattern = CreateDefaultSubobject<UWaveOscillatorCameraShakePattern>(TEXT("RootShakePattern"));
+	Pattern->Duration = 0.18f;
+	Pattern->BlendInTime = 0.0f;
+	Pattern->BlendOutTime = 0.1f;
+	Pattern->X.Amplitude = 3.0f;
+	Pattern->X.Frequency = 40.0f;
+	Pattern->Pitch.Amplitude = 1.5f;
+	Pattern->Pitch.Frequency = 35.0f;
+	Pattern->Roll.Amplitude = 1.0f;
+	Pattern->Roll.Frequency = 30.0f;
+	SetRootShakePattern(Pattern);
+}

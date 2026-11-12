@@ -284,6 +284,9 @@ namespace MyTags
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(SetByCaller_Damage)
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(SetByCaller_StaminaDamage);
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(SetByCaller_Duration);
+		// 26.11.12 추가 - 히트스톱 시간(초)·속도 배율. 근접 공격 GA가 데미지 Spec에 싣고, ULeeDefenseComponent가 판정 결과에 따라 사용
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(SetByCaller_HitStopDuration);
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(SetByCaller_HitStopTimeScale);
 
 		// ----- GameplayCue -----
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(GameplayCue_FinishIndicator);
@@ -298,6 +301,8 @@ namespace MyTags
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(GameplayCue_Shield_Hit);
 		// 26.11.11 추가 - 공용 피격 이펙트·사운드 (몸에 맞은 모든 피격)
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(GameplayCue_Hit_Impact);
+		// 26.11.12 추가 - 퍼펙트 가드 피드백 Cue (ULeeGameplayCueNotify_PerfectGuard)
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(GameplayCue_Guard_Perfect);
 
 		// ----- 쿨타임 -----
 		// [신규 26.10.20] 근접 공격 몽타주별 쿨다운 태그의 부모. 개별 태그(Souls.Cooldown.<Enemy>.<Attack>)는 DefaultGameplayTags.ini에 추가

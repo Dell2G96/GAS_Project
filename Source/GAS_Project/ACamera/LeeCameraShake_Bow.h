@@ -30,3 +30,13 @@ class GAS_PROJECT_API ULeeCameraShake_BowFullCharge : public UCameraShakeBase
 public:
 	ULeeCameraShake_BowFullCharge(const FObjectInitializer& ObjectInitializer);
 };
+
+// 26.11.12 추가 - 퍼펙트 가드 순간의 짧고 날카로운 흔들림 (0.18초)
+UCLASS()
+class GAS_PROJECT_API ULeeCameraShake_PerfectGuard : public UCameraShakeBase
+{
+	GENERATED_BODY()
+
+public:
+	ULeeCameraShake_PerfectGuard(const FObjectInitializer& ObjectInitializer);
+};

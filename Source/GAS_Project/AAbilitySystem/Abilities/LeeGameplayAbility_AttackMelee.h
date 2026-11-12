@@ -6,6 +6,7 @@
 #include "LeeGameplayAbility.h"
 #include "ActiveGameplayEffectHandle.h"
 #include "LeeGameplayAbility_Knockback.h"
+#include "GAS_Project/ACharacter/LeeHitStopSubsystem.h"
 #include "LeeGameplayAbility_AttackMelee.generated.h"
 
 class UAnimMontage;
@@ -73,6 +74,14 @@ struct FLeeMeleeAttackData
 	 */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Lee|Attack|Knockback")
 	FLeeKnockbackParams Knockback;
+
+	/**
+	 * 26.11.12 추가 - [히트스톱] 이 몽타주 타격의 기본 히트스톱 (싱글 전용, 공격자·피격자만 잠깐 정지).
+	 * 일반 피격·슈퍼아머 피격·퍼펙트 가드에만 적용되고, 일반 가드·회피·쉴드에는 적용되지 않는다.
+	 * 타격별로 다르게 하려면 판정 노티파이(WeaponTrace/ConeTrace)의 HitOverride를 쓴다. Duration 0이면 없음.
+	 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Lee|Attack|HitStop")
+	FLeeHitStopParams HitStop;
 };
 
 /**

@@ -269,6 +269,8 @@ namespace MyTags
 		UE_DEFINE_GAMEPLAY_TAG(SetByCaller_Damage, "Souls.SetByCaller.Damage")
 		UE_DEFINE_GAMEPLAY_TAG(SetByCaller_StaminaDamage, "Souls.SetByCaller.StaminaDamage")
 		UE_DEFINE_GAMEPLAY_TAG(SetByCaller_Duration, "Souls.SetByCaller.Duration")
+		UE_DEFINE_GAMEPLAY_TAG(SetByCaller_HitStopDuration, "Souls.SetByCaller.HitStop.Duration")
+		UE_DEFINE_GAMEPLAY_TAG(SetByCaller_HitStopTimeScale, "Souls.SetByCaller.HitStop.TimeScale")
 
 		// ----- GameplayCue -----
 		UE_DEFINE_GAMEPLAY_TAG(GameplayCue_FinishIndicator, "GameplayCue.Souls.FinishIndicator")
@@ -279,6 +281,7 @@ namespace MyTags
 		UE_DEFINE_GAMEPLAY_TAG(GameplayCue_Shield_Active, "GameplayCue.Souls.Shield.Active")
 		UE_DEFINE_GAMEPLAY_TAG(GameplayCue_Shield_Hit, "GameplayCue.Souls.Shield.Hit")
 		UE_DEFINE_GAMEPLAY_TAG(GameplayCue_Hit_Impact, "GameplayCue.Souls.Hit.Impact")
+		UE_DEFINE_GAMEPLAY_TAG(GameplayCue_Guard_Perfect, "GameplayCue.Souls.Guard.Perfect")
 
 		// 근접 공격 몽타주별 쿨다운 태그의 부모
 		UE_DEFINE_GAMEPLAY_TAG(Cooldown, "Souls.Cooldown")

@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "UObject/Interface.h"
 #include "LeeGameplayAbility_Knockback.h"
+#include "GAS_Project/ACharacter/LeeHitStopSubsystem.h"
 #include "LeeHitOverride.generated.h"
 
 /**
@@ -28,6 +29,14 @@ struct FLeeHitOverride
 	/** 이 타격의 넉백 (AttackData.Knockback 대신 사용) */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "HitOverride", meta = (EditCondition = "bOverrideKnockback"))
 	FLeeKnockbackParams Knockback;
+
+	// 26.11.12 추가
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "HitOverride", meta = (InlineEditConditionToggle))
+	bool bOverrideHitStop = false;
+
+	/** 26.11.12 추가 - 이 타격의 히트스톱 (AttackData.HitStop 대신 사용, 싱글 전용). 강공격 마지막 타 등을 더 길게 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "HitOverride", meta = (EditCondition = "bOverrideHitStop"))
+	FLeeHitStopParams HitStop;
 };
 
 UINTERFACE(MinimalAPI, meta = (CannotImplementInterfaceInBlueprint))

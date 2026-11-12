@@ -7,6 +7,7 @@
  #include "DrawDebugHelpers.h"
 #include "GAS_Project/LeeLogChannels.h"
 #include "GAS_Project/MyTags.h"
+#include "GAS_Project/ACharacter/LeeHitStopSubsystem.h"
  #include "GAS_Project/AAbilitySystem/LeeAbilitySystemComponent.h"
  #include "GAS_Project/_Souls/Abilities/LeeSoulsStatSet.h"
 
@@ -141,7 +142,15 @@ void ULeeDefenseComponent::HandleDamageResolved(AActor* EffectInstigator, AActor
 	if (ResultTags.HasTagExact(MyTags::Souls::DamageResult_HitReact)
 		|| ResultTags.HasTagExact(MyTags::Souls::DamageResult_ArmorHit))
 	{
-		ExecuteHitImpactCue(EffectSpec, Attacker);
+		ExecuteHitImpactCue(EffectSpec, Attacker, MyTags::Souls::GameplayCue_Hit_Impact);
+	}
+
+	// 26.11.12 추가 - 히트스톱 (싱글 전용): 몸에 맞은 타격(죽는 타격 포함)과 퍼펙트 가드에만. 일반 가드·회피·쉴드는 제외
+	if (ResultTags.HasTagExact(MyTags::Souls::DamageResult_HitReact)
+		|| ResultTags.HasTagExact(MyTags::Souls::DamageResult_ArmorHit)
+		|| ResultTags.HasTagExact(MyTags::Souls::DamageResult_PerfectGuard))
+	{
+		ApplyHitStop(EffectSpec, Attacker);
 	}
 
 	// 26.11.03 추가 - 이번 피격으로 HP가 0 이하가 됐다면 사망(또는 다운) 처리가 이미 시작된 상태이므로 리액션을 하지 않는다
@@ -182,6 +191,9 @@ void ULeeDefenseComponent::HandleDamageResolved(AActor* EffectInstigator, AActor
 	// ── 퍼펙트 가드 (패리 연쇄): 방어자 패리 몽타주 + 공격자 스태미나 감소/패리당함 리액션 ──
 	if (ResultTags.HasTagExact(MyTags::Souls::DamageResult_PerfectGuard))
 	{
+		// 26.11.12 추가 - 막은 지점에 퍼펙트 가드 불꽃·금속음, 막은 플레이어 화면 흔들림 (모든 클라이언트에 복제)
+		ExecuteHitImpactCue(EffectSpec, Attacker, MyTags::Souls::GameplayCue_Guard_Perfect);
+
 		SendGameplayEventTo(Owner, MyTags::Souls::Event_Defense_PerfectGuard, Attacker);
 		SendEventToOwningClient(MyTags::Souls::Event_Defense_PerfectGuard, Attacker);
 
@@ -538,7 +550,7 @@ bool ULeeDefenseComponent::IsStaggerBlockedBySuperArmor(const UAbilitySystemComp
 }
 
 // 26.11.11 추가 - [서버] 공용 피격 이펙트 큐 실행. 근접 공격은 충돌 지점, 그 외는 피격자 위치에서 낸다 (모든 클라이언트에 복제)
-void ULeeDefenseComponent::ExecuteHitImpactCue(const FGameplayEffectSpec* EffectSpec, AActor* Attacker) const
+void ULeeDefenseComponent::ExecuteHitImpactCue(const FGameplayEffectSpec* EffectSpec, AActor* Attacker, FGameplayTag CueTag) const
 {
 	AActor* Owner = GetOwner();
 	UAbilitySystemComponent* OwnerASC = GetOwnerASC();
@@ -565,5 +577,21 @@ void ULeeDefenseComponent::ExecuteHitImpactCue(const FGameplayEffectSpec* Effect
 		Params.Normal = (Owner->GetActorLocation() - Attacker->GetActorLocation()).GetSafeNormal2D();
 	}
 
-	OwnerASC->ExecuteGameplayCue(MyTags::Souls::GameplayCue_Hit_Impact, Params);
+	OwnerASC->ExecuteGameplayCue(CueTag, Params);
+}
+
+// 26.11.12 추가 - 데미지 Spec에 실린 히트스톱 값으로 공격자·피격자(이 컴포넌트 소유자)를 잠깐 멈춘다 (싱글이 아니면 서브시스템이 무시)
+void ULeeDefenseComponent::ApplyHitStop(const FGameplayEffectSpec* EffectSpec, AActor* Attacker) const
+{
+	const float Duration = EffectSpec->GetSetByCallerMagnitude(MyTags::Souls::SetByCaller_HitStopDuration, /*WarnIfNotFound*/false, 0.0f);
+	if (Duration <= 0.0f)
+	{
+		return;
+	}
+
+	const float TimeScale = EffectSpec->GetSetByCallerMagnitude(MyTags::Souls::SetByCaller_HitStopTimeScale, /*WarnIfNotFound*/false, 0.05f);
+	if (ULeeHitStopSubsystem* HitStopSubsystem = GetWorld() ? GetWorld()->GetSubsystem<ULeeHitStopSubsystem>() : nullptr)
+	{
+		HitStopSubsystem->ApplyHitStop(Attacker, GetOwner(), Duration, TimeScale);
+	}
 }
