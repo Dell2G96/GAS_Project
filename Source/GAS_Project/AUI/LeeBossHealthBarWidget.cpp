@@ -5,6 +5,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "GAS_Project/ACharacter/LeeCharacter.h"
 #include "GAS_Project/ACharacter/LeeHealthComponent.h"
+#include "GAS_Project/ABossEncounter/LeeBossEncounterManager.h"
 
 // 생성 직후 숨긴 상태로 시작하고 바로 한 번 보스를 찾는다
 void ULeeBossHealthBarWidget::NativeConstruct()
@@ -59,6 +60,15 @@ void ULeeBossHealthBarWidget::RefreshBoss()
 // "Boss" 태그가 붙은 액터 중 HP가 남아 있는 첫 번째 보스
 AActor* ULeeBossHealthBarWidget::FindAliveBoss() const
 {
+	// 26.11.12 추가 - 보스전 관리자가 있는 맵에서는 입장(인트로/전투) 전까지 보스 바를 숨긴다
+	if (const ALeeBossEncounterManager* Encounter = ALeeBossEncounterManager::Find(this))
+	{
+		if (!Encounter->IsBossRevealed())
+		{
+			return nullptr;
+		}
+	}
+
 	TArray<AActor*> BossActors;
 	UGameplayStatics::GetAllActorsWithTag(this, BossActorTag, BossActors);
 

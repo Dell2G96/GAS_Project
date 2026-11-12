@@ -10,6 +10,8 @@
 
 class UBehaviorTree;
 class APawn;
+class ALeeBossEncounterManager;
+enum class ELeeBossEncounterPhase : uint8;
 
 /**
  * 보스 AIController(BP)에 붙여, 기존 StateTreeAIComponent 대신 Behavior Tree를 실행하게 하는 컴포넌트.
@@ -59,4 +61,13 @@ private:
 
 	/** 기존 StateTree와 보스 BT의 동시 실행 방지 */
 	void StopStateTreeLogic() const;
+
+	// 26.11.12 추가 - 보스전 관리자가 있으면 전투 단계 전까지 AI를 멈추고 기다린다. 기다려야 하면 true
+	bool WaitForEncounterCombat();
+
+	// 26.11.12 추가 - 보스전 단계가 전투가 되면 BT를 시작한다
+	void HandleEncounterPhaseChanged(ELeeBossEncounterPhase NewPhase);
+
+	TWeakObjectPtr<ALeeBossEncounterManager> EncounterManager;
+	FDelegateHandle EncounterPhaseHandle;
 };

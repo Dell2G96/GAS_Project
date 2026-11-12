@@ -2,6 +2,7 @@
 
 
 #include "LeeGameModeBase.h"
+#include "GAS_Project/ABossEncounter/LeeBossEncounterManager.h"
 
 #include "GameMapsSettings.h"
 #include "LeeExperienceDefinition.h"
@@ -213,6 +214,16 @@ bool ALeeGameModeBase::ControllerCanRestart(AController* Controller)
 	{
 		// Bot용 PlayerCanRestart 기본 검사
 		if ((Controller == nullptr) || Controller->IsPendingKillPending())
+		{
+			return false;
+		}
+	}
+
+	// 26.11.12 추가 - 보스전 인트로·전투 중에는 플레이어가 개인적으로 다시 태어나지 않는다 (사망자는 관전, 전멸 시 파티 전체 로비 이동)
+	if (Controller && Controller->IsPlayerController())
+	{
+		const ALeeBossEncounterManager* Encounter = ALeeBossEncounterManager::Find(this);
+		if (Encounter && (Encounter->GetPhase() == ELeeBossEncounterPhase::Intro || Encounter->GetPhase() == ELeeBossEncounterPhase::Combat))
 		{
 			return false;
 		}

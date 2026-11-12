@@ -14,6 +14,7 @@
 #include "GAS_Project/LeeLogChannels.h"
 #include "GAS_Project/AAbilitySystem/Abilities/LeeGameplayAbility_AttackMelee.h"
 #include "GAS_Project/_Souls/Abilities/LeeSoulsStatSet.h"
+#include "GAS_Project/ABossEncounter/LeeBossEncounterManager.h"
 
 ULeeBossBrainComponent::ULeeBossBrainComponent()
 {
@@ -47,6 +48,11 @@ void ULeeBossBrainComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	}
 
 	if (UWorld* World = GetWorld()) World->GetTimerManager().ClearTimer(StartTimer);
+	if (ALeeBossEncounterManager* Encounter = EncounterManager.Get())
+	{
+		Encounter->OnPhaseChanged.Remove(EncounterPhaseHandle);
+	}
+	EncounterPhaseHandle.Reset();
 	if (AAIController* AIC = Cast<AAIController>(GetOwner()))
 	{
 		UBehaviorTreeComponent* BT = Cast<UBehaviorTreeComponent>(AIC->GetBrainComponent());
@@ -128,6 +134,12 @@ void ULeeBossBrainComponent::StartBossBrain()
 	}
 	StopStateTreeLogic();
 
+	// 26.11.12 추가 - 보스전 관리자가 있는 맵에서는 전투 단계가 될 때까지 BT를 시작하지 않는다
+	if (WaitForEncounterCombat())
+	{
+		return;
+	}
+
 	bStarted = AIC->RunBehaviorTree(BossBehaviorTree);
 	if (!bStarted)
 	{
@@ -150,5 +162,31 @@ void ULeeBossBrainComponent::StopStateTreeLogic() const
 		{
 			Comp->StopLogic(TEXT("LeeBossBrain - Behavior Tree로 전환"));
 		}
+	}
+}
+
+// 26.11.12 추가 - 관리자가 없거나 이미 전투 중이면 false(바로 시작). 아니면 단계 변경을 한 번만 구독하고 true
+bool ULeeBossBrainComponent::WaitForEncounterCombat()
+{
+	ALeeBossEncounterManager* Encounter = ALeeBossEncounterManager::Find(this);
+	if (!Encounter || Encounter->GetPhase() == ELeeBossEncounterPhase::Combat)
+	{
+		return false;
+	}
+
+	if (!EncounterPhaseHandle.IsValid())
+	{
+		EncounterManager = Encounter;
+		EncounterPhaseHandle = Encounter->OnPhaseChanged.AddUObject(this, &ThisClass::HandleEncounterPhaseChanged);
+	}
+	return true;
+}
+
+// 26.11.12 추가 - 전투 단계가 되면 BT 시작
+void ULeeBossBrainComponent::HandleEncounterPhaseChanged(ELeeBossEncounterPhase NewPhase)
+{
+	if (NewPhase == ELeeBossEncounterPhase::Combat)
+	{
+		StartBossBrain();
 	}
 }
