@@ -218,6 +218,8 @@ namespace MyTags
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Event_Combat_PostureBreak);
 		// 26.10.29 추가 - 넉백 이벤트 (공격 어빌리티 → 피해자 ULeeGameplayAbility_Knockback)
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Event_Combat_Knockback);
+		// 26.11.12 추가 - AOE 장판 힘 이벤트 (AOE 예고 액터 → 피해자 ULeeGameplayAbility_ZoneForce, 밀기/당기기)
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Event_Combat_ZoneForce);
 
 		// ----- 이벤트 - 에스트 -----
 		// 26.10.30 추가 - 회복 시점 — 에스트 몽타주의 AnimNotify가 발사, GA_DrinkEstus가 수신해 회복 GE 적용

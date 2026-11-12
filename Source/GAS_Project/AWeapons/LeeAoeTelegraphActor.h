@@ -65,6 +65,22 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Lee|Aoe|Hit", meta = (ClampMin = "0.0", ForceUnits = "s"))
 	float HitExpandTime = 0.3f;
 
+	/** 26.11.12 추가 - 폭발 후 장판이 남아 있는 시간(초). 0이면 장판 없음(폭발 판정만). 이펙트도 이 시간 동안 유지된다 */
+	UPROPERTY(EditDefaultsOnly, Category = "Lee|Aoe|Zone", meta = (ClampMin = "0.0", ForceUnits = "s"))
+	float ZoneDuration = 0.0f;
+
+	/** 26.11.12 추가 - 장판 안의 적을 미는 힘(cm/s). 양수 = 중심에서 밀어냄, 음수 = 중심으로 당김, 0 = 힘 없음 */
+	UPROPERTY(EditDefaultsOnly, Category = "Lee|Aoe|Zone")
+	float ZoneForceStrength = 0.0f;
+
+	/** 26.11.12 추가 - 장판 틱 간격(초) — 이 간격마다 장판 안의 적을 찾아 틱 데미지를 주고, 새로 들어온 적에게 힘을 건다 */
+	UPROPERTY(EditDefaultsOnly, Category = "Lee|Aoe|Zone", meta = (ClampMin = "0.05", ForceUnits = "s"))
+	float ZoneTickInterval = 0.5f;
+
+	/** 26.11.12 추가 - 틱마다 주는 데미지 (양수, 0이면 틱 데미지 없음). 폭발 데미지 Spec을 복사해 크기만 바꿔 쓴다 */
+	UPROPERTY(EditDefaultsOnly, Category = "Lee|Aoe|Zone", meta = (ClampMin = "0.0"))
+	float ZoneTickDamage = 0.0f;
+
 	/** 폭발 이펙트 크기 = Radius / 이 값 (이펙트가 반경 1m 기준으로 만들어졌으면 100) */
 	UPROPERTY(EditDefaultsOnly, Category = "Lee|Aoe", meta = (ClampMin = "1.0"))
 	float ExplosionEffectBaseRadius = 100.0f;
@@ -108,6 +124,15 @@ private:
 	/** 26.11.12 추가 - [서버] 한 대상에게 한 번만: 아군 제외 → 데미지 Spec → (퍼펙트 가드가 아니면) 바깥 방향 넉백 */
 	void ApplyHit(AActor* Victim);
 
+	/** 26.11.12 추가 - [서버] 공격자·아군을 빼고 데미지를 줄 수 있는 대상인지 */
+	bool CanAffect(AActor* Victim) const;
+
+	/** 26.11.12 추가 - [서버] 장판 유지 중 매 프레임: 틱 간격마다 장판 안의 적에게 틱 데미지, 처음 들어온 적에게 밀기/당기기 힘 */
+	void UpdateZone(float DeltaSeconds);
+
+	/** 26.11.12 추가 - [서버] 장판 틱 1회 */
+	void ZoneTick();
+
 	/** [모두] 폭발 이펙트 + 예고 원 끄기 */
 	UFUNCTION(NetMulticast, Reliable)
 	void Multicast_PlayExplosion();
@@ -134,4 +159,10 @@ private:
 	bool bHitActive = false;
 	float HitElapsedTime = 0.0f;
 	TSet<TWeakObjectPtr<AActor>> HitActors;
+
+	/** 26.11.12 추가 - [서버] 장판 유지 중인지 / 폭발 후 지난 시간 / 다음 틱까지 남은 시간 / 이미 힘을 건 대상 */
+	bool bZoneActive = false;
+	float ZoneElapsedTime = 0.0f;
+	float ZoneTickRemaining = 0.0f;
+	TSet<TWeakObjectPtr<AActor>> ForcedActors;
 };

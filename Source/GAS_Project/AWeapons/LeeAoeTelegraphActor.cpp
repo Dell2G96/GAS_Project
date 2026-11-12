@@ -6,6 +6,8 @@
 #include "AbilitySystemComponent.h"
 #include "Components/DecalComponent.h"
 #include "Components/SphereComponent.h"
+#include "Engine/OverlapResult.h"
+#include "GAS_Project/AAbilitySystem/Abilities/LeeGameplayAbility_ZoneForce.h"
 #include "Materials/MaterialInstanceDynamic.h"
 #include "Net/UnrealNetwork.h"
 #include "NiagaraComponent.h"
@@ -101,6 +103,10 @@ void ALeeAoeTelegraphActor::Tick(float DeltaSeconds)
 		{
 			UpdateHitSphere(DeltaSeconds);
 		}
+		if (bZoneActive)
+		{
+			UpdateZone(DeltaSeconds);
+		}
 		return;
 	}
 
@@ -128,8 +134,15 @@ void ALeeAoeTelegraphActor::Explode()
 		bHitActive = true;
 		HitElapsedTime = 0.0f;
 		HitActors.Reset();
-		UE_LOG(LogTemp, Log, TEXT("[Aoe] Explode instigator=%s radius=%.0f 판정 시작(지연 %.2f초, 확장 %.2f초)"),
-			*GetNameSafe(InstigatorActorRef.Get()), Radius, HitStartDelay, HitExpandTime);
+
+		// 26.11.12 추가 - 장판: 폭발 후 ZoneDuration 동안 틱 데미지·밀기/당기기
+		bZoneActive = ZoneDuration > 0.0f;
+		ZoneElapsedTime = 0.0f;
+		ZoneTickRemaining = 0.0f; // 첫 프레임에 바로 한 번 틱(힘 걸기). 틱 데미지는 두 번째 틱부터 (폭발 데미지와 겹치지 않게)
+		ForcedActors.Reset();
+
+		UE_LOG(LogTemp, Log, TEXT("[Aoe] Explode instigator=%s radius=%.0f 판정 시작(지연 %.2f초, 확장 %.2f초) 장판 %.1f초 힘 %.0f"),
+			*GetNameSafe(InstigatorActorRef.Get()), Radius, HitStartDelay, HitExpandTime, ZoneDuration, ZoneForceStrength);
 	}
 	else
 	{
@@ -137,8 +150,80 @@ void ALeeAoeTelegraphActor::Explode()
 		UE_LOG(LogTemp, Log, TEXT("[Aoe] 공격자 없음 또는 Spec 없음 — 판정 없이 제거"));
 	}
 
-	// 이펙트가 끝까지 재생되고, 충돌 구 판정도 끝날 때까지 남겨 둔다
-	SetLifeSpan(FMath::Max(LingerTimeAfterExplosion, HitStartDelay + HitExpandTime + 0.2f));
+	// 이펙트가 끝까지 재생되고, 충돌 구 판정·장판이 끝날 때까지 남겨 둔다
+	SetLifeSpan(FMath::Max3(LingerTimeAfterExplosion, HitStartDelay + HitExpandTime + 0.2f, ZoneDuration + 0.1f));
+}
+
+// 26.11.12 추가 - [서버] 장판 시간을 세고, 틱 간격이 되면 ZoneTick. 시간이 다 되면 장판 끝
+void ALeeAoeTelegraphActor::UpdateZone(float DeltaSeconds)
+{
+	ZoneElapsedTime += DeltaSeconds;
+	if (ZoneElapsedTime >= ZoneDuration)
+	{
+		bZoneActive = false;
+		return;
+	}
+
+	ZoneTickRemaining -= DeltaSeconds;
+	if (ZoneTickRemaining <= 0.0f)
+	{
+		ZoneTickRemaining += ZoneTickInterval;
+		ZoneTick();
+	}
+}
+
+// 26.11.12 추가 - [서버] 장판 안의 적 찾기 → 처음 들어온 적에게 남은 시간만큼 힘 걸기, 두 번째 틱부터 틱 데미지
+void ALeeAoeTelegraphActor::ZoneTick()
+{
+	TArray<FOverlapResult> Overlaps;
+	FCollisionQueryParams Params(SCENE_QUERY_STAT(LeeAoeZone), false, this);
+	GetWorld()->OverlapMultiByObjectType(Overlaps, GetActorLocation(), FQuat::Identity,
+		FCollisionObjectQueryParams(ECC_Pawn), FCollisionShape::MakeSphere(Radius), Params);
+
+	const bool bFirstTick = ZoneElapsedTime <= ZoneTickInterval * 0.5f;
+	TSet<AActor*> Visited;
+	for (const FOverlapResult& Overlap : Overlaps)
+	{
+		AActor* Victim = Overlap.GetActor();
+		if (!Victim || Visited.Contains(Victim) || !CanAffect(Victim))
+		{
+			continue;
+		}
+		Visited.Add(Victim);
+
+		// 힘은 장판 반경 안에서만 작용하므로 대상마다 한 번만 걸면 된다 (남은 장판 시간 동안 유지)
+		if (!FMath::IsNearlyZero(ZoneForceStrength) && !ForcedActors.Contains(Victim))
+		{
+			ForcedActors.Add(Victim);
+			ULeeGameplayAbility_ZoneForce::SendZoneForceEvent(InstigatorActorRef.Get(), Victim, GetActorLocation(), Radius,
+				ZoneForceStrength, ZoneDuration - ZoneElapsedTime);
+		}
+
+		// 틱 데미지: 폭발 데미지 Spec을 복사해 크기만 바꾼다
+		if (!bFirstTick && ZoneTickDamage > 0.0f)
+		{
+			if (UAbilitySystemComponent* TargetASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(Victim))
+			{
+				FGameplayEffectSpec TickSpec(*DamageSpec.Data.Get());
+				TickSpec.SetSetByCallerMagnitude(MyTags::Souls::SetByCaller_Damage, -ZoneTickDamage);
+				TargetASC->ApplyGameplayEffectSpecToSelf(TickSpec);
+			}
+		}
+	}
+}
+
+// 26.11.12 추가 - [서버] 공격자 자신·아군이 아니고 ASC가 있는 대상인지
+bool ALeeAoeTelegraphActor::CanAffect(AActor* Victim) const
+{
+	AActor* InstigatorActor = InstigatorActorRef.Get();
+	if (!Victim || !InstigatorActor || Victim == InstigatorActor || !DamageSpec.IsValid()
+		|| !UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(Victim))
+	{
+		return false;
+	}
+
+	ULeeTeamSubsystem* TeamSubsystem = GetWorld()->GetSubsystem<ULeeTeamSubsystem>();
+	return !TeamSubsystem || TeamSubsystem->CanCauseDamage(InstigatorActor, Victim);
 }
 
 // [서버] 지연 시간이 지나면 충돌 구를 켜고, HitExpandTime 동안 반경을 0 → Radius로 키운다 (커질 때마다 새로 닿은 Pawn에 Overlap 이벤트)

@@ -213,6 +213,8 @@ namespace MyTags
 		UE_DEFINE_GAMEPLAY_TAG(Event_Combat_GuardBreak, "Souls.Events.Combat.GuardBreak")
 		UE_DEFINE_GAMEPLAY_TAG(Event_Combat_PostureBreak, "Souls.Events.Combat.PostureBreak")
 		UE_DEFINE_GAMEPLAY_TAG(Event_Combat_Knockback, "Souls.Events.Combat.Knockback")
+		// 26.11.12 추가 - AOE 장판 힘 (밀기/당기기)
+		UE_DEFINE_GAMEPLAY_TAG(Event_Combat_ZoneForce, "Souls.Events.Combat.ZoneForce")
 		// 26.10.30 추가 - 에스트 회복 시점 이벤트 (AnimNotify → GA_DrinkEstus)
 		UE_DEFINE_GAMEPLAY_TAG(Event_Estus_Heal, "Souls.Events.Estus.Heal")
 
