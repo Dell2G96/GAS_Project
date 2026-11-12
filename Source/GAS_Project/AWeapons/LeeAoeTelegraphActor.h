@@ -11,11 +11,14 @@
 class UDecalComponent;
 class UMaterialInstanceDynamic;
 class UNiagaraSystem;
+class UNiagaraComponent;
+class USphereComponent;
 
 /**
  * AOE 예고 액터 (리플리케이트).
  * 바닥에 반경 Radius의 원(데칼)을 띄우고 TelegraphTime 동안 안쪽을 채운다(머티리얼 파라미터 Progress 0→1).
- * 시간이 다 되면 서버가 원 안의 적에게 한 번씩 데미지 Spec + 바깥 방향 넉백을 주고, 모두의 화면에 폭발 이펙트를 낸다.
+ * 시간이 다 되면 모두의 화면에 폭발 이펙트를 내고, 서버는 충돌 구(HitSphere)를 중심에서 Radius까지 키우며
+ * 처음 닿은 적에게 한 번씩 데미지 Spec + 바깥 방향 넉백을 준다 (26.11.12 수정 - 이펙트가 퍼지는 모양에 맞춘 판정).
  */
 UCLASS()
 class GAS_PROJECT_API ALeeAoeTelegraphActor : public AActor
@@ -35,6 +38,13 @@ public:
 protected:
 	virtual void BeginPlay() override;
 
+	/** 26.11.12 추가 - 액터가 사라질 때 폭발 이펙트를 멈춘다 (반복 재생 이펙트가 계속 남는 문제) */
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
+
+	/** 26.11.12 추가 - 폭발 이펙트를 띄울 위치 오프셋(cm) — 바닥에 딱 붙은 평면 이펙트가 바닥에 가려지지 않게 살짝 띄운다 */
+	UPROPERTY(EditDefaultsOnly, Category = "Lee|Aoe")
+	FVector ExplosionEffectOffset = FVector(0.0f, 0.0f, 5.0f);
+
 	/** 바닥 예고 원 */
 	UPROPERTY(VisibleAnywhere, Category = "Lee|Aoe")
 	TObjectPtr<UDecalComponent> TelegraphDecal;
@@ -42,6 +52,18 @@ protected:
 	/** 폭발할 때 낼 나이아가라 (비우면 이펙트 없음) */
 	UPROPERTY(EditDefaultsOnly, Category = "Lee|Aoe")
 	TObjectPtr<UNiagaraSystem> ExplosionEffect;
+
+	/** 26.11.12 추가 - 폭발 판정용 충돌 구 (Pawn과 Overlap만, 서버에서 폭발 후에만 켠다) */
+	UPROPERTY(VisibleAnywhere, Category = "Lee|Aoe|Hit")
+	TObjectPtr<USphereComponent> HitSphere;
+
+	/** 26.11.12 추가 - 폭발 후 충돌 구가 커지기 시작할 때까지의 시간(초) — 이펙트가 땅에서 솟는 시점에 맞춘다 */
+	UPROPERTY(EditDefaultsOnly, Category = "Lee|Aoe|Hit", meta = (ClampMin = "0.0", ForceUnits = "s"))
+	float HitStartDelay = 0.0f;
+
+	/** 26.11.12 추가 - 충돌 구가 0에서 Radius까지 커지는 시간(초) — 이펙트가 퍼지는 속도에 맞춘다. 0이면 한 번에 전체 범위 */
+	UPROPERTY(EditDefaultsOnly, Category = "Lee|Aoe|Hit", meta = (ClampMin = "0.0", ForceUnits = "s"))
+	float HitExpandTime = 0.3f;
 
 	/** 폭발 이펙트 크기 = Radius / 이 값 (이펙트가 반경 1m 기준으로 만들어졌으면 100) */
 	UPROPERTY(EditDefaultsOnly, Category = "Lee|Aoe", meta = (ClampMin = "1.0"))
@@ -72,8 +94,19 @@ protected:
 	float TelegraphTime = 1.0f;
 
 private:
-	/** [서버] 원 안의 적에게 데미지·넉백 */
+	/** [서버] 폭발 시작 — 이펙트를 내고 충돌 구 판정을 시작한다 */
 	void Explode();
+
+	/** 26.11.12 추가 - [서버] 폭발 후 매 프레임 충돌 구를 키운다. 다 커지면 판정을 끝낸다 */
+	void UpdateHitSphere(float DeltaSeconds);
+
+	/** 26.11.12 추가 - [서버] 충돌 구가 Pawn에 닿음 */
+	UFUNCTION()
+	void OnHitSphereBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp,
+		int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
+
+	/** 26.11.12 추가 - [서버] 한 대상에게 한 번만: 아군 제외 → 데미지 Spec → (퍼펙트 가드가 아니면) 바깥 방향 넉백 */
+	void ApplyHit(AActor* Victim);
 
 	/** [모두] 폭발 이펙트 + 예고 원 끄기 */
 	UFUNCTION(NetMulticast, Reliable)
@@ -88,8 +121,17 @@ private:
 	UPROPERTY()
 	TObjectPtr<UMaterialInstanceDynamic> DecalMaterial;
 
+	/** 26.11.12 추가 - 이 화면에서 띄운 폭발 이펙트 (EndPlay에서 멈추기 위해 보관) */
+	UPROPERTY()
+	TObjectPtr<UNiagaraComponent> ExplosionComponent;
+
 	/** 예고가 시작된 뒤 지난 시간 (각 화면이 자기 시계로 센다) */
 	float ElapsedTime = 0.0f;
 
 	bool bExploded = false;
+
+	/** 26.11.12 추가 - [서버] 충돌 구 판정 중인지 / 폭발 후 지난 시간 / 이미 맞은 대상 */
+	bool bHitActive = false;
+	float HitElapsedTime = 0.0f;
+	TSet<TWeakObjectPtr<AActor>> HitActors;
 };

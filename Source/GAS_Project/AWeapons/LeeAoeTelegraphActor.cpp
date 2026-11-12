@@ -5,9 +5,10 @@
 #include "AbilitySystemBlueprintLibrary.h"
 #include "AbilitySystemComponent.h"
 #include "Components/DecalComponent.h"
-#include "Engine/OverlapResult.h"
+#include "Components/SphereComponent.h"
 #include "Materials/MaterialInstanceDynamic.h"
 #include "Net/UnrealNetwork.h"
+#include "NiagaraComponent.h"
 #include "NiagaraFunctionLibrary.h"
 #include "GAS_Project/MyTags.h"
 #include "GAS_Project/ATeam/LeeTeamSubsystem.h"
@@ -24,6 +25,18 @@ ALeeAoeTelegraphActor::ALeeAoeTelegraphActor()
 	TelegraphDecal = CreateDefaultSubobject<UDecalComponent>(TEXT("TelegraphDecal"));
 	TelegraphDecal->SetupAttachment(SceneRoot);
 	TelegraphDecal->SetRelativeRotation(FRotator(-90.0f, 0.0f, 0.0f)); // 데칼의 X축이 아래를 보게 해 바닥에 투영
+
+	// 26.11.12 추가 - 폭발 판정용 충돌 구: Pawn과만 Overlap, 폭발 전에는 꺼 둔다
+	HitSphere = CreateDefaultSubobject<USphereComponent>(TEXT("HitSphere"));
+	HitSphere->SetupAttachment(SceneRoot);
+	HitSphere->InitSphereRadius(1.0f);
+	HitSphere->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	HitSphere->SetCollisionObjectType(ECC_WorldDynamic);
+	HitSphere->SetCollisionResponseToAllChannels(ECR_Ignore);
+	HitSphere->SetCollisionResponseToChannel(ECC_Pawn, ECR_Overlap);
+	HitSphere->SetGenerateOverlapEvents(true);
+	HitSphere->SetCanEverAffectNavigation(false);
+	HitSphere->SetHiddenInGame(true);
 }
 
 // 서버가 스폰 직후 값을 넣는다 (Radius·TelegraphTime은 첫 복제 때 클라로 간다)
@@ -57,15 +70,37 @@ void ALeeAoeTelegraphActor::BeginPlay()
 	{
 		DecalMaterial->SetScalarParameterValue(ProgressParameterName, 0.0f);
 	}
+
+	// 26.11.12 추가 - 판정은 서버만 한다
+	if (HasAuthority())
+	{
+		HitSphere->OnComponentBeginOverlap.AddDynamic(this, &ThisClass::OnHitSphereBeginOverlap);
+	}
 }
 
-// 매 프레임 예고 원을 채우고, 서버는 시간이 다 되면 폭발시킨다
+// 26.11.12 추가 - 액터가 사라질 때(수명 끝) 폭발 이펙트의 새 파티클 생성을 멈춘다. 남은 파티클은 자연스럽게 사라진 뒤 자동 삭제
+void ALeeAoeTelegraphActor::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	if (ExplosionComponent)
+	{
+		ExplosionComponent->Deactivate();
+		ExplosionComponent = nullptr;
+	}
+
+	Super::EndPlay(EndPlayReason);
+}
+
+// 매 프레임 예고 원을 채우고, 서버는 시간이 다 되면 폭발시킨다. 폭발 뒤에는 충돌 구를 키운다
 void ALeeAoeTelegraphActor::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
 
 	if (bExploded)
 	{
+		if (bHitActive)
+		{
+			UpdateHitSphere(DeltaSeconds);
+		}
 		return;
 	}
 
@@ -82,53 +117,19 @@ void ALeeAoeTelegraphActor::Tick(float DeltaSeconds)
 	}
 }
 
-// [서버] 원 안의 Pawn마다 한 번씩: 아군 제외 → 데미지 Spec 적용 → (퍼펙트 가드가 아니면) 중심에서 바깥으로 넉백
+// [서버] 폭발 시작: 모든 화면에 이펙트를 내고, 충돌 구 판정(중심에서 바깥으로 커짐)을 시작한다
 void ALeeAoeTelegraphActor::Explode()
 {
 	bExploded = true;
+	Multicast_PlayExplosion();
 
-	AActor* InstigatorActor = InstigatorActorRef.Get();
-	if (InstigatorActor && DamageSpec.IsValid())
+	if (InstigatorActorRef.IsValid() && DamageSpec.IsValid())
 	{
-		TArray<FOverlapResult> Overlaps;
-		FCollisionQueryParams Params(SCENE_QUERY_STAT(LeeAoeExplode), false, this);
-		Params.AddIgnoredActor(InstigatorActor);
-		GetWorld()->OverlapMultiByObjectType(Overlaps, GetActorLocation(), FQuat::Identity,
-			FCollisionObjectQueryParams(ECC_Pawn), FCollisionShape::MakeSphere(Radius), Params);
-
-		ULeeTeamSubsystem* TeamSubsystem = GetWorld()->GetSubsystem<ULeeTeamSubsystem>();
-		TSet<AActor*> HitActors;
-
-		for (const FOverlapResult& Overlap : Overlaps)
-		{
-			AActor* Victim = Overlap.GetActor();
-			if (!Victim || HitActors.Contains(Victim))
-			{
-				continue;
-			}
-			HitActors.Add(Victim);
-
-			UAbilitySystemComponent* TargetASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(Victim);
-			if (!TargetASC || (TeamSubsystem && !TeamSubsystem->CanCauseDamage(InstigatorActor, Victim)))
-			{
-				continue;
-			}
-
-			// 퍼펙트 가드 여부는 데미지 적용 전에 기록 (투사체와 같은 규칙)
-			const bool bUnblockable = DamageSpec.Data->GetDynamicAssetTags().HasTagExact(MyTags::Souls::DamageType_Attack_Unblockable);
-			const bool bPerfectGuard = !bUnblockable && TargetASC->HasMatchingGameplayTag(MyTags::Souls::Status_Guard_Perfect);
-
-			TargetASC->ApplyGameplayEffectSpecToSelf(*DamageSpec.Data.Get());
-
-			if (!bPerfectGuard)
-			{
-				const FVector Outward = (Victim->GetActorLocation() - GetActorLocation()).GetSafeNormal2D();
-				const float OutwardYaw = Outward.IsNearlyZero() ? InstigatorActor->GetActorRotation().Yaw : Outward.Rotation().Yaw;
-				ULeeGameplayAbility_Knockback::SendKnockbackEvent(InstigatorActor, Victim, Knockback, OutwardYaw);
-			}
-		}
-
-		UE_LOG(LogTemp, Log, TEXT("[Aoe] Explode instigator=%s radius=%.0f hit=%d"), *GetNameSafe(InstigatorActor), Radius, HitActors.Num());
+		bHitActive = true;
+		HitElapsedTime = 0.0f;
+		HitActors.Reset();
+		UE_LOG(LogTemp, Log, TEXT("[Aoe] Explode instigator=%s radius=%.0f 판정 시작(지연 %.2f초, 확장 %.2f초)"),
+			*GetNameSafe(InstigatorActorRef.Get()), Radius, HitStartDelay, HitExpandTime);
 	}
 	else
 	{
@@ -136,8 +137,78 @@ void ALeeAoeTelegraphActor::Explode()
 		UE_LOG(LogTemp, Log, TEXT("[Aoe] 공격자 없음 또는 Spec 없음 — 판정 없이 제거"));
 	}
 
-	Multicast_PlayExplosion();
-	SetLifeSpan(LingerTimeAfterExplosion);
+	// 이펙트가 끝까지 재생되고, 충돌 구 판정도 끝날 때까지 남겨 둔다
+	SetLifeSpan(FMath::Max(LingerTimeAfterExplosion, HitStartDelay + HitExpandTime + 0.2f));
+}
+
+// [서버] 지연 시간이 지나면 충돌 구를 켜고, HitExpandTime 동안 반경을 0 → Radius로 키운다 (커질 때마다 새로 닿은 Pawn에 Overlap 이벤트)
+void ALeeAoeTelegraphActor::UpdateHitSphere(float DeltaSeconds)
+{
+	HitElapsedTime += DeltaSeconds;
+	if (HitElapsedTime < HitStartDelay)
+	{
+		return;
+	}
+
+	const float Alpha = (HitExpandTime > KINDA_SMALL_NUMBER)
+		? FMath::Clamp((HitElapsedTime - HitStartDelay) / HitExpandTime, 0.0f, 1.0f)
+		: 1.0f;
+
+	if (HitSphere->GetCollisionEnabled() == ECollisionEnabled::NoCollision)
+	{
+		HitSphere->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+	}
+	HitSphere->SetSphereRadius(FMath::Max(Radius * Alpha, 1.0f), /*bUpdateOverlaps*/ true);
+
+	if (Alpha >= 1.0f)
+	{
+		bHitActive = false;
+		HitSphere->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		UE_LOG(LogTemp, Log, TEXT("[Aoe] 판정 끝 instigator=%s hit=%d"), *GetNameSafe(InstigatorActorRef.Get()), HitActors.Num());
+	}
+}
+
+// [서버] 충돌 구가 Pawn 캡슐에 처음 닿는 순간 = 피격 순간
+void ALeeAoeTelegraphActor::OnHitSphereBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
+	UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
+{
+	if (HasAuthority() && bHitActive)
+	{
+		ApplyHit(OtherActor);
+	}
+}
+
+// [서버] 대상마다 한 번만: 공격자·아군 제외 → 데미지 Spec 적용 → (퍼펙트 가드가 아니면) 중심에서 바깥으로 넉백
+void ALeeAoeTelegraphActor::ApplyHit(AActor* Victim)
+{
+	AActor* InstigatorActor = InstigatorActorRef.Get();
+	if (!Victim || !InstigatorActor || Victim == InstigatorActor || HitActors.Contains(Victim) || !DamageSpec.IsValid())
+	{
+		return;
+	}
+
+	UAbilitySystemComponent* TargetASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(Victim);
+	ULeeTeamSubsystem* TeamSubsystem = GetWorld()->GetSubsystem<ULeeTeamSubsystem>();
+	if (!TargetASC || (TeamSubsystem && !TeamSubsystem->CanCauseDamage(InstigatorActor, Victim)))
+	{
+		return;
+	}
+	HitActors.Add(Victim);
+
+	// 퍼펙트 가드 여부는 데미지 적용 전에 기록 (투사체와 같은 규칙)
+	const bool bUnblockable = DamageSpec.Data->GetDynamicAssetTags().HasTagExact(MyTags::Souls::DamageType_Attack_Unblockable);
+	const bool bPerfectGuard = !bUnblockable && TargetASC->HasMatchingGameplayTag(MyTags::Souls::Status_Guard_Perfect);
+
+	TargetASC->ApplyGameplayEffectSpecToSelf(*DamageSpec.Data.Get());
+
+	if (!bPerfectGuard)
+	{
+		const FVector Outward = (Victim->GetActorLocation() - GetActorLocation()).GetSafeNormal2D();
+		const float OutwardYaw = Outward.IsNearlyZero() ? InstigatorActor->GetActorRotation().Yaw : Outward.Rotation().Yaw;
+		ULeeGameplayAbility_Knockback::SendKnockbackEvent(InstigatorActor, Victim, Knockback, OutwardYaw);
+	}
+
+	UE_LOG(LogTemp, Log, TEXT("[Aoe] Hit victim=%s t=%.2f초(폭발 후)"), *GetNameSafe(Victim), HitElapsedTime);
 }
 
 // [모두] 예고 원을 끄고 폭발 이펙트를 낸다
@@ -148,8 +219,10 @@ void ALeeAoeTelegraphActor::Multicast_PlayExplosion_Implementation()
 
 	if (ExplosionEffect)
 	{
+		// 26.11.12 수정 - 바닥에서 살짝 띄우고, EndPlay에서 멈출 수 있게 컴포넌트를 보관한다
 		const float Scale = Radius / ExplosionEffectBaseRadius;
-		UNiagaraFunctionLibrary::SpawnSystemAtLocation(this, ExplosionEffect, GetActorLocation(), FRotator::ZeroRotator, FVector(Scale));
+		ExplosionComponent = UNiagaraFunctionLibrary::SpawnSystemAtLocation(this, ExplosionEffect,
+			GetActorLocation() + ExplosionEffectOffset, FRotator::ZeroRotator, FVector(Scale));
 	}
 
 	BP_OnExploded();
