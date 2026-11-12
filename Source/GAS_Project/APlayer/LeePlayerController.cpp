@@ -11,6 +11,7 @@
 #include "GAS_Project/GameModes/LeeBossPartySubsystem.h"
 #include "GAS_Project/ABossParty/LeeBossExpeditionSubsystem.h"
 #include "GAS_Project/ABossParty/LeeBossLobbyManager.h"
+#include "GAS_Project/ASaveGame/LeeSaveSubsystem.h"
 
 ALeePlayerController::ALeePlayerController(const FObjectInitializer& ObjectInitializer)
 {
@@ -79,6 +80,24 @@ void ALeePlayerController::ServerSetBossLobbyReady_Implementation(bool bReady)
 	if (ALeeBossLobbyManager* LobbyManager = ALeeBossLobbyManager::Get(this))
 	{
 		LobbyManager->SetPlayerReady(PlayerState, bReady);
+	}
+}
+
+// 26.11.12 추가 - [클라이언트] 자기 세이브에 보스 도전 기록을 남긴다
+void ALeePlayerController::ClientRecordBossAttempt_Implementation(FName BossId)
+{
+	if (ULeeSaveSubsystem* SaveSubsystem = GetGameInstance() ? GetGameInstance()->GetSubsystem<ULeeSaveSubsystem>() : nullptr)
+	{
+		SaveSubsystem->RecordBossAttempt(BossId);
+	}
+}
+
+// 26.11.12 추가 - [클라이언트] 자기 세이브에 보스 처치 기록을 남긴다
+void ALeePlayerController::ClientRecordBossDefeated_Implementation(FName BossId)
+{
+	if (ULeeSaveSubsystem* SaveSubsystem = GetGameInstance() ? GetGameInstance()->GetSubsystem<ULeeSaveSubsystem>() : nullptr)
+	{
+		SaveSubsystem->RecordBossDefeated(BossId);
 	}
 }
 

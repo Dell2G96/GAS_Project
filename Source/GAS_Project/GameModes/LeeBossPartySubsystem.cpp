@@ -7,6 +7,7 @@
 #include "AbilitySystemGlobals.h"
 #include "LeeExperienceDefinition.h"
 #include "LeeExperienceManagerComponent.h"
+#include "GameFramework/GameModeBase.h"
 #include "GameFramework/GameStateBase.h"
 #include "GameFramework/GameplayMessageSubsystem.h"
 #include "GameFramework/PlayerController.h"
@@ -23,6 +24,66 @@
 bool ULeeBossPartySubsystem::DoesSupportWorldType(const EWorldType::Type WorldType) const
 {
 	return WorldType == EWorldType::Game || WorldType == EWorldType::PIE;
+}
+
+// 26.11.12 추가 - 접속 종료 이벤트 구독 (보스전 중 이탈 처리)
+void ULeeBossPartySubsystem::Initialize(FSubsystemCollectionBase& Collection)
+{
+	Super::Initialize(Collection);
+	LogoutHandle = FGameModeEvents::GameModeLogoutEvent.AddUObject(this, &ThisClass::HandlePlayerLogout);
+}
+
+// 26.11.12 추가 - 구독 해제
+void ULeeBossPartySubsystem::Deinitialize()
+{
+	FGameModeEvents::GameModeLogoutEvent.Remove(LogoutHandle);
+	Super::Deinitialize();
+}
+
+// 26.11.12 추가 - 이 월드의 보스전에서 플레이어가 나가면 Pawn이 정리된 다음 틱에 다시 판정한다
+void ULeeBossPartySubsystem::HandlePlayerLogout(AGameModeBase* GameMode, AController* Exiting)
+{
+	if (!GameMode || GameMode->GetWorld() != GetWorld() || !Cast<APlayerController>(Exiting) || bWipeInProgress || bVictoryInProgress || !GetBossExperience())
+	{
+		return;
+	}
+
+	UE_LOG(LogLee, Log, TEXT("[BossParty] %s 접속 종료 → 다음 틱에 전멸·관전 재판정"), *GetNameSafe(Exiting));
+	GetWorld()->GetTimerManager().SetTimerForNextTick(FTimerDelegate::CreateUObject(this, &ThisClass::ReevaluateAfterLogout));
+}
+
+// 26.11.12 추가 - 서 있는 플레이어가 없으면 전멸, 아니면 대상을 잃은 관전자를 남은 동료로 옮긴다
+void ULeeBossPartySubsystem::ReevaluateAfterLogout()
+{
+	if (bWipeInProgress || bVictoryInProgress || !GetBossExperience())
+	{
+		return;
+	}
+
+	LogPlayerStates(TEXT("ReevaluateAfterLogout"), nullptr);
+
+	if (GetPlayerPawns(/*bStandingOnly*/true).Num() == 0)
+	{
+		UE_LOG(LogLee, Log, TEXT("[BossParty] 이탈 후 서 있는 플레이어 없음 → 전멸"));
+		StartPartyWipe();
+		return;
+	}
+
+	for (FConstPlayerControllerIterator It = GetWorld()->GetPlayerControllerIterator(); It; ++It)
+	{
+		APlayerController* PlayerController = It->Get();
+		if (!PlayerController || IsPlayerNotDead(PlayerController->GetPawn()))
+		{
+			continue;
+		}
+
+		// 관전하던 대상이 사라졌거나 더 이상 살아 있지 않으면 다음 동료로
+		const APawn* ViewPawn = Cast<APawn>(PlayerController->GetViewTarget());
+		if (!IsPlayerNotDead(ViewPawn))
+		{
+			SpectateNextTeammate(PlayerController);
+		}
+	}
 }
 
 // GameState의 ExperienceManager에서 현재 Experience를 읽어 PlayMode가 보스전인지 확인한다
@@ -224,6 +285,7 @@ void ULeeBossPartySubsystem::StartPartyWipe()
 	}
 
 	SendMessageToAllPlayers(MyTags::Souls::Message_Death_PartyWiped);
+	OnPartyWiped.Broadcast();	// 26.11.12 추가 - 보스전 진행 관리자에 전멸 알림
 
 	const float TravelDelay = GetBossExperience()->WipeTravelDelay;
 	GetWorld()->GetTimerManager().SetTimer(WipeTravelTimerHandle, this, &ThisClass::TravelToLobby, FMath::Max(TravelDelay, 0.01f), false);
@@ -282,6 +344,7 @@ void ULeeBossPartySubsystem::HandleBossDeathStarted(AActor* DeadActor)
 
 	bVictoryInProgress = true;
 	SendMessageToAllPlayers(MyTags::Souls::Message_Boss_Victory);
+	OnBossDefeated.Broadcast();	// 26.11.12 추가 - 보스전 진행 관리자에 보스 처치 알림
 
 	const float TravelDelay = GetBossExperience()->VictoryTravelDelay;
 	GetWorld()->GetTimerManager().SetTimer(VictoryTravelTimerHandle, this, &ThisClass::ReturnPartyToField, FMath::Max(TravelDelay, 0.01f), false);

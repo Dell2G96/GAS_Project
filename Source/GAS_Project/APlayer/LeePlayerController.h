@@ -39,6 +39,14 @@ public:
 	UFUNCTION(Client, Reliable)
 	void ClientReturnToField();
 
+	// 26.11.12 추가 - 첫 도전 보스전 시작 시 서버가 각 클라이언트에게 자기 세이브에 도전 기록을 남기라고 지시
+	UFUNCTION(Client, Reliable)
+	void ClientRecordBossAttempt(FName BossId);
+
+	// 26.11.12 추가 - 보스 처치 시 서버가 각 클라이언트에게 자기 세이브에 처치 기록을 남기라고 지시
+	UFUNCTION(Client, Reliable)
+	void ClientRecordBossDefeated(FName BossId);
+
 protected:
 	virtual void SetupInputComponent() override;
 

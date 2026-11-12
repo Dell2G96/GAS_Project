@@ -42,6 +42,18 @@ public:
 	// 정예 몹 처치 기록 후 디스크에 저장
 	void RecordSpawnPointDefeated(const UWorld* World, FName SpawnPointId);
 
+	// 26.11.12 추가 - 이 보스에 한 번이라도 도전했는지 (안개벽 대신 문으로 입장할지 판단)
+	bool HasAttemptedBoss(FName BossId) const;
+
+	// 26.11.12 추가 - 보스 도전 기록 후 디스크에 저장
+	void RecordBossAttempt(FName BossId);
+
+	// 26.11.12 추가 - 이 보스를 처치한 적이 있는지
+	bool HasDefeatedBoss(FName BossId) const;
+
+	// 26.11.12 추가 - 보스 처치 기록 후 디스크에 저장
+	void RecordBossDefeated(FName BossId);
+
 	// 에스트 횟수를 메모리에만 갱신 (디스크 저장은 휴식/종료 때)
 	void UpdateEstusCharges(float NewEstusCharges);
 

@@ -97,6 +97,42 @@ void ULeeSaveSubsystem::RecordSpawnPointDefeated(const UWorld* World, FName Spaw
 	SaveToDisk();
 }
 
+// 26.11.12 추가 - 도전 기록은 맵과 관계없이 확인한다
+bool ULeeSaveSubsystem::HasAttemptedBoss(FName BossId) const
+{
+	return SaveGame && !BossId.IsNone() && SaveGame->AttemptedBossIds.Contains(BossId);
+}
+
+// 26.11.12 추가 - 도전 기록을 남기고 바로 저장한다 (월드 상태가 아니라 PrepareWorldState를 거치지 않음)
+void ULeeSaveSubsystem::RecordBossAttempt(FName BossId)
+{
+	if (!SaveGame || BossId.IsNone() || SaveGame->AttemptedBossIds.Contains(BossId))
+	{
+		return;
+	}
+
+	SaveGame->AttemptedBossIds.Add(BossId);
+	SaveToDisk();
+}
+
+// 26.11.12 추가 - 처치 기록 확인 (맵과 관계없음)
+bool ULeeSaveSubsystem::HasDefeatedBoss(FName BossId) const
+{
+	return SaveGame && !BossId.IsNone() && SaveGame->DefeatedBossIds.Contains(BossId);
+}
+
+// 26.11.12 추가 - 처치 기록을 남기고 바로 저장한다
+void ULeeSaveSubsystem::RecordBossDefeated(FName BossId)
+{
+	if (!SaveGame || BossId.IsNone() || SaveGame->DefeatedBossIds.Contains(BossId))
+	{
+		return;
+	}
+
+	SaveGame->DefeatedBossIds.Add(BossId);
+	SaveToDisk();
+}
+
 // 에스트 횟수를 메모리에만 기록한다 (게임 종료 시 Deinitialize에서 디스크에 저장됨)
 void ULeeSaveSubsystem::UpdateEstusCharges(float NewEstusCharges)
 {

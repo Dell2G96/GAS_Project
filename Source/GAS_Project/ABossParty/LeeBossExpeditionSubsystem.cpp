@@ -49,6 +49,12 @@ void ULeeBossExpeditionSubsystem::BeginExpedition(const UWorld* FieldWorld)
 		FieldMapName = UWorld::RemovePIEPrefix(FieldWorld->GetOutermost()->GetName());
 	}
 	bInExpedition = true;
+
+	// 26.11.12 추가 - 필드를 떠나기 직전 현재 진행(에스트 횟수 등 메모리 값)을 디스크에 저장
+	if (ULeeSaveSubsystem* SaveSubsystem = GetGameInstance()->GetSubsystem<ULeeSaveSubsystem>())
+	{
+		SaveSubsystem->SaveToDisk();
+	}
 }
 
 // 원정 표시만 해제 (필드에 그대로 남는 경우)

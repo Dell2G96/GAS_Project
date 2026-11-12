@@ -7,6 +7,7 @@
 #include "Subsystems/WorldSubsystem.h"
 #include "LeeBossPartySubsystem.generated.h"
 
+class AGameModeBase;
 class APlayerController;
 class ULeeExperienceDefinition;
 
@@ -19,6 +20,8 @@ class GAS_PROJECT_API ULeeBossPartySubsystem : public UWorldSubsystem
 
 public:
 	virtual bool DoesSupportWorldType(const EWorldType::Type WorldType) const override;
+	virtual void Initialize(FSubsystemCollectionBase& Collection) override;
+	virtual void Deinitialize() override;
 
 	// 현재 Experience가 보스전(MultiplayerBoss)인지
 	static bool IsBossMultiplayer(const UObject* WorldContextObject);
@@ -34,6 +37,10 @@ public:
 
 	// 관전 중인 플레이어의 카메라를 다음 생존 동료로 전환 (서버)
 	void SpectateNextTeammate(APlayerController* SpectatorController);
+
+	// 26.11.12 추가 - 보스 처치 / 파티 전멸이 확정됐을 때 (서버). ALeeBossEncounterManager가 단계 전환에 쓴다
+	FSimpleMulticastDelegate OnBossDefeated;
+	FSimpleMulticastDelegate OnPartyWiped;
 
 	// 넉다운도 사망도 아닌 플레이어인지
 	static bool IsPlayerStanding(const APawn* Pawn);
@@ -70,6 +77,12 @@ private:
 
 	// 26.11.02 추가 - 호스트(로컬 플레이어) 필드 복귀
 	void ReturnHostToField();
+
+	// 26.11.12 추가 - 플레이어가 접속을 끊으면 다음 틱에 전멸·관전 대상을 다시 판정한다 (끊긴 Pawn이 사라진 뒤 계산)
+	void HandlePlayerLogout(AGameModeBase* GameMode, AController* Exiting);
+	void ReevaluateAfterLogout();
+
+	FDelegateHandle LogoutHandle;
 
 	bool bWipeInProgress = false;
 

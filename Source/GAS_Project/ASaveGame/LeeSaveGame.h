@@ -33,4 +33,12 @@ public:
 	// 에스트 잔여 횟수 (음수면 아직 저장된 적 없음 → 최대치 사용)
 	UPROPERTY()
 	float EstusCharges = -1.0f;
+
+	// 26.11.12 추가 - 한 번이라도 도전한(안개벽을 통과한) 보스 ID. 맵과 관계없이 유지한다 (보스맵은 필드맵과 다르므로)
+	UPROPERTY()
+	TSet<FName> AttemptedBossIds;
+
+	// 26.11.12 추가 - 처치한 보스 ID (호스트·게스트 각자 자기 세이브에 기록)
+	UPROPERTY()
+	TSet<FName> DefeatedBossIds;
 };
