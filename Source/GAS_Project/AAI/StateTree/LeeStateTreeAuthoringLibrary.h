@@ -10,6 +10,7 @@
 
 class UStateTree;
 class UEnvQuery;
+class UStateTreeTaskBlueprintBase;
 
 /** 26.11.08 추가 - Enemy가 플레이어 공격을 막는 방식 (트리 자동 생성 시 선택) */
 UENUM(BlueprintType)
@@ -209,5 +210,26 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Lee|AI|Authoring", meta = (DevelopmentOnly))
 	static bool AddRangedRepositionFilters(UEnvQuery* Query, float MinMoveDistance = 300.f, float SightHeightOffset = 100.f);
+#pragma endregion
+
+#pragma region 26.11.12 추가 - 기존 트리의 Idle 아래에 순찰 붙이기
+	/**
+	 * 이미 있는 Enemy StateTree의 Root/Idle 아래에 순찰 상태 두 개를 붙이고 컴파일·저장한다 (에셋을 직접 수정).
+	 *   PatrolMove : PatrolTaskClass(다음 순찰 위치 계산) + MoveTo(목적지 = NextPatrolLocation 바인딩) → 끝나면 PatrolWait
+	 *   PatrolWait : WaitSeconds 뒤 지연 전이 → PatrolMove
+	 * 전투 전환은 Idle에 원래 있던 OnTick 전이(Close/Mid/Far 조건)가 그대로 맡는다.
+	 * Idle에 이미 자식 상태가 있으면 중복 방지를 위해 아무것도 하지 않고 false를 반환한다.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Lee|AI|Authoring", meta = (DevelopmentOnly))
+	static bool AddIdlePatrol(UStateTree* StateTree, TSubclassOf<UStateTreeTaskBlueprintBase> PatrolTaskClass, FName PatrolTag, float WaitSeconds = 5.f);
+
+	/**
+	 * 이미 있는 Enemy StateTree의 Mid/Approach, Far/Approach에 "거리 구간이 바뀌면 Root로" OnTick 전이를 붙이고 컴파일·저장한다.
+	 *   Mid/Approach : bIsFarTier 또는 bIsCloseTier가 true → Root
+	 *   Far/Approach : bIsMidTier 또는 bIsCloseTier가 true → Root
+	 * 이미 붙어 있으면(같은 트리에 두 번 실행) 해당 상태는 건너뛴다. 붙인 상태 수를 반환한다 (실패 시 -1).
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Lee|AI|Authoring", meta = (DevelopmentOnly))
+	static int32 AddApproachTierTransitions(UStateTree* StateTree);
 #pragma endregion
 };

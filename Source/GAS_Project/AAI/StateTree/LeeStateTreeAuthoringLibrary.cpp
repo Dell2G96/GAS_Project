@@ -14,6 +14,7 @@
 #include "Components/StateTreeAIComponentSchema.h"
 #include "Conditions/StateTreeCommonConditions.h"
 #include "Tasks/StateTreeMoveToTask.h"
+#include "Blueprint/StateTreeTaskBlueprintBase.h"
 
 #include "GAS_Project/AAI/StateTree/LeeStateTreeConditions_Combat.h"
 #include "GAS_Project/MyTags.h"
@@ -69,6 +70,19 @@ namespace LeeAuthoring
 		TStateTreeEditorNode<FStateTreeCompareBoolCondition>& Cond = State.AddEnterCondition<FStateTreeCompareBoolCondition>();
 		Cond.GetInstanceData().bRight = true;
 		EditorData.AddPropertyBinding(EvalNode, SourceProperty, Cond, TEXT("bLeft"));
+	}
+
+	/**
+	 * 26.11.12 추가 - Evaluator의 거리 구간 플래그(TierProperty)가 true가 되면 Root로 돌아가 다시 고르는 OnTick 전이.
+	 * 추격(Approach) 중 거리 구간이 바뀌어도 MoveTo가 끝날 때까지 상태가 유지되던 문제를 막는다.
+	 */
+	inline void AddTierChangeTransition(UStateTreeEditorData& EditorData, UStateTreeState& State, UStateTreeState& Root,
+	                                    const FStateTreeEditorNode& EvalNode, const FString& TierProperty)
+	{
+		FStateTreeTransition& Transition = State.AddTransition(EStateTreeTransitionTrigger::OnTick, EStateTreeTransitionType::GotoState, &Root);
+		TStateTreeEditorNode<FStateTreeCompareBoolCondition>& Cond = Transition.AddCondition<FStateTreeCompareBoolCondition>();
+		Cond.GetInstanceData().bRight = true;
+		EditorData.AddPropertyBinding(EvalNode, TierProperty, Cond, TEXT("bLeft"));
 	}
 }
 
@@ -567,6 +581,11 @@ UStateTree* ULeeStateTreeAuthoringLibrary::BuildEnemyCombatStateTree(const FStri
 			EStateTreeTransitionType::GotoState, &Root);
 		Approach.AddTransition(EStateTreeTransitionTrigger::OnStateFailed,
 			EStateTreeTransitionType::GotoState, &Root);
+
+		// 26.11.12 추가 - 추격 중 거리 구간이 바뀌면 다시 고른다 (없으면 처음 구간의 걷기/뛰기가 도착할 때까지 유지됨)
+		const bool bIsMidApproach = (&Parent == &MidState);
+		LeeAuthoring::AddTierChangeTransition(*EditorData, Approach, Root, Eval, bIsMidApproach ? TEXT("bIsFarTier") : TEXT("bIsMidTier"));
+		LeeAuthoring::AddTierChangeTransition(*EditorData, Approach, Root, Eval, TEXT("bIsCloseTier"));
 	};
 
 	// 26.11.10 추가 - 대상 발밑 AOE: 쿨다운이 아니면 투사체보다 먼저 쓴다 (쿨다운이 더 길어 투사체와 번갈아 나온다)
@@ -850,7 +869,192 @@ bool ULeeStateTreeAuthoringLibrary::AddRangedRepositionFilters(UEnvQuery* Query,
 }
 #pragma endregion
 
+#pragma region 26.11.12 추가 - 기존 트리의 Idle 아래에 순찰 붙이기
+// Root/Idle 아래에 PatrolMove(BP 순찰 태스크 + MoveTo) ↔ PatrolWait(Delay) 순환 상태를 붙이고 컴파일·저장한다
+bool ULeeStateTreeAuthoringLibrary::AddIdlePatrol(UStateTree* StateTree, TSubclassOf<UStateTreeTaskBlueprintBase> PatrolTaskClass, FName PatrolTag, float WaitSeconds)
+{
+	UStateTreeEditorData* EditorData = StateTree ? Cast<UStateTreeEditorData>(StateTree->EditorData) : nullptr;
+	if (!EditorData || !PatrolTaskClass || EditorData->SubTrees.IsEmpty() || !EditorData->SubTrees[0])
+	{
+		UE_LOG(LogTemp, Error, TEXT("[LeeAuthoring] AddIdlePatrol: StateTree 또는 순찰 태스크 클래스가 비어 있습니다."));
+		return false;
+	}
+
+	// Root 바로 아래의 Idle 상태를 찾는다 (BuildEnemyCombatStateTree가 만든 구조)
+	UStateTreeState* IdleState = nullptr;
+	for (UStateTreeState* Child : EditorData->SubTrees[0]->Children)
+	{
+		if (Child && Child->Name == TEXT("Idle"))
+		{
+			IdleState = Child;
+			break;
+		}
+	}
+	if (!IdleState)
+	{
+		UE_LOG(LogTemp, Error, TEXT("[LeeAuthoring] AddIdlePatrol: Idle 상태가 없습니다: %s"), *StateTree->GetName());
+		return false;
+	}
+	if (!IdleState->Children.IsEmpty())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[LeeAuthoring] AddIdlePatrol: Idle에 이미 자식 상태가 있어 건너뜁니다: %s"), *StateTree->GetName());
+		return false;
+	}
+
+	StateTree->Modify();
+	EditorData->Modify();
+	IdleState->Modify();
+	IdleState->SelectionBehavior = EStateTreeStateSelectionBehavior::TrySelectChildrenInOrder;
+
+	// --- PatrolMove: BP 태스크가 NextPatrolLocation을 계산 → MoveTo가 그 위치로 이동 ---
+	UStateTreeState& MoveState = IdleState->AddChildState(TEXT("PatrolMove"));
+
+	// BP 태스크는 AddTask<T>로 만들 수 없어(인스턴스가 UObject) 에디터가 하는 방식대로 직접 채운다
+	FStateTreeEditorNode& PatrolNode = MoveState.Tasks.AddDefaulted_GetRef();
+	PatrolNode.ID = FGuid::NewGuid();
+	PatrolNode.Node.InitializeAs<FStateTreeBlueprintTaskWrapper>();
+	PatrolNode.Node.GetMutable<FStateTreeBlueprintTaskWrapper>().TaskClass = PatrolTaskClass;
+	PatrolNode.InstanceObject = NewObject<UObject>(EditorData, PatrolTaskClass.Get(), NAME_None, RF_Transactional);
+	if (const FNameProperty* TagProperty = FindFProperty<FNameProperty>(PatrolTaskClass.Get(), TEXT("PatrolTag")))
+	{
+		TagProperty->SetPropertyValue_InContainer(PatrolNode.InstanceObject, PatrolTag);
+	}
+
+	TStateTreeEditorNode<FStateTreeMoveToTask>& MoveTask = MoveState.AddTask<FStateTreeMoveToTask>();
+	EditorData->AddPropertyBinding(PatrolNode, TEXT("NextPatrolLocation"), MoveTask, TEXT("Destination"));
+
+	// --- PatrolWait: 순찰 지점에서 WaitSeconds 동안 서 있는다 ---
+	// 엔진 Delay 태스크는 비공개 헤더라 쓸 수 없어서, 끝나지 않는 걷기 속도 태스크 + "지연 OnTick 전이"로 대기를 만든다
+	UStateTreeState& WaitState = IdleState->AddChildState(TEXT("PatrolWait"));
+	TStateTreeEditorNode<FLeeStateTreeTask_SetMovementGait>& WaitGaitTask = WaitState.AddTask<FLeeStateTreeTask_SetMovementGait>();
+	WaitGaitTask.GetInstanceData().Gait = ELeeMovementGait::Walk;
+	FStateTreeTransition& WaitDone = WaitState.AddTransition(EStateTreeTransitionTrigger::OnTick, EStateTreeTransitionType::GotoState, &MoveState);
+	WaitDone.bDelayTransition = true;
+	WaitDone.DelayDuration = WaitSeconds;
+
+	// 이동이 끝나거나 길을 못 찾아도 대기로 (완료가 Root까지 올라가 트리가 끝나는 것을 막음)
+	MoveState.AddTransition(EStateTreeTransitionTrigger::OnStateCompleted, EStateTreeTransitionType::GotoState, &WaitState);
+	MoveState.AddTransition(EStateTreeTransitionTrigger::OnStateFailed, EStateTreeTransitionType::GotoState, &WaitState);
+
+	FStateTreeCompilerLog Log;
+	if (!UStateTreeEditingSubsystem::CompileStateTree(StateTree, Log))
+	{
+		UE_LOG(LogTemp, Error, TEXT("[LeeAuthoring] AddIdlePatrol: 컴파일 실패: %s"), *StateTree->GetName());
+		return false;
+	}
+
+	UPackage* Package = StateTree->GetOutermost();
+	Package->MarkPackageDirty();
+	const FString FileName = FPackageName::LongPackageNameToFilename(Package->GetName(), FPackageName::GetAssetPackageExtension());
+	FSavePackageArgs SaveArgs;
+	SaveArgs.TopLevelFlags = RF_Public | RF_Standalone;
+	if (!UPackage::SavePackage(Package, StateTree, *FileName, SaveArgs))
+	{
+		UE_LOG(LogTemp, Error, TEXT("[LeeAuthoring] AddIdlePatrol: 저장 실패: %s"), *FileName);
+		return false;
+	}
+
+	UE_LOG(LogTemp, Log, TEXT("[LeeAuthoring] AddIdlePatrol 완료 (태그 %s, 대기 %.1f초): %s"), *PatrolTag.ToString(), WaitSeconds, *Package->GetName());
+	return true;
+}
+
+// Mid/Approach, Far/Approach에 거리 구간 변경 전이를 붙이고 컴파일·저장한다 (이미 있으면 건너뜀)
+int32 ULeeStateTreeAuthoringLibrary::AddApproachTierTransitions(UStateTree* StateTree)
+{
+	UStateTreeEditorData* EditorData = StateTree ? Cast<UStateTreeEditorData>(StateTree->EditorData) : nullptr;
+	if (!EditorData || EditorData->SubTrees.IsEmpty() || !EditorData->SubTrees[0])
+	{
+		UE_LOG(LogTemp, Error, TEXT("[LeeAuthoring] AddApproachTierTransitions: StateTree가 비어 있습니다."));
+		return -1;
+	}
+
+	// 거리 구간 플래그를 내보내는 전투 컨텍스트 Evaluator를 찾는다
+	const FStateTreeEditorNode* EvalNode = EditorData->Evaluators.FindByPredicate([](const FStateTreeEditorNode& Node)
+	{
+		return Node.Node.GetScriptStruct() == FLeeStateTreeEvaluator_CombatContext::StaticStruct();
+	});
+	if (!EvalNode)
+	{
+		UE_LOG(LogTemp, Error, TEXT("[LeeAuthoring] AddApproachTierTransitions: Lee Combat Context 평가기가 없습니다: %s"), *StateTree->GetName());
+		return -1;
+	}
+
+	UStateTreeState& Root = *EditorData->SubTrees[0];
+	StateTree->Modify();
+	EditorData->Modify();
+
+	int32 PatchedCount = 0;
+	for (UStateTreeState* Tier : Root.Children)
+	{
+		const bool bIsMid = Tier && Tier->Name == TEXT("Mid");
+		const bool bIsFar = Tier && Tier->Name == TEXT("Far");
+		if (!bIsMid && !bIsFar)
+		{
+			continue;
+		}
+
+		for (UStateTreeState* Child : Tier->Children)
+		{
+			if (!Child || Child->Name != TEXT("Approach"))
+			{
+				continue;
+			}
+
+			// 이미 거리 구간 전이(OnTick + 비교 조건 → Root)가 있으면 중복으로 붙이지 않는다
+			const bool bAlreadyPatched = Child->Transitions.ContainsByPredicate([](const FStateTreeTransition& Transition)
+			{
+				return Transition.Trigger == EStateTreeTransitionTrigger::OnTick
+					&& Transition.Conditions.ContainsByPredicate([](const FStateTreeEditorNode& Cond)
+					{
+						return Cond.Node.GetScriptStruct() == FStateTreeCompareBoolCondition::StaticStruct();
+					});
+			});
+			if (bAlreadyPatched)
+			{
+				continue;
+			}
+
+			Child->Modify();
+			LeeAuthoring::AddTierChangeTransition(*EditorData, *Child, Root, *EvalNode, bIsMid ? TEXT("bIsFarTier") : TEXT("bIsMidTier"));
+			LeeAuthoring::AddTierChangeTransition(*EditorData, *Child, Root, *EvalNode, TEXT("bIsCloseTier"));
+			++PatchedCount;
+		}
+	}
+
+	FStateTreeCompilerLog Log;
+	if (!UStateTreeEditingSubsystem::CompileStateTree(StateTree, Log))
+	{
+		UE_LOG(LogTemp, Error, TEXT("[LeeAuthoring] AddApproachTierTransitions: 컴파일 실패: %s"), *StateTree->GetName());
+		return -1;
+	}
+
+	UPackage* Package = StateTree->GetOutermost();
+	Package->MarkPackageDirty();
+	const FString FileName = FPackageName::LongPackageNameToFilename(Package->GetName(), FPackageName::GetAssetPackageExtension());
+	FSavePackageArgs SaveArgs;
+	SaveArgs.TopLevelFlags = RF_Public | RF_Standalone;
+	if (!UPackage::SavePackage(Package, StateTree, *FileName, SaveArgs))
+	{
+		UE_LOG(LogTemp, Error, TEXT("[LeeAuthoring] AddApproachTierTransitions: 저장 실패: %s"), *FileName);
+		return -1;
+	}
+
+	UE_LOG(LogTemp, Log, TEXT("[LeeAuthoring] AddApproachTierTransitions 완료 (상태 %d개): %s"), PatchedCount, *Package->GetName());
+	return PatchedCount;
+}
+#pragma endregion
+
 #else // WITH_EDITOR
+
+bool ULeeStateTreeAuthoringLibrary::AddIdlePatrol(UStateTree*, TSubclassOf<UStateTreeTaskBlueprintBase>, FName, float)
+{
+	return false;
+}
+
+int32 ULeeStateTreeAuthoringLibrary::AddApproachTierTransitions(UStateTree*)
+{
+	return -1;
+}
 
 FString ULeeStateTreeAuthoringLibrary::DescribeEnvQuery(UEnvQuery*)
 {
