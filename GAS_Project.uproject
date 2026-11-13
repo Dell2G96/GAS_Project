@@ -110,6 +110,13 @@
 			"Enabled": true
 		},
 		{
+			"Name": "DellgAgent",
+			"Enabled": true,
+			"TargetAllowList": [
+				"Editor"
+			]
+		},
+		{
 			"Name": "PIEAutoRecorder",
 			"Enabled": true,
 			"TargetAllowList": [
