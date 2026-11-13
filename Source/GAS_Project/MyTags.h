@@ -156,6 +156,8 @@ namespace MyTags
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Status_SuperArmor_Light);
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Status_SuperArmor_Heavy);
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Status_SuperArmor_NoDamage);
+		// 26.11.13 추가 - 몽타주 이동 잠금 구간 (LeeAnimNotifyState_MoveLock이 붙임, 이동·몸 회전 0)
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Status_MoveLock);
 		// 26.11.11 추가 - 보스 2페이즈 전환(포효) 예약 중 — 새 공격 시작을 막고, 하던 행동이 끝나면 포효한다
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Status_Boss_PhaseChangeQueued);
 		// 26.10.30 추가 - 에스트 마시는 중 (ActivationOwnedTags, 이동 감속 판정)

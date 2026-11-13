@@ -295,6 +295,14 @@ void ULeeDefenseComponent::HandleDamageResolved(AActor* EffectInstigator, AActor
 			return;
 		}
 
+		// 26.11.13 추가 - 그로기 중에는 데미지만 받고 경직은 건너뛴다.
+		// 여기서 공격 취소·경직 이벤트를 보내면 그로기 몽타주를 재생하던 HitReaction이 경직으로 바뀌어,
+		// 그로기 태그는 남았는데 서 있는(처형만 가능한) 어긋난 상태가 된다.
+		if (OwnerASC->HasMatchingGameplayTag(MyTags::Souls::Status_Groggy))
+		{
+			return;
+		}
+
 		CancelExclusiveAbilities(OwnerASC);
 
 		// 가드불가 / 퍼펙트 가드 전용 공격을 일반 가드 중에 맞으면 → 상태 변화 없이 연출만 가드브레이크 몽타주로 대체
@@ -452,8 +460,77 @@ void ULeeDefenseComponent::ApplyGroggy()
 	}
 
 	FGameplayEffectSpecHandle SpecHandle = ASC->MakeOutgoingSpec(GroggyEffect, /*Level*/1.0f, ASC->MakeEffectContext());
+	if (!SpecHandle.IsValid())
+	{
+		return;
+	}
+
+	// 26.11.13 추가 - 캐릭터별 그로기 시간 (GE_Groggy의 Duration이 SetByCaller일 때 적용, 고정값 GE면 무시됨)
+	SpecHandle.Data->SetSetByCallerMagnitude(MyTags::Souls::SetByCaller_Duration, GroggyDuration);
+	const FActiveGameplayEffectHandle ActiveHandle = ASC->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
+
+	// 스태미나 채우는 속도는 실제 적용된 GE 시간 기준으로 맞춘다 (GE가 고정값이어도 끝나는 순간 최대가 되도록)
+	const FActiveGameplayEffect* ActiveGroggy = ASC->GetActiveGameplayEffect(ActiveHandle);
+	const float ActualDuration = ActiveGroggy ? ActiveGroggy->GetDuration() : GroggyDuration;
+	StartGroggyStaminaRecover(ActualDuration);
+}
+
+// [서버] 그로기 스태미나 회복 시작 — Duration 동안 0→최대로 차오르도록 타이머를 건다
+void ULeeDefenseComponent::StartGroggyStaminaRecover(float Duration)
+{
+	UWorld* World = GetWorld();
+	if (!World || !GroggyStaminaRecoverEffect || Duration <= 0.0f)
+	{
+		return;
+	}
+
+	GroggyStartTime = World->GetTimeSeconds();
+	GroggyRecoverDuration = Duration;
+	World->GetTimerManager().SetTimer(GroggyStaminaRecoverTimerHandle, this, &ThisClass::TickGroggyStaminaRecover,
+		GroggyStaminaRecoverInterval, /*bLoop*/true);
+}
+
+// [서버] 그로기 스태미나 회복 틱 — 경과 비율만큼 채우고, 그로기가 끝났으면(만료·처형 등) 최대로 채운 뒤 정지
+void ULeeDefenseComponent::TickGroggyStaminaRecover()
+{
+	UAbilitySystemComponent* ASC = GetOwnerASC();
+	UWorld* World = GetWorld();
+	if (!ASC || !World)
+	{
+		return;
+	}
+
+	const float MaxStamina = ASC->GetNumericAttribute(ULeeSoulsStatSet::GetMaxStaminaAttribute());
+	const float Stamina = ASC->GetNumericAttribute(ULeeSoulsStatSet::GetStaminaAttribute());
+
+	if (!ASC->HasMatchingGameplayTag(MyTags::Souls::Status_Groggy))
+	{
+		AddStamina(MaxStamina - Stamina);
+		World->GetTimerManager().ClearTimer(GroggyStaminaRecoverTimerHandle);
+		return;
+	}
+
+	const float Alpha = FMath::Clamp((World->GetTimeSeconds() - GroggyStartTime) / GroggyRecoverDuration, 0.0f, 1.0f);
+	const float TargetStamina = MaxStamina * Alpha;
+	if (TargetStamina > Stamina)
+	{
+		AddStamina(TargetStamina - Stamina);
+	}
+}
+
+// [서버] 스태미나 더하기 — GroggyStaminaRecoverEffect(Instant, Stamina Add)에 양수 SetByCaller를 넣어 적용
+void ULeeDefenseComponent::AddStamina(float Amount)
+{
+	UAbilitySystemComponent* ASC = GetOwnerASC();
+	if (!ASC || !GroggyStaminaRecoverEffect || Amount <= 0.0f)
+	{
+		return;
+	}
+
+	FGameplayEffectSpecHandle SpecHandle = ASC->MakeOutgoingSpec(GroggyStaminaRecoverEffect, /*Level*/1.0f, ASC->MakeEffectContext());
 	if (SpecHandle.IsValid())
 	{
+		SpecHandle.Data->SetSetByCallerMagnitude(MyTags::Souls::SetByCaller_StaminaDamage, Amount);
 		ASC->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
 	}
 }

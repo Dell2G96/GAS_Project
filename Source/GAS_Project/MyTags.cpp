@@ -158,6 +158,8 @@ namespace MyTags
 		UE_DEFINE_GAMEPLAY_TAG(Status_SuperArmor_Light, "Souls.Status.SuperArmor.Light")
 		UE_DEFINE_GAMEPLAY_TAG(Status_SuperArmor_Heavy, "Souls.Status.SuperArmor.Heavy")
 		UE_DEFINE_GAMEPLAY_TAG(Status_SuperArmor_NoDamage, "Souls.Status.SuperArmor.NoDamage")
+		// 26.11.13 추가 - 몽타주 이동 잠금 구간
+		UE_DEFINE_GAMEPLAY_TAG(Status_MoveLock, "Souls.Status.MoveLock")
 		// 26.11.11 추가 - 보스 2페이즈 전환 예약
 		UE_DEFINE_GAMEPLAY_TAG(Status_Boss_PhaseChangeQueued, "Souls.Status.Boss.PhaseChangeQueued")
 		UE_DEFINE_GAMEPLAY_TAG(Status_Downed, "Souls.Status.Downed")

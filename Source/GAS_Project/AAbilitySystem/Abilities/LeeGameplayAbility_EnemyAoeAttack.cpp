@@ -25,6 +25,9 @@ ULeeGameplayAbility_EnemyAoeAttack::ULeeGameplayAbility_EnemyAoeAttack(const FOb
 
 	// 쉴드 중에도 쓸 수 있어야 하므로 Status_Shield_Active로 막지 않는다 (투사체 공격과 다른 점)
 
+	// 26.11.13 추가 - 그로기 중에는 공격을 시작하지 않는다 (StateTree에 그로기 검사가 없음)
+	ActivationBlockedTags.AddTag(MyTags::Souls::Status_Groggy);
+
 	CastEventTag = MyTags::Souls::Event_Attack_Fire;
 	Knockback.Offset = FVector(300.0f, 0.0f, 0.0f);
 	Knockback.Duration = 0.25f;

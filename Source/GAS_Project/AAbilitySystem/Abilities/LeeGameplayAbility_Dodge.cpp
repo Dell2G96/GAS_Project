@@ -5,6 +5,8 @@
 #include "TimerManager.h"
 #include "Abilities/Tasks/AbilityTask_PlayMontageAndWait.h"
 #include "Abilities/Tasks/AbilityTask_WaitGameplayEvent.h"
+#include "Abilities/Tasks/AbilityTask_WaitInputPress.h"
+#include "Abilities/Tasks/AbilityTask_WaitInputRelease.h"
 #include "GameFramework/Controller.h"
 #include "GameFramework/Pawn.h"
 #include "Math/RotationMatrix.h"
@@ -16,7 +18,10 @@ ULeeGameplayAbility_Dodge::ULeeGameplayAbility_Dodge(const FObjectInitializer& O
 	: Super(ObjectInitializer)
 {
 	InstancingPolicy   = EGameplayAbilityInstancingPolicy::InstancedPerActor;
-	NetExecutionPolicy = EGameplayAbilityNetExecutionPolicy::ServerInitiated;
+	// 26.11.13 수정 - ServerInitiated → LocalPredicted
+	// 더블탭 판정은 누른 클라이언트가 해야 하므로 클라이언트에서 즉시 활성화되고, 결정을 서버에 보낼 수 있어야 한다.
+	// i-frame(무적)은 계속 서버 타이머가 담당한다.
+	NetExecutionPolicy = EGameplayAbilityNetExecutionPolicy::LocalPredicted;
 	ActivationPolicy   = ELeeAbilityActivationPolicy::OnInputTriggered;
 	ActivationGroup    = ELeeAbilityActivationGroup::Exclusive_Replaceable;
 
@@ -36,7 +41,7 @@ ULeeGameplayAbility_Dodge::ULeeGameplayAbility_Dodge(const FObjectInitializer& O
 	CancelAbilitiesWithTag.AddTag(MyTags::Souls::Ability_Revive);
 }
 
-// 활성화 — 몽타주 재생 + 서버 i-frame 타이머 예약 + 퍼펙트 회피 이벤트 대기
+// 활성화 — 스태미나 소모 + 퍼펙트 회피 이벤트 대기 + 스텝/구르기 결정 대기 시작
 void ULeeGameplayAbility_Dodge::ActivateAbility(
 	const FGameplayAbilitySpecHandle Handle,
 	const FGameplayAbilityActorInfo* ActorInfo,
@@ -65,19 +70,191 @@ void ULeeGameplayAbility_Dodge::ActivateAbility(
 		return;
 	}
 
-	// 1. 몽타주 재생
-	const FName DodgeSection = SelectDodgeSection();
-	if (DodgeMontage->GetSectionIndex(DodgeSection) == INDEX_NONE)
+	bMoveStarted = false;
+
+	// 1. 퍼펙트 회피 판정 이벤트 대기 (DefenseComponent가 발송 )
+	UAbilityTask_WaitGameplayEvent* PerfectDodgeTask =
+		UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(
+			this, MyTags::Souls::Event_Defense_PerfectDodge,
+			/*OptionalExternalOwner*/nullptr, /*OnlyTriggerOnce*/true, /*OnlyMatchExact*/true);
+	PerfectDodgeTask->EventReceived.AddDynamic(this, &ThisClass::OnPerfectDodgeEventReceived);
+	PerfectDodgeTask->ReadyForActivation();
+
+	// 2. 26.11.13 추가 - 스텝/구르기 결정 대기
+	FTimerManager& TimerManager = GetWorld()->GetTimerManager();
+
+	if (ActorInfo->IsLocallyControlled())
 	{
-		UE_LOG(LogLee, Error, TEXT("[LeeGA_Dodge] DodgeMontage [%s]에 섹션 [%s]이 없습니다. BP의 섹션 이름을 확인해주세요."),
-			*GetNameSafe(DodgeMontage), *DodgeSection.ToString());
-		EndAbility(Handle, ActorInfo, ActivationInfo, true, true);
+		// [로컬 조작자] 키를 한 번 뗀 뒤 다시 눌러야 두 번째 입력으로 인정한다.
+		// (입력이 Triggered에 바인딩되어 있어 누르고 있는 동안 Pressed가 반복으로 들어오기 때문)
+		UAbilityTask_WaitInputRelease* ReleaseTask =
+			UAbilityTask_WaitInputRelease::WaitInputRelease(this, /*bTestAlreadyReleased*/true);
+		ReleaseTask->OnRelease.AddDynamic(this, &ThisClass::OnFirstInputReleased);
+		ReleaseTask->ReadyForActivation();
+
+		TimerManager.SetTimer(DecisionTimerHandle,
+			FTimerDelegate::CreateUObject(this, &ThisClass::OnDoubleTapWindowExpired),
+			FMath::Max(DoubleTapWindow, KINDA_SMALL_NUMBER), /*bLoop*/false);
+	}
+	else if (IsServerForRemotePlayer())
+	{
+		// [서버, 원격 플레이어] 게스트의 결정을 기다리고, 신호가 끝내 오지 않으면 스텝으로 처리
+		TimerManager.SetTimer(DecisionTimerHandle,
+			FTimerDelegate::CreateUObject(this, &ThisClass::StartDodgeMove, false),
+			DoubleTapWindow + RemoteDecisionTimeout, /*bLoop*/false);
+		ListenForRemoteDecision();
+	}
+	else
+	{
+		StartDodgeMove(false);
+	}
+}
+
+// 26.11.13 추가 - [로컬 조작자] 첫 입력을 뗐으면 두 번째 누름을 기다린다
+void ULeeGameplayAbility_Dodge::OnFirstInputReleased(float /*TimeHeld*/)
+{
+	if (!IsActive() || bMoveStarted)
+	{
 		return;
 	}
 
+	UAbilityTask_WaitInputPress* PressTask =
+		UAbilityTask_WaitInputPress::WaitInputPress(this, /*bTestAlreadyPressed*/false);
+	PressTask->OnPress.AddDynamic(this, &ThisClass::OnSecondInputPressed);
+	PressTask->ReadyForActivation();
+}
+
+// 26.11.13 추가 - [로컬 조작자] 대기 시간 안에 다시 눌렀다 → 구르기
+void ULeeGameplayAbility_Dodge::OnSecondInputPressed(float /*TimeWaited*/)
+{
+	DecideDodgeLocally(true);
+}
+
+// 26.11.13 추가 - [로컬 조작자] 대기 시간이 지났다 → 스텝
+void ULeeGameplayAbility_Dodge::OnDoubleTapWindowExpired()
+{
+	DecideDodgeLocally(false);
+}
+
+// 26.11.13 추가 - [로컬 조작자] 최종 결정 후 게스트라면 서버에 신호를 보내고 동작을 시작한다
+void ULeeGameplayAbility_Dodge::DecideDodgeLocally(bool bRoll)
+{
+	if (!IsActive() || bMoveStarted)
+	{
+		return;
+	}
+
+	// 구르기 몽타주가 없거나 스태미나가 모자라면 스텝으로 대체
+	const bool bFinalRoll = bRoll && CanRoll();
+
+	const FGameplayAbilityActorInfo* ActorInfo = GetCurrentActorInfo();
+	UAbilitySystemComponent* ASC = GetAbilitySystemComponentFromActorInfo();
+	if (ActorInfo && ASC && !ActorInfo->IsNetAuthority())
+	{
+		// 게스트 → 서버: GameCustom1 = 스텝, GameCustom2 = 구르기 (콤보 전환 신호와 같은 방식)
+		FScopedPredictionWindow ScopedPrediction(ASC, true);
+		ASC->ServerSetReplicatedEvent(
+			bFinalRoll ? EAbilityGenericReplicatedEvent::GameCustom2 : EAbilityGenericReplicatedEvent::GameCustom1,
+			CurrentSpecHandle, GetCurrentActivationInfo().GetActivationPredictionKey(), ASC->ScopedPredictionKey);
+	}
+
+	StartDodgeMove(bFinalRoll);
+}
+
+// 26.11.13 추가 - [서버, 원격 플레이어] 게스트의 결정 신호를 구독하고, 이미 도착해 있으면 바로 처리
+void ULeeGameplayAbility_Dodge::ListenForRemoteDecision()
+{
+	UAbilitySystemComponent* ASC = GetAbilitySystemComponentFromActorInfo();
+	if (!ASC)
+	{
+		return;
+	}
+
+	const FPredictionKey ActivationKey = GetCurrentActivationInfo().GetActivationPredictionKey();
+	RemoteStepHandle = ASC->AbilityReplicatedEventDelegate(EAbilityGenericReplicatedEvent::GameCustom1, CurrentSpecHandle, ActivationKey)
+		.AddUObject(this, &ThisClass::OnRemoteStepDecided);
+	RemoteRollHandle = ASC->AbilityReplicatedEventDelegate(EAbilityGenericReplicatedEvent::GameCustom2, CurrentSpecHandle, ActivationKey)
+		.AddUObject(this, &ThisClass::OnRemoteRollDecided);
+
+	ASC->CallReplicatedEventDelegateIfSet(EAbilityGenericReplicatedEvent::GameCustom1, CurrentSpecHandle, ActivationKey);
+	ASC->CallReplicatedEventDelegateIfSet(EAbilityGenericReplicatedEvent::GameCustom2, CurrentSpecHandle, ActivationKey);
+}
+
+// 26.11.13 추가 - [서버, 원격 플레이어] 게스트가 스텝을 골랐다
+void ULeeGameplayAbility_Dodge::OnRemoteStepDecided()
+{
+	if (UAbilitySystemComponent* ASC = GetAbilitySystemComponentFromActorInfo())
+	{
+		ASC->ConsumeGenericReplicatedEvent(EAbilityGenericReplicatedEvent::GameCustom1, CurrentSpecHandle,
+			GetCurrentActivationInfo().GetActivationPredictionKey());
+	}
+	StartDodgeMove(false);
+}
+
+// 26.11.13 추가 - [서버, 원격 플레이어] 게스트가 구르기를 골랐다 (스태미나는 StartDodgeMove에서 서버가 다시 확인)
+void ULeeGameplayAbility_Dodge::OnRemoteRollDecided()
+{
+	if (UAbilitySystemComponent* ASC = GetAbilitySystemComponentFromActorInfo())
+	{
+		ASC->ConsumeGenericReplicatedEvent(EAbilityGenericReplicatedEvent::GameCustom2, CurrentSpecHandle,
+			GetCurrentActivationInfo().GetActivationPredictionKey());
+	}
+	StartDodgeMove(true);
+}
+
+// 26.11.13 추가 - 스텝 또는 구르기 몽타주 재생 + [서버] 추가 스태미나·i-frame 타이머 (기존 ActivateAbility의 1·2단계를 옮김)
+void ULeeGameplayAbility_Dodge::StartDodgeMove(bool bRoll)
+{
+	if (!IsActive() || bMoveStarted)
+	{
+		return;
+	}
+	bMoveStarted = true;
+
+	FTimerManager& TimerManager = GetWorld()->GetTimerManager();
+	TimerManager.ClearTimer(DecisionTimerHandle);
+
+	// 서버도 한 번 더 확인 — 스태미나가 모자라면 스텝으로 대체
+	if (bRoll && !CanRoll())
+	{
+		bRoll = false;
+	}
+
+	const FGameplayAbilityActorInfo* ActorInfo = GetCurrentActorInfo();
+	const bool bIsServer = ActorInfo && ActorInfo->IsNetAuthority();
+
+	UAnimMontage* Montage = DodgeMontage;
+	FName Section = NAME_None;
+	if (bRoll)
+	{
+		Montage = RollMontage;
+		Section = RollSection;
+		RotateToDodgeDirection();
+
+		// [서버] 구르기 추가 스태미나 소모
+		if (bIsServer && RollExtraCostEffect)
+		{
+			const FGameplayEffectSpecHandle CostSpec = MakeOutgoingGameplayEffectSpec(RollExtraCostEffect, GetAbilityLevel());
+			ApplyGameplayEffectSpecToOwner(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo, CostSpec);
+		}
+	}
+	else
+	{
+		Section = SelectDodgeSection();
+	}
+
+	if (Section != NAME_None && Montage->GetSectionIndex(Section) == INDEX_NONE)
+	{
+		UE_LOG(LogLee, Error, TEXT("[LeeGA_Dodge] 몽타주 [%s]에 섹션 [%s]이 없습니다. BP의 섹션 이름을 확인해주세요."),
+			*GetNameSafe(Montage), *Section.ToString());
+		EndAbility(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo, true, true);
+		return;
+	}
+
+	// 1. 몽타주 재생
 	UAbilityTask_PlayMontageAndWait* MontageTask =
 		UAbilityTask_PlayMontageAndWait::CreatePlayMontageAndWaitProxy(
-			this, NAME_None, DodgeMontage, /*PlayRate*/1.0f, DodgeSection);
+			this, NAME_None, Montage, /*PlayRate*/1.0f, Section);
 	MontageTask->OnCompleted.AddDynamic(this, &ThisClass::OnMontageCompleted);
 	MontageTask->OnBlendOut.AddDynamic(this, &ThisClass::OnMontageCompleted);
 	MontageTask->OnInterrupted.AddDynamic(this, &ThisClass::OnMontageInterrupted);
@@ -85,22 +262,53 @@ void ULeeGameplayAbility_Dodge::ActivateAbility(
 	MontageTask->ReadyForActivation();
 
 	// 2. [서버] i-frame 시작/종료 타이머 — AnimNotify에 의존하지 않아 데디 서버에서도 보장
-	if (ActorInfo->IsNetAuthority())
+	if (bIsServer)
 	{
-		FTimerManager& TimerManager = GetWorld()->GetTimerManager();
+		const float BeginTime = bRoll ? RollIFrameStartTime : IFrameStartTime;
+		const float EndTime   = bRoll ? RollIFrameEndTime   : IFrameEndTime;
 		TimerManager.SetTimer(IFrameBeginTimerHandle,
-			FTimerDelegate::CreateUObject(this, &ThisClass::OnIFrameBegin), IFrameStartTime, /*bLoop*/false);
+			FTimerDelegate::CreateUObject(this, &ThisClass::OnIFrameBegin), FMath::Max(BeginTime, KINDA_SMALL_NUMBER), /*bLoop*/false);
 		TimerManager.SetTimer(IFrameEndTimerHandle,
-			FTimerDelegate::CreateUObject(this, &ThisClass::OnIFrameEnd), IFrameEndTime, /*bLoop*/false);
+			FTimerDelegate::CreateUObject(this, &ThisClass::OnIFrameEnd), FMath::Max(EndTime, KINDA_SMALL_NUMBER), /*bLoop*/false);
+	}
+}
+
+// 26.11.13 추가 - 구르기 가능 여부 (구르기 몽타주 지정 + 추가 스태미나 GE를 적용할 수 있는지)
+bool ULeeGameplayAbility_Dodge::CanRoll() const
+{
+	if (!RollMontage)
+	{
+		return false;
+	}
+	if (!RollExtraCostEffect)
+	{
+		return true;
 	}
 
-	// 3. 퍼펙트 회피 판정 이벤트 대기 (DefenseComponent가 발송 )
-	UAbilityTask_WaitGameplayEvent* PerfectDodgeTask =
-		UAbilityTask_WaitGameplayEvent::WaitGameplayEvent(
-			this, MyTags::Souls::Event_Defense_PerfectDodge,
-			/*OptionalExternalOwner*/nullptr, /*OnlyTriggerOnce*/true, /*OnlyMatchExact*/true);
-	PerfectDodgeTask->EventReceived.AddDynamic(this, &ThisClass::OnPerfectDodgeEventReceived);
-	PerfectDodgeTask->ReadyForActivation();
+	UAbilitySystemComponent* ASC = GetAbilitySystemComponentFromActorInfo();
+	return ASC && ASC->CanApplyAttributeModifiers(
+		RollExtraCostEffect->GetDefaultObject<UGameplayEffect>(), GetAbilityLevel(),
+		MakeEffectContext(CurrentSpecHandle, CurrentActorInfo));
+}
+
+// 26.11.13 추가 - 구르기는 한 방향 몽타주라서 재생 직전에 입력 방향으로 캐릭터를 돌린다
+void ULeeGameplayAbility_Dodge::RotateToDodgeDirection()
+{
+	APawn* Pawn = Cast<APawn>(GetAvatarActorFromActorInfo());
+	const FVector InputVector = GetDodgeInputVector();
+	if (!Pawn || InputVector.IsNearlyZero())
+	{
+		return;
+	}
+
+	Pawn->SetActorRotation(FRotator(0.0f, InputVector.Rotation().Yaw, 0.0f));
+}
+
+// 26.11.13 추가 - 서버에서 다른 사람이 조작하는 캐릭터의 어빌리티인지
+bool ULeeGameplayAbility_Dodge::IsServerForRemotePlayer() const
+{
+	const FGameplayAbilityActorInfo* ActorInfo = GetCurrentActorInfo();
+	return ActorInfo && ActorInfo->IsNetAuthority() && !ActorInfo->IsLocallyControlled();
 }
 
 // 종료 — 무적/퍼펙트 윈도우 GE와 타이머를 무조건 정리 (태그 누수 방지 안전장치) + 회복 지연 적용
@@ -112,6 +320,26 @@ void ULeeGameplayAbility_Dodge::EndAbility(
 	bool bWasCancelled)
 {
 	CleanupDefenseWindows();
+
+	// 26.11.13 추가 - 결정 대기 타이머와 서버 결정 신호 구독 해제 (대기 중 공격 등으로 끊겨도 남지 않게)
+	if (UWorld* World = GetWorld())
+	{
+		World->GetTimerManager().ClearTimer(DecisionTimerHandle);
+	}
+	if (UAbilitySystemComponent* ASC = GetAbilitySystemComponentFromActorInfo())
+	{
+		const FPredictionKey ActivationKey = ActivationInfo.GetActivationPredictionKey();
+		if (RemoteStepHandle.IsValid())
+		{
+			ASC->AbilityReplicatedEventDelegate(EAbilityGenericReplicatedEvent::GameCustom1, Handle, ActivationKey).Remove(RemoteStepHandle);
+		}
+		if (RemoteRollHandle.IsValid())
+		{
+			ASC->AbilityReplicatedEventDelegate(EAbilityGenericReplicatedEvent::GameCustom2, Handle, ActivationKey).Remove(RemoteRollHandle);
+		}
+	}
+	RemoteStepHandle.Reset();
+	RemoteRollHandle.Reset();
 
 	// ActivationOwnedTags의 RegenBlocked는 어빌리티 종료와 동시에 사라지므로,
 	// 여기서 별도 Duration GE를 걸어 "회피 종료 후 N초간" 회복 정지를 이어간다

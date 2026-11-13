@@ -1044,6 +1044,156 @@ int32 ULeeStateTreeAuthoringLibrary::AddApproachTierTransitions(UStateTree* Stat
 }
 #pragma endregion
 
+#pragma region 26.11.13 추가 - 가드 스트레이프 뒤 제자리 대기(Hold)
+// Close/GuardStrafe를 "한 방향으로 한 번 이동"으로 바꾸고, 끝나면 Hold(가드/Idle 랜덤 대기)로 가게 한 뒤 컴파일·저장한다
+bool ULeeStateTreeAuthoringLibrary::AddGuardStrafeHold(UStateTree* StateTree, float MoveMinSeconds, float MoveMaxSeconds,
+	float HoldSeconds, float HoldVariance)
+{
+	UStateTreeEditorData* EditorData = StateTree ? Cast<UStateTreeEditorData>(StateTree->EditorData) : nullptr;
+	if (!EditorData || EditorData->SubTrees.IsEmpty() || !EditorData->SubTrees[0])
+	{
+		UE_LOG(LogTemp, Error, TEXT("[LeeAuthoring] AddGuardStrafeHold: StateTree가 비어 있습니다."));
+		return false;
+	}
+
+	const FStateTreeEditorNode* EvalNode = EditorData->Evaluators.FindByPredicate([](const FStateTreeEditorNode& Node)
+	{
+		return Node.Node.GetScriptStruct() == FLeeStateTreeEvaluator_CombatContext::StaticStruct();
+	});
+	if (!EvalNode)
+	{
+		UE_LOG(LogTemp, Error, TEXT("[LeeAuthoring] AddGuardStrafeHold: Lee Combat Context 평가기가 없습니다: %s"), *StateTree->GetName());
+		return false;
+	}
+
+	// Root 아래에서 Close와 Reactive Guard를, Close 아래에서 GuardStrafe를 찾는다 (BuildEnemyCombatStateTree가 만든 구조)
+	UStateTreeState& Root = *EditorData->SubTrees[0];
+	UStateTreeState* CloseState = nullptr;
+	UStateTreeState* ReactiveGuardState = nullptr;
+	for (UStateTreeState* Child : Root.Children)
+	{
+		if (Child && Child->Name == TEXT("Close"))
+		{
+			CloseState = Child;
+		}
+		else if (Child && Child->Name == TEXT("Reactive Guard"))
+		{
+			ReactiveGuardState = Child;
+		}
+	}
+	UStateTreeState* GuardStrafe = nullptr;
+	if (CloseState)
+	{
+		for (UStateTreeState* Child : CloseState->Children)
+		{
+			if (Child && Child->Name == TEXT("GuardStrafe"))
+			{
+				GuardStrafe = Child;
+			}
+			else if (Child && Child->Name == TEXT("Hold"))
+			{
+				UE_LOG(LogTemp, Warning, TEXT("[LeeAuthoring] AddGuardStrafeHold: 이미 Hold 상태가 있어 건너뜁니다: %s"), *StateTree->GetName());
+				return false;
+			}
+		}
+	}
+	if (!GuardStrafe)
+	{
+		UE_LOG(LogTemp, Error, TEXT("[LeeAuthoring] AddGuardStrafeHold: Close/GuardStrafe 상태가 없습니다: %s"), *StateTree->GetName());
+		return false;
+	}
+
+	StateTree->Modify();
+	EditorData->Modify();
+	CloseState->Modify();
+	GuardStrafe->Modify();
+
+	// --- 1) GuardStrafe: 짧게, 한 방향으로만 이동 ---
+	for (FStateTreeEditorNode& TaskNode : GuardStrafe->Tasks)
+	{
+		if (FLeeStrafeAroundTargetInstanceData* StrafeData = TaskNode.Instance.GetMutablePtr<FLeeStrafeAroundTargetInstanceData>())
+		{
+			StrafeData->MinDuration = MoveMinSeconds;
+			StrafeData->MaxDuration = MoveMaxSeconds;
+			// 방향 전환 주기를 이동 시간보다 훨씬 길게 → 이동 도중 좌우로 바뀌지 않는다
+			StrafeData->DirectionChangeInterval = FMath::Max(MoveMaxSeconds * 10.f, 30.f);
+		}
+	}
+
+	// --- 2) Hold: 자식 중 하나를 무작위로 골라 제자리 대기 ---
+	UStateTreeState& Hold = CloseState->AddChildState(TEXT("Hold"));
+	Hold.SelectionBehavior = EStateTreeStateSelectionBehavior::TrySelectChildrenAtRandom;
+
+	// HoldGuard: 방패를 든 채 플레이어를 바라본다 (방패 가드 Task는 스스로 끝나지 않음)
+	UStateTreeState& HoldGuard = Hold.AddChildState(TEXT("HoldGuard"));
+	{
+		TStateTreeEditorNode<FLeeStateTreeTask_ShieldGuard>& ShieldTask = HoldGuard.AddTask<FLeeStateTreeTask_ShieldGuard>();
+		EditorData->AddPropertyBinding(*EvalNode, TEXT("TargetActor"), ShieldTask, TEXT("TargetActor"));
+		EditorData->AddPropertyBinding(*EvalNode, TEXT("bShouldRefreshPerfect"), ShieldTask, TEXT("bShouldRefreshPerfect"));
+
+		TStateTreeEditorNode<FLeeStateTreeTask_FaceTarget>& FaceTask = HoldGuard.AddTask<FLeeStateTreeTask_FaceTarget>();
+		EditorData->AddPropertyBinding(*EvalNode, TEXT("TargetActor"), FaceTask, TEXT("TargetActor"));
+	}
+
+	// HoldIdle: 가드를 내리고 플레이어만 바라본다 (바라보기 Task는 완료 판정에서 제외되어 계속 유지)
+	UStateTreeState& HoldIdle = Hold.AddChildState(TEXT("HoldIdle"));
+	{
+		TStateTreeEditorNode<FLeeStateTreeTask_FaceTarget>& FaceTask = HoldIdle.AddTask<FLeeStateTreeTask_FaceTarget>();
+		EditorData->AddPropertyBinding(*EvalNode, TEXT("TargetActor"), FaceTask, TEXT("TargetActor"));
+	}
+
+	// Hold 전이 (부모에 두면 어느 자식이 선택돼도 같이 적용된다)
+	// - 공격 감지 → Reactive Guard (다른 이동 상태와 같은 조건, High 우선순위)
+	if (ReactiveGuardState)
+	{
+		FStateTreeTransition& ToGuard = Hold.AddTransition(EStateTreeTransitionTrigger::OnTick, EStateTreeTransitionType::GotoState, ReactiveGuardState);
+		ToGuard.Priority = EStateTreeTransitionPriority::High;
+		TStateTreeEditorNode<FLeeStateTreeCondition_CanReactWithGuard>& Cond = ToGuard.AddCondition<FLeeStateTreeCondition_CanReactWithGuard>();
+		EditorData->AddPropertyBinding(*EvalNode, TEXT("bShouldGuardNow"), Cond, TEXT("bShouldGuardNow"));
+		EditorData->AddPropertyBinding(*EvalNode, TEXT("bIsTargetInFront"), Cond, TEXT("bIsTargetInFront"));
+	}
+	// - 플레이어가 멀어지면 대기를 끊고 다시 고른다
+	LeeAuthoring::AddTierChangeTransition(*EditorData, Hold, Root, *EvalNode, TEXT("bIsMidTier"));
+	LeeAuthoring::AddTierChangeTransition(*EditorData, Hold, Root, *EvalNode, TEXT("bIsFarTier"));
+	// - HoldSeconds ± HoldVariance 뒤 Root (엔진 Delay 태스크 대신 지연 전이 — AddIdlePatrol과 같은 방식)
+	FStateTreeTransition& HoldDone = Hold.AddTransition(EStateTreeTransitionTrigger::OnTick, EStateTreeTransitionType::GotoState, &Root);
+	HoldDone.bDelayTransition = true;
+	HoldDone.DelayDuration = HoldSeconds;
+	HoldDone.DelayRandomVariance = HoldVariance;
+
+	// --- 3) GuardStrafe가 끝나면 Root 대신 Hold로 ---
+	for (FStateTreeTransition& Transition : GuardStrafe->Transitions)
+	{
+		if (Transition.Trigger == EStateTreeTransitionTrigger::OnStateCompleted)
+		{
+			Transition.State = Hold.GetLinkToState();
+		}
+	}
+
+	FStateTreeCompilerLog Log;
+	if (!UStateTreeEditingSubsystem::CompileStateTree(StateTree, Log))
+	{
+		UE_LOG(LogTemp, Error, TEXT("[LeeAuthoring] AddGuardStrafeHold: 컴파일 실패: %s"), *StateTree->GetName());
+		return false;
+	}
+
+	UPackage* Package = StateTree->GetOutermost();
+	Package->MarkPackageDirty();
+	const FString FileName = FPackageName::LongPackageNameToFilename(Package->GetName(), FPackageName::GetAssetPackageExtension());
+	FSavePackageArgs SaveArgs;
+	SaveArgs.TopLevelFlags = RF_Public | RF_Standalone;
+	if (!UPackage::SavePackage(Package, StateTree, *FileName, SaveArgs))
+	{
+		UE_LOG(LogTemp, Error, TEXT("[LeeAuthoring] AddGuardStrafeHold: 저장 실패: %s"), *FileName);
+		return false;
+	}
+
+	UE_LOG(LogTemp, Log, TEXT("[LeeAuthoring] AddGuardStrafeHold 완료 (이동 %.1f~%.1f초, 대기 %.1f±%.1f초): %s"),
+		MoveMinSeconds, MoveMaxSeconds, HoldSeconds, HoldVariance, *Package->GetName());
+	return true;
+}
+#pragma endregion
+
 #else // WITH_EDITOR
 
 bool ULeeStateTreeAuthoringLibrary::AddIdlePatrol(UStateTree*, TSubclassOf<UStateTreeTaskBlueprintBase>, FName, float)
@@ -1054,6 +1204,11 @@ bool ULeeStateTreeAuthoringLibrary::AddIdlePatrol(UStateTree*, TSubclassOf<UStat
 int32 ULeeStateTreeAuthoringLibrary::AddApproachTierTransitions(UStateTree*)
 {
 	return -1;
+}
+
+bool ULeeStateTreeAuthoringLibrary::AddGuardStrafeHold(UStateTree*, float, float, float, float)
+{
+	return false;
 }
 
 FString ULeeStateTreeAuthoringLibrary::DescribeEnvQuery(UEnvQuery*)

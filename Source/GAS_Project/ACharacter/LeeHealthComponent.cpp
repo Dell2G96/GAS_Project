@@ -124,6 +124,9 @@ void ULeeHealthComponent::ClearGameplayTags()
 	{
 		AbilitySystemComponent->SetLooseGameplayTagCount(MyTags::Souls::Status_Death_Dying, 0);
 		AbilitySystemComponent->SetLooseGameplayTagCount(MyTags::Souls::Status_Death_Dead, 0);
+		// 26.11.13 추가 - Move Lock 구간 도중 사망하면 NotifyEnd가 안 와서 태그가 남을 수 있다.
+		// 플레이어 ASC는 PlayerState에 있어 리스폰 후에도 남으므로, 폰 초기화·해제 때 함께 지운다
+		AbilitySystemComponent->SetLooseGameplayTagCount(MyTags::Souls::Status_MoveLock, 0);
 	}
 }
 

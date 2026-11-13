@@ -232,4 +232,17 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Lee|AI|Authoring", meta = (DevelopmentOnly))
 	static int32 AddApproachTierTransitions(UStateTree* StateTree);
 #pragma endregion
+
+#pragma region 26.11.13 추가 - 가드 스트레이프 뒤 제자리 대기(Hold)
+	/**
+	 * 이미 있는 Enemy StateTree의 Close/GuardStrafe 뒤에 제자리 대기 상태를 붙이고 컴파일·저장한다 (에셋을 직접 수정).
+	 *   GuardStrafe : MoveMinSeconds~MoveMaxSeconds 동안 한 방향으로만 이동(도중 방향 전환 없음) → 끝나면 Hold
+	 *   Hold        : HoldGuard(방패 가드 + 바라보기) / HoldIdle(바라보기만) 중 랜덤, HoldSeconds±HoldVariance 뒤 Root
+	 *                 공격 감지 시 Reactive Guard, 중거리/원거리로 벗어나면 Root
+	 * 이미 Hold 상태가 있으면 아무것도 하지 않고 false를 반환한다.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Lee|AI|Authoring", meta = (DevelopmentOnly))
+	static bool AddGuardStrafeHold(UStateTree* StateTree, float MoveMinSeconds = 1.5f, float MoveMaxSeconds = 2.5f,
+		float HoldSeconds = 2.5f, float HoldVariance = 0.5f);
+#pragma endregion
 };

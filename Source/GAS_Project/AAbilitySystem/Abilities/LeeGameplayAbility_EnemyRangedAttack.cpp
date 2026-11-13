@@ -27,6 +27,8 @@ ULeeGameplayAbility_EnemyRangedAttack::ULeeGameplayAbility_EnemyRangedAttack(con
 
 	// 26.11.08 추가 - 마법 쉴드 중에는 투사체 공격을 하지 않는다 (AOE 공격은 막지 않음)
 	ActivationBlockedTags.AddTag(MyTags::Souls::Status_Shield_Active);
+	// 26.11.13 추가 - 그로기 중에는 공격을 시작하지 않는다 (StateTree에 그로기 검사가 없음)
+	ActivationBlockedTags.AddTag(MyTags::Souls::Status_Groggy);
 
 	FireEventTag = MyTags::Souls::Event_Attack_Fire;
 }

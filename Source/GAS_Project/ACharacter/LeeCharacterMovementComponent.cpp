@@ -111,7 +111,9 @@ FRotator ULeeCharacterMovementComponent::GetDeltaRotation(float DeltaTime) const
 {
 	if (UAbilitySystemComponent* ASC = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(GetOwner()))
 	{
-		if (ASC->HasMatchingGameplayTag(MyTags::Souls::Gameplay_MovementStopped))
+		// 26.11.13 추가 - 몽타주 Move Lock 구간(Status_MoveLock)에서도 몸 회전을 멈춘다
+		if (ASC->HasMatchingGameplayTag(MyTags::Souls::Gameplay_MovementStopped)
+			|| ASC->HasMatchingGameplayTag(MyTags::Souls::Status_MoveLock))
 		{
 			return FRotator(0,0,0);
 		}
@@ -124,7 +126,9 @@ float ULeeCharacterMovementComponent::GetMaxSpeed() const
 {
 	if (UAbilitySystemComponent* ASC = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(GetOwner()))
 	{
-		if (ASC->HasMatchingGameplayTag(MyTags::Souls::Gameplay_MovementStopped))
+		// 26.11.13 추가 - 몽타주 Move Lock 구간(Status_MoveLock)에서도 이동을 멈춘다
+		if (ASC->HasMatchingGameplayTag(MyTags::Souls::Gameplay_MovementStopped)
+			|| ASC->HasMatchingGameplayTag(MyTags::Souls::Status_MoveLock))
 		{
 			return 0;
 		}

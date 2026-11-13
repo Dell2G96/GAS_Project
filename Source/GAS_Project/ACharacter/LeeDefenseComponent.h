@@ -75,6 +75,20 @@ private:
 	/** 그로기 GE 적용 (이미 그로기면 중복 적용하지 않음 — FinisherTargetComponent와 공존 안전) */
 	void ApplyGroggy();
 
+	/** 26.11.13 - [서버] 그로기 동안 스태미나를 채우는 타이머 시작 (GroggyDuration에 맞춰 끝날 때 최대) */
+	void StartGroggyStaminaRecover(float Duration);
+
+	/** 26.11.13 - [서버] 타이머 콜백 — 경과 비율만큼 스태미나를 채우고, 그로기가 끝났으면 최대로 채운 뒤 정지 */
+	void TickGroggyStaminaRecover();
+
+	/** 26.11.13 - [서버] GroggyStaminaRecoverEffect로 스태미나를 Amount만큼 더한다 */
+	void AddStamina(float Amount);
+
+	/** 26.11.13 - 그로기 스태미나 회복 타이머 / 시작 시각 / 실제 그로기 시간 */
+	FTimerHandle GroggyStaminaRecoverTimerHandle;
+	float GroggyStartTime = 0.0f;
+	float GroggyRecoverDuration = 0.0f;
+
 	/**
 	 * [서버] 가드 브레이크 처리 — 가드 어빌리티 강제 종료 + GuardBreak 이벤트 발송.
 	 * 그로기는 여기서 걸지 않는다. 가드브레이크 몽타주가 끝난 뒤 NotifyReactionFinished()가 진입시킨다.
@@ -155,6 +169,25 @@ protected:
 	/** [서버] 가드/패리 브레이크 시 적용할 그로기 GE */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Lee|Defense|Effect")
 	TSubclassOf<UGameplayEffect> GroggyEffect;
+
+	/**
+	 * 26.11.13 추가 - 그로기 지속 시간(초). 캐릭터 BP마다 지정 (보스는 길게, 일반 적은 짧게).
+	 * GE_Groggy의 Duration이 SetByCaller(Souls.SetByCaller.Duration)여야 이 값이 적용된다.
+	 * 그로기 몽타주는 이 시간 동안 Loop 섹션을 반복하다가 끝난다.
+	 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Lee|Defense|Groggy", meta = (ClampMin = "0.1"))
+	float GroggyDuration = 3.0f;
+
+	/**
+	 * 26.11.13 추가 - 그로기 동안 스태미나를 채울 Instant GE (Stamina Add, SetByCaller Souls.SetByCaller.StaminaDamage).
+	 * GE_StaminaDamage를 그대로 지정해도 된다 (양수를 넣으면 회복). 비워 두면 그로기 중 스태미나를 채우지 않는다.
+	 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Lee|Defense|Groggy")
+	TSubclassOf<UGameplayEffect> GroggyStaminaRecoverEffect;
+
+	/** 26.11.13 추가 - 그로기 중 스태미나를 채우는 간격(초). 작을수록 바가 부드럽게 찬다 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Lee|Defense|Groggy", meta = (ClampMin = "0.02"))
+	float GroggyStaminaRecoverInterval = 0.1f;
 
 	/**
 	 * [서버] 선행 리액션 연출을 기다리는 그로기의 최대 보류 시간(초).

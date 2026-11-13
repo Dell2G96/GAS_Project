@@ -37,6 +37,11 @@ ULeeGameplayAbility_AttackMelee::ULeeGameplayAbility_AttackMelee(const FObjectIn
 	// TryActivateAbilitiesByTag 호출 시 이 태그로 매칭됨
 	AbilityTags.AddTag(MyTags::Souls::Status_Attack_Melee);
 
+	// 26.11.13 추가 - 그로기 중에는 공격을 시작하지 않는다.
+	// (적 StateTree에는 그로기 검사가 없어, 그로기 중 스태미나가 차오르면 공격이 그로기 몽타주를 끊었다.
+	//  플레이어는 입력 단계에서 이미 막고 있어 동작 변화 없음)
+	ActivationBlockedTags.AddTag(MyTags::Souls::Status_Groggy);
+
 	// 26.11.06 추가 - 부활 중 공격 입력 → 부활을 끊고 공격 (적은 부활 어빌리티가 없어 영향 없음)
 	CancelAbilitiesWithTag.AddTag(MyTags::Souls::Ability_Revive);
 

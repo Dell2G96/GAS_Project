@@ -65,6 +65,7 @@ void ULeeGameplayAbility_HitReaction::ActivateAbility(
 
 	// 몽타주 종료 시 후속 처리(가드브레이크→그로기 체인) 분기에 쓰므로 트리거 태그를 보관한다
 	ActiveEventTag = TriggerEventData->EventTag;
+	bPlayingGroggyEnd = false;
 
 	UAnimMontage* SelectedMontage = SelectMontageForEvent(TriggerEventData->EventTag);
 	if (!SelectedMontage)
@@ -228,7 +229,8 @@ void ULeeGameplayAbility_HitReaction::OnMontageFinished()
 {
 	// 그로기 몽타주(loop)는 몽타주 이벤트로 끝내지 않는다. Status.Groggy가 제거될 때만 종료한다.
 	// (loop 도중 블렌드아웃 콜백이 와도 그로기 상태가 유지되는 동안에는 어빌리티를 살려둬야 한다)
-	if (ActiveEventTag == MyTags::Souls::Event_Combat_PostureBreak)
+	// 26.11.13 수정 - 단, 그로기가 끝나 End 섹션을 재생하던 중이면 몽타주가 끝났으므로 아래에서 종료한다
+	if (ActiveEventTag == MyTags::Souls::Event_Combat_PostureBreak && !bPlayingGroggyEnd)
 	{
 		return;
 	}
@@ -260,8 +262,16 @@ void ULeeGameplayAbility_HitReaction::OnMontageFinished()
 	EndAbility(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo, /*Replicate*/true, /*WasCancelled*/false);
 }
 
-// 그로기 GE 만료 — 어빌리티 종료. PlayMontageAndWait가 loop 몽타주를 같이 정리한다
+// 그로기 GE 만료 — End 섹션이 있으면 그 섹션(일어나기)을 재생하고, 없으면 바로 종료(loop 몽타주도 같이 끊김)
 void ULeeGameplayAbility_HitReaction::OnGroggyTagRemoved()
 {
+	// 26.11.13 추가 - End 섹션으로 넘어가면 몽타주가 끝날 때 OnMontageFinished가 어빌리티를 종료한다
+	if (GroggyReactionMontage && GroggyReactionMontage->GetSectionIndex(GroggyEndSection) != INDEX_NONE)
+	{
+		bPlayingGroggyEnd = true;
+		MontageJumpToSection(GroggyEndSection);
+		return;
+	}
+
 	EndAbility(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo, /*Replicate*/true, /*WasCancelled*/false);
 }

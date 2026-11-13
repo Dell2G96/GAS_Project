@@ -63,6 +63,9 @@ private:
 	/** 이번 활성화를 트리거한 이벤트 태그. 몽타주 종료 시 후속 처리(가드브레이크→그로기 체인) 분기에 사용 */
 	FGameplayTag ActiveEventTag;
 
+	/** 26.11.13 - 그로기가 끝나 End 섹션(일어나기)을 재생 중인지. 이때는 몽타주가 끝나면 어빌리티를 종료한다 */
+	bool bPlayingGroggyEnd = false;
+
 protected:
 	/** 패리당함 몽타주 */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Lee|HitReaction|Montage")
@@ -95,6 +98,14 @@ protected:
 	/** 체간 붕괴(무릎 꿇기) 몽타주 */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Lee|HitReaction|Montage")
 	TObjectPtr<UAnimMontage> GroggyReactionMontage;
+
+	/**
+	 * 26.11.13 추가 - 그로기가 끝날 때 재생할 섹션 이름 (일어나기 등).
+	 * 그로기 몽타주에 이 섹션이 있으면 그로기 종료 시 이 섹션으로 넘어가 끝까지 재생하고,
+	 * 없으면 지금처럼 바로 끊는다. (섹션 연결: Default → Loop → Loop 반복, End는 연결하지 않음)
+	 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Lee|HitReaction|Montage")
+	FName GroggyEndSection = TEXT("End");
 
 	/** 패리당함 몽타주의 Motion Warping 윈도우가 참조할 워프 타겟 이름 */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Lee|HitReaction")
