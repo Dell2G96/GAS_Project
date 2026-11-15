@@ -10,10 +10,12 @@
 #include "GAS_Project/MyTags.h"
 #include "GAS_Project/LeeLogChannels.h"
 
-// 생성자 — Cue 태그 설정 (Execute형 버스트 연출)
+// 생성자 — Execute형 버스트 연출 설정
+// 26.11.13 수정 - C++ 기본 태그 지정 제거. 태그는 BP에서만 정한다.
+// 부모(C++) 기본 태그와 BP 태그가 같으면 엔진(DeriveGameplayCueTagFromClass)이 에셋 이름에서 태그를 다시 만들려다
+// 실패할 때 GameplayCueName을 None으로 남겨, 이름이 GC_Souls_Dodge_Perfect가 아닌 BP(예: _v2)는 Cue 매니저에 등록되지 않았다.
 ALeeGameplayCue_PerfectDodge::ALeeGameplayCue_PerfectDodge()
 {
-	GameplayCueTag = MyTags::Souls::GameplayCue_Dodge_Perfect;
 	bAutoDestroyOnRemove = false;
 }
 
@@ -42,6 +44,12 @@ bool ALeeGameplayCue_PerfectDodge::OnExecute_Implementation(AActor* MyTarget, co
 	// 연속 실행 대비: 이전 잔상/타이머 정리 후 새로 시작
 	ClearAfterimages();
 	SourceMesh = TargetMesh;
+
+	// 26.11.13 추가 - (ver2) 본체를 잠깐 어둡게
+	StartBodyDarken(TargetMesh);
+
+	// UE_LOG(LogLee, Warning, TEXT("[임시디버그][PerfectDodge] Cue 실행 — Cue=%s Target=%s 잔상머티리얼=%s 본체오버레이=%s"),
+	// 	*GetClass()->GetName(), *GetNameSafe(MyTarget), *GetNameSafe(AfterimageMaterial), *GetNameSafe(BodyOverlayMaterial));
 
 	// 첫 샘플은 즉시, 이후 SampleInterval 간격으로 최대 MaxCount개
 	SpawnAfterimageSample();
@@ -181,4 +189,58 @@ void ALeeGameplayCue_PerfectDodge::ClearAfterimages()
 	AfterimageSamples.Reset();
 	AfterimageSpawnTimes.Reset();
 	SpawnedSampleCount = 0;
+
+	RestoreBodyOverlay();
+}
+
+// 26.11.13 추가 - (ver2) 타겟 메시의 오버레이 슬롯에 어두운 머티리얼을 씌우고 페이드를 시작한다
+void ALeeGameplayCue_PerfectDodge::StartBodyDarken(USkeletalMeshComponent* Mesh)
+{
+	if (!Mesh || !BodyOverlayMaterial)
+	{
+		return;
+	}
+
+	BodyOverlayMID = UMaterialInstanceDynamic::Create(BodyOverlayMaterial, this);
+	BodyOverlayMID->SetVectorParameterValue(TintParamName, AfterimageTint);
+	BodyOverlayMID->SetScalarParameterValue(OpacityParamName, BodyDarkenOpacity);
+
+	DarkenedMesh = Mesh;
+	PreviousBodyOverlay = Mesh->GetOverlayMaterial();
+	Mesh->SetOverlayMaterial(BodyOverlayMID);
+
+	BodyDarkenStartTime = GetWorld()->GetTimeSeconds();
+	GetWorld()->GetTimerManager().SetTimer(BodyDarkenTimerHandle, this, &ThisClass::UpdateBodyDarken, 0.02f, /*bLoop*/true);
+}
+
+// 26.11.13 추가 - (ver2) 경과 비율만큼 오버레이를 옅게 하고, 시간이 다 되면 원래대로 복원
+void ALeeGameplayCue_PerfectDodge::UpdateBodyDarken()
+{
+	const float Alpha = 1.0f - static_cast<float>((GetWorld()->GetTimeSeconds() - BodyDarkenStartTime) / BodyDarkenDuration);
+	if (Alpha <= 0.0f || !BodyOverlayMID)
+	{
+		RestoreBodyOverlay();
+		return;
+	}
+
+	BodyOverlayMID->SetScalarParameterValue(OpacityParamName, BodyDarkenOpacity * Alpha);
+}
+
+// 26.11.13 추가 - (ver2) 본체 오버레이를 씌우기 전 값으로 되돌린다 (다른 연출이 그 사이 오버레이를 바꿨으면 건드리지 않음)
+void ALeeGameplayCue_PerfectDodge::RestoreBodyOverlay()
+{
+	if (UWorld* World = GetWorld())
+	{
+		World->GetTimerManager().ClearTimer(BodyDarkenTimerHandle);
+	}
+
+	USkeletalMeshComponent* Mesh = DarkenedMesh.Get();
+	if (Mesh && BodyOverlayMID && Mesh->GetOverlayMaterial() == BodyOverlayMID)
+	{
+		Mesh->SetOverlayMaterial(PreviousBodyOverlay);
+	}
+
+	DarkenedMesh.Reset();
+	BodyOverlayMID = nullptr;
+	PreviousBodyOverlay = nullptr;
 }

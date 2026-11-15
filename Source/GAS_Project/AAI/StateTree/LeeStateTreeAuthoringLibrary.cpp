@@ -1192,6 +1192,415 @@ bool ULeeStateTreeAuthoringLibrary::AddGuardStrafeHold(UStateTree* StateTree, fl
 		MoveMinSeconds, MoveMaxSeconds, HoldSeconds, HoldVariance, *Package->GetName());
 	return true;
 }
+
+// Close/Retreat도 "한 번 물러나기 → Hold"로 바꾸고, Hold 전이를 스태미나 기준으로 다시 구성한 뒤 컴파일·저장한다
+bool ULeeStateTreeAuthoringLibrary::AddRetreatHold(UStateTree* StateTree, float RetreatRadius, float MoveMinSeconds, float MoveMaxSeconds,
+	float HoldSeconds, float HoldVariance)
+{
+	UStateTreeEditorData* EditorData = StateTree ? Cast<UStateTreeEditorData>(StateTree->EditorData) : nullptr;
+	if (!EditorData || EditorData->SubTrees.IsEmpty() || !EditorData->SubTrees[0])
+	{
+		UE_LOG(LogTemp, Error, TEXT("[LeeAuthoring] AddRetreatHold: StateTree가 비어 있습니다."));
+		return false;
+	}
+
+	const FStateTreeEditorNode* EvalNode = EditorData->Evaluators.FindByPredicate([](const FStateTreeEditorNode& Node)
+	{
+		return Node.Node.GetScriptStruct() == FLeeStateTreeEvaluator_CombatContext::StaticStruct();
+	});
+	if (!EvalNode)
+	{
+		UE_LOG(LogTemp, Error, TEXT("[LeeAuthoring] AddRetreatHold: Lee Combat Context 평가기가 없습니다: %s"), *StateTree->GetName());
+		return false;
+	}
+
+	// Root 아래 Close·Reactive Guard, Close 아래 Retreat·Hold를 찾는다
+	UStateTreeState& Root = *EditorData->SubTrees[0];
+	UStateTreeState* CloseState = nullptr;
+	UStateTreeState* ReactiveGuardState = nullptr;
+	for (UStateTreeState* Child : Root.Children)
+	{
+		if (Child && Child->Name == TEXT("Close"))
+		{
+			CloseState = Child;
+		}
+		else if (Child && Child->Name == TEXT("Reactive Guard"))
+		{
+			ReactiveGuardState = Child;
+		}
+	}
+	UStateTreeState* Retreat = nullptr;
+	UStateTreeState* Hold = nullptr;
+	if (CloseState)
+	{
+		for (UStateTreeState* Child : CloseState->Children)
+		{
+			if (Child && Child->Name == TEXT("Retreat"))
+			{
+				Retreat = Child;
+			}
+			else if (Child && Child->Name == TEXT("Hold"))
+			{
+				Hold = Child;
+			}
+		}
+	}
+	if (!Retreat || !Hold)
+	{
+		UE_LOG(LogTemp, Error, TEXT("[LeeAuthoring] AddRetreatHold: Close/Retreat 또는 Close/Hold가 없습니다 (AddGuardStrafeHold 먼저 실행): %s"),
+			*StateTree->GetName());
+		return false;
+	}
+
+	// Retreat 진입 조건(스태미나 비율 < 기준값)의 기준값을 그대로 Hold 종료 조건에 쓴다
+	float MinStaminaRatio = 0.3f;
+	for (FStateTreeEditorNode& Cond : Retreat->EnterConditions)
+	{
+		if (const FStateTreeCompareFloatConditionInstanceData* FloatData = Cond.Instance.GetPtr<FStateTreeCompareFloatConditionInstanceData>())
+		{
+			MinStaminaRatio = static_cast<float>(FloatData->Right);
+		}
+	}
+
+	StateTree->Modify();
+	EditorData->Modify();
+	Retreat->Modify();
+	Hold->Modify();
+
+	// --- 1) Retreat: 가까운 거리로, 한 방향으로 한 번만 물러난다 ---
+	for (FStateTreeEditorNode& TaskNode : Retreat->Tasks)
+	{
+		if (FLeeStrafeAroundTargetInstanceData* StrafeData = TaskNode.Instance.GetMutablePtr<FLeeStrafeAroundTargetInstanceData>())
+		{
+			StrafeData->StrafeRadius = RetreatRadius;
+			StrafeData->MinDuration = MoveMinSeconds;
+			StrafeData->MaxDuration = MoveMaxSeconds;
+			StrafeData->DirectionChangeInterval = FMath::Max(MoveMaxSeconds * 10.f, 30.f);
+		}
+	}
+	for (FStateTreeTransition& Transition : Retreat->Transitions)
+	{
+		if (Transition.Trigger == EStateTreeTransitionTrigger::OnStateCompleted)
+		{
+			Transition.State = Hold->GetLinkToState();
+		}
+	}
+
+	// --- 2) Hold 전이를 다시 구성 ---
+	Hold->Transitions.Reset();
+
+	// 공격 감지 → Reactive Guard (High)
+	if (ReactiveGuardState)
+	{
+		FStateTreeTransition& ToGuard = Hold->AddTransition(EStateTreeTransitionTrigger::OnTick, EStateTreeTransitionType::GotoState, ReactiveGuardState);
+		ToGuard.Priority = EStateTreeTransitionPriority::High;
+		TStateTreeEditorNode<FLeeStateTreeCondition_CanReactWithGuard>& Cond = ToGuard.AddCondition<FLeeStateTreeCondition_CanReactWithGuard>();
+		EditorData->AddPropertyBinding(*EvalNode, TEXT("bShouldGuardNow"), Cond, TEXT("bShouldGuardNow"));
+		EditorData->AddPropertyBinding(*EvalNode, TEXT("bIsTargetInFront"), Cond, TEXT("bIsTargetInFront"));
+	}
+
+	// 플레이어가 원거리로 멀어지면 바로 다시 고른다 (중거리는 물러난 결과라 대기를 유지)
+	LeeAuthoring::AddTierChangeTransition(*EditorData, *Hold, Root, *EvalNode, TEXT("bIsFarTier"));
+
+	// 대기 시간이 지나고 스태미나가 기준값 이상이면 Root. 모자라면 그 자리에서 계속 쉰다 (가드 중에도 스태미나는 회복됨)
+	FStateTreeTransition& HoldDone = Hold->AddTransition(EStateTreeTransitionTrigger::OnTick, EStateTreeTransitionType::GotoState, &Root);
+	HoldDone.bDelayTransition = true;
+	HoldDone.DelayDuration = HoldSeconds;
+	HoldDone.DelayRandomVariance = HoldVariance;
+	TStateTreeEditorNode<FStateTreeCompareFloatCondition>& StaminaOk =
+		HoldDone.AddCondition<FStateTreeCompareFloatCondition>(EGenericAICheck::GreaterOrEqual);
+	StaminaOk.GetInstanceData().Right = MinStaminaRatio;
+	EditorData->AddPropertyBinding(*EvalNode, TEXT("SelfStaminaRatio"), StaminaOk, TEXT("Left"));
+
+	FStateTreeCompilerLog Log;
+	if (!UStateTreeEditingSubsystem::CompileStateTree(StateTree, Log))
+	{
+		UE_LOG(LogTemp, Error, TEXT("[LeeAuthoring] AddRetreatHold: 컴파일 실패: %s"), *StateTree->GetName());
+		return false;
+	}
+
+	UPackage* Package = StateTree->GetOutermost();
+	Package->MarkPackageDirty();
+	const FString FileName = FPackageName::LongPackageNameToFilename(Package->GetName(), FPackageName::GetAssetPackageExtension());
+	FSavePackageArgs SaveArgs;
+	SaveArgs.TopLevelFlags = RF_Public | RF_Standalone;
+	if (!UPackage::SavePackage(Package, StateTree, *FileName, SaveArgs))
+	{
+		UE_LOG(LogTemp, Error, TEXT("[LeeAuthoring] AddRetreatHold: 저장 실패: %s"), *FileName);
+		return false;
+	}
+
+	UE_LOG(LogTemp, Log, TEXT("[LeeAuthoring] AddRetreatHold 완료 (반경 %.0f, 이동 %.1f~%.1f초, 대기 %.1f±%.1f초, 스태미나 기준 %.2f): %s"),
+		RetreatRadius, MoveMinSeconds, MoveMaxSeconds, HoldSeconds, HoldVariance, MinStaminaRatio, *Package->GetName());
+	return true;
+}
+
+// Mid/Far의 Reposition(EQS 이동)이 끝나면 RepositionHold(바라보며 대기, 공격 가능하면 즉시 공격)로 가게 하고 컴파일·저장한다
+int32 ULeeStateTreeAuthoringLibrary::AddRepositionHold(UStateTree* StateTree, float HoldSeconds, float HoldVariance)
+{
+	UStateTreeEditorData* EditorData = StateTree ? Cast<UStateTreeEditorData>(StateTree->EditorData) : nullptr;
+	if (!EditorData || EditorData->SubTrees.IsEmpty() || !EditorData->SubTrees[0])
+	{
+		UE_LOG(LogTemp, Error, TEXT("[LeeAuthoring] AddRepositionHold: StateTree가 비어 있습니다."));
+		return -1;
+	}
+
+	const FStateTreeEditorNode* EvalNode = EditorData->Evaluators.FindByPredicate([](const FStateTreeEditorNode& Node)
+	{
+		return Node.Node.GetScriptStruct() == FLeeStateTreeEvaluator_CombatContext::StaticStruct();
+	});
+	if (!EvalNode)
+	{
+		UE_LOG(LogTemp, Error, TEXT("[LeeAuthoring] AddRepositionHold: Lee Combat Context 평가기가 없습니다: %s"), *StateTree->GetName());
+		return -1;
+	}
+
+	UStateTreeState& Root = *EditorData->SubTrees[0];
+	StateTree->Modify();
+	EditorData->Modify();
+
+	int32 PatchedCount = 0;
+	for (UStateTreeState* Tier : Root.Children)
+	{
+		const bool bIsMid = Tier && Tier->Name == TEXT("Mid");
+		const bool bIsFar = Tier && Tier->Name == TEXT("Far");
+		if (!bIsMid && !bIsFar)
+		{
+			continue;
+		}
+
+		// 같은 구간 안에서 Reposition과 공격 상태들을 찾는다
+		UStateTreeState* Reposition = nullptr;
+		UStateTreeState* AoeAttack = nullptr;
+		UStateTreeState* RangedAttack = nullptr;
+		bool bAlreadyPatched = false;
+		for (UStateTreeState* Child : Tier->Children)
+		{
+			if (!Child)
+			{
+				continue;
+			}
+			if (Child->Name == TEXT("Reposition"))
+			{
+				Reposition = Child;
+			}
+			else if (Child->Name == TEXT("AoeTargetAttack"))
+			{
+				AoeAttack = Child;
+			}
+			else if (Child->Name == TEXT("RangedAttack"))
+			{
+				RangedAttack = Child;
+			}
+			else if (Child->Name == TEXT("RepositionHold"))
+			{
+				bAlreadyPatched = true;
+			}
+		}
+		if (!Reposition || bAlreadyPatched)
+		{
+			continue;
+		}
+
+		Tier->Modify();
+		Reposition->Modify();
+
+		// --- RepositionHold: 마지막 자식으로 둔다 (진입 조건이 없어도 앞의 Approach가 먼저 선택되므로 전이로만 들어온다) ---
+		UStateTreeState& Hold = Tier->AddChildState(TEXT("RepositionHold"));
+		TStateTreeEditorNode<FLeeStateTreeTask_FaceTarget>& FaceTask = Hold.AddTask<FLeeStateTreeTask_FaceTarget>();
+		EditorData->AddPropertyBinding(*EvalNode, TEXT("TargetActor"), FaceTask, TEXT("TargetActor"));
+
+		// 공격 가능하면 즉시 공격 — 목적지 상태의 진입 조건이 맞을 때만 전이가 일어나고, 아니면 대기를 계속한다
+		for (UStateTreeState* AttackState : { AoeAttack, RangedAttack })
+		{
+			if (AttackState)
+			{
+				Hold.AddTransition(EStateTreeTransitionTrigger::OnTick, EStateTreeTransitionType::GotoState, AttackState);
+			}
+		}
+
+		// 다른 거리 구간이 되면 다시 고른다
+		LeeAuthoring::AddTierChangeTransition(*EditorData, Hold, Root, *EvalNode, TEXT("bIsCloseTier"));
+		LeeAuthoring::AddTierChangeTransition(*EditorData, Hold, Root, *EvalNode, bIsMid ? TEXT("bIsFarTier") : TEXT("bIsMidTier"));
+
+		// 대기 시간이 지나면 Root
+		FStateTreeTransition& HoldDone = Hold.AddTransition(EStateTreeTransitionTrigger::OnTick, EStateTreeTransitionType::GotoState, &Root);
+		HoldDone.bDelayTransition = true;
+		HoldDone.DelayDuration = HoldSeconds;
+		HoldDone.DelayRandomVariance = HoldVariance;
+
+		// --- Reposition 완료 → RepositionHold (실패 전이는 그대로) ---
+		for (FStateTreeTransition& Transition : Reposition->Transitions)
+		{
+			if (Transition.Trigger == EStateTreeTransitionTrigger::OnStateCompleted)
+			{
+				Transition.State = Hold.GetLinkToState();
+			}
+		}
+		++PatchedCount;
+	}
+
+	FStateTreeCompilerLog Log;
+	if (!UStateTreeEditingSubsystem::CompileStateTree(StateTree, Log))
+	{
+		UE_LOG(LogTemp, Error, TEXT("[LeeAuthoring] AddRepositionHold: 컴파일 실패: %s"), *StateTree->GetName());
+		return -1;
+	}
+
+	UPackage* Package = StateTree->GetOutermost();
+	Package->MarkPackageDirty();
+	const FString FileName = FPackageName::LongPackageNameToFilename(Package->GetName(), FPackageName::GetAssetPackageExtension());
+	FSavePackageArgs SaveArgs;
+	SaveArgs.TopLevelFlags = RF_Public | RF_Standalone;
+	if (!UPackage::SavePackage(Package, StateTree, *FileName, SaveArgs))
+	{
+		UE_LOG(LogTemp, Error, TEXT("[LeeAuthoring] AddRepositionHold: 저장 실패: %s"), *FileName);
+		return -1;
+	}
+
+	UE_LOG(LogTemp, Log, TEXT("[LeeAuthoring] AddRepositionHold 완료 (구간 %d개, 대기 %.1f±%.1f초): %s"),
+		PatchedCount, HoldSeconds, HoldVariance, *Package->GetName());
+	return PatchedCount;
+}
+
+// 근접 공격이 끝나면 AttackRecover(가드/Idle 랜덤, 짧은 대기)를 거쳐 Root로 가게 하고 컴파일·저장한다
+bool ULeeStateTreeAuthoringLibrary::AddAttackRecover(UStateTree* StateTree, float RecoverSeconds, float RecoverVariance)
+{
+	UStateTreeEditorData* EditorData = StateTree ? Cast<UStateTreeEditorData>(StateTree->EditorData) : nullptr;
+	if (!EditorData || EditorData->SubTrees.IsEmpty() || !EditorData->SubTrees[0])
+	{
+		UE_LOG(LogTemp, Error, TEXT("[LeeAuthoring] AddAttackRecover: StateTree가 비어 있습니다."));
+		return false;
+	}
+
+	const FStateTreeEditorNode* EvalNode = EditorData->Evaluators.FindByPredicate([](const FStateTreeEditorNode& Node)
+	{
+		return Node.Node.GetScriptStruct() == FLeeStateTreeEvaluator_CombatContext::StaticStruct();
+	});
+	if (!EvalNode)
+	{
+		UE_LOG(LogTemp, Error, TEXT("[LeeAuthoring] AddAttackRecover: Lee Combat Context 평가기가 없습니다: %s"), *StateTree->GetName());
+		return false;
+	}
+
+	// Root 아래 Close·Reactive Guard, Close 아래 MeleeAttack을 찾는다
+	UStateTreeState& Root = *EditorData->SubTrees[0];
+	UStateTreeState* CloseState = nullptr;
+	UStateTreeState* ReactiveGuardState = nullptr;
+	for (UStateTreeState* Child : Root.Children)
+	{
+		if (Child && Child->Name == TEXT("Close"))
+		{
+			CloseState = Child;
+		}
+		else if (Child && Child->Name == TEXT("Reactive Guard"))
+		{
+			ReactiveGuardState = Child;
+		}
+	}
+	UStateTreeState* MeleeAttack = nullptr;
+	if (CloseState)
+	{
+		for (UStateTreeState* Child : CloseState->Children)
+		{
+			if (Child && Child->Name == TEXT("MeleeAttack"))
+			{
+				MeleeAttack = Child;
+			}
+			else if (Child && Child->Name == TEXT("AttackRecover"))
+			{
+				UE_LOG(LogTemp, Warning, TEXT("[LeeAuthoring] AddAttackRecover: 이미 AttackRecover가 있어 건너뜁니다: %s"), *StateTree->GetName());
+				return false;
+			}
+		}
+	}
+	if (!MeleeAttack || MeleeAttack->Children.IsEmpty())
+	{
+		UE_LOG(LogTemp, Error, TEXT("[LeeAuthoring] AddAttackRecover: Close/MeleeAttack(자식 공격 상태)이 없습니다: %s"), *StateTree->GetName());
+		return false;
+	}
+
+	StateTree->Modify();
+	EditorData->Modify();
+	CloseState->Modify();
+
+	// --- AttackRecover: Close의 마지막 자식 (진입 조건이 없어도 앞 상태가 먼저 선택되므로 전이로만 들어온다) ---
+	UStateTreeState& Recover = CloseState->AddChildState(TEXT("AttackRecover"));
+	Recover.SelectionBehavior = EStateTreeStateSelectionBehavior::TrySelectChildrenAtRandom;
+
+	// RecoverGuard: 방패를 든 채 바라본다
+	UStateTreeState& RecoverGuard = Recover.AddChildState(TEXT("RecoverGuard"));
+	{
+		TStateTreeEditorNode<FLeeStateTreeTask_ShieldGuard>& ShieldTask = RecoverGuard.AddTask<FLeeStateTreeTask_ShieldGuard>();
+		EditorData->AddPropertyBinding(*EvalNode, TEXT("TargetActor"), ShieldTask, TEXT("TargetActor"));
+		EditorData->AddPropertyBinding(*EvalNode, TEXT("bShouldRefreshPerfect"), ShieldTask, TEXT("bShouldRefreshPerfect"));
+
+		TStateTreeEditorNode<FLeeStateTreeTask_FaceTarget>& FaceTask = RecoverGuard.AddTask<FLeeStateTreeTask_FaceTarget>();
+		EditorData->AddPropertyBinding(*EvalNode, TEXT("TargetActor"), FaceTask, TEXT("TargetActor"));
+	}
+
+	// RecoverIdle: 가드를 내리고 바라본다 (공격 직후 빈틈)
+	UStateTreeState& RecoverIdle = Recover.AddChildState(TEXT("RecoverIdle"));
+	{
+		TStateTreeEditorNode<FLeeStateTreeTask_FaceTarget>& FaceTask = RecoverIdle.AddTask<FLeeStateTreeTask_FaceTarget>();
+		EditorData->AddPropertyBinding(*EvalNode, TEXT("TargetActor"), FaceTask, TEXT("TargetActor"));
+	}
+
+	// 전이: 공격 감지 → Reactive Guard / 중·원거리 → Root / 대기 끝 → Root
+	if (ReactiveGuardState)
+	{
+		FStateTreeTransition& ToGuard = Recover.AddTransition(EStateTreeTransitionTrigger::OnTick, EStateTreeTransitionType::GotoState, ReactiveGuardState);
+		ToGuard.Priority = EStateTreeTransitionPriority::High;
+		TStateTreeEditorNode<FLeeStateTreeCondition_CanReactWithGuard>& Cond = ToGuard.AddCondition<FLeeStateTreeCondition_CanReactWithGuard>();
+		EditorData->AddPropertyBinding(*EvalNode, TEXT("bShouldGuardNow"), Cond, TEXT("bShouldGuardNow"));
+		EditorData->AddPropertyBinding(*EvalNode, TEXT("bIsTargetInFront"), Cond, TEXT("bIsTargetInFront"));
+	}
+	LeeAuthoring::AddTierChangeTransition(*EditorData, Recover, Root, *EvalNode, TEXT("bIsMidTier"));
+	LeeAuthoring::AddTierChangeTransition(*EditorData, Recover, Root, *EvalNode, TEXT("bIsFarTier"));
+
+	FStateTreeTransition& RecoverDone = Recover.AddTransition(EStateTreeTransitionTrigger::OnTick, EStateTreeTransitionType::GotoState, &Root);
+	RecoverDone.bDelayTransition = true;
+	RecoverDone.DelayDuration = RecoverSeconds;
+	RecoverDone.DelayRandomVariance = RecoverVariance;
+
+	// --- 공격 상태(LightAttack/HeavyAttack) 완료 → AttackRecover (실패 전이는 그대로) ---
+	for (UStateTreeState* AttackState : MeleeAttack->Children)
+	{
+		if (!AttackState)
+		{
+			continue;
+		}
+		AttackState->Modify();
+		for (FStateTreeTransition& Transition : AttackState->Transitions)
+		{
+			if (Transition.Trigger == EStateTreeTransitionTrigger::OnStateCompleted)
+			{
+				Transition.State = Recover.GetLinkToState();
+			}
+		}
+	}
+
+	FStateTreeCompilerLog Log;
+	if (!UStateTreeEditingSubsystem::CompileStateTree(StateTree, Log))
+	{
+		UE_LOG(LogTemp, Error, TEXT("[LeeAuthoring] AddAttackRecover: 컴파일 실패: %s"), *StateTree->GetName());
+		return false;
+	}
+
+	UPackage* Package = StateTree->GetOutermost();
+	Package->MarkPackageDirty();
+	const FString FileName = FPackageName::LongPackageNameToFilename(Package->GetName(), FPackageName::GetAssetPackageExtension());
+	FSavePackageArgs SaveArgs;
+	SaveArgs.TopLevelFlags = RF_Public | RF_Standalone;
+	if (!UPackage::SavePackage(Package, StateTree, *FileName, SaveArgs))
+	{
+		UE_LOG(LogTemp, Error, TEXT("[LeeAuthoring] AddAttackRecover: 저장 실패: %s"), *FileName);
+		return false;
+	}
+
+	UE_LOG(LogTemp, Log, TEXT("[LeeAuthoring] AddAttackRecover 완료 (대기 %.2f±%.2f초): %s"), RecoverSeconds, RecoverVariance, *Package->GetName());
+	return true;
+}
 #pragma endregion
 
 #else // WITH_EDITOR
@@ -1207,6 +1616,21 @@ int32 ULeeStateTreeAuthoringLibrary::AddApproachTierTransitions(UStateTree*)
 }
 
 bool ULeeStateTreeAuthoringLibrary::AddGuardStrafeHold(UStateTree*, float, float, float, float)
+{
+	return false;
+}
+
+bool ULeeStateTreeAuthoringLibrary::AddRetreatHold(UStateTree*, float, float, float, float, float)
+{
+	return false;
+}
+
+int32 ULeeStateTreeAuthoringLibrary::AddRepositionHold(UStateTree*, float, float)
+{
+	return -1;
+}
+
+bool ULeeStateTreeAuthoringLibrary::AddAttackRecover(UStateTree*, float, float)
 {
 	return false;
 }

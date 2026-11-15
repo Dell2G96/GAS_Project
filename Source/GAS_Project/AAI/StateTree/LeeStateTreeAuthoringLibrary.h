@@ -244,5 +244,38 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Lee|AI|Authoring", meta = (DevelopmentOnly))
 	static bool AddGuardStrafeHold(UStateTree* StateTree, float MoveMinSeconds = 1.5f, float MoveMaxSeconds = 2.5f,
 		float HoldSeconds = 2.5f, float HoldVariance = 0.5f);
+
+	/**
+	 * 26.11.13 추가 - AddGuardStrafeHold로 만든 Hold에 Close/Retreat(스태미나 부족 물러나기)도 연결하고 컴파일·저장한다.
+	 *   Retreat : RetreatRadius로 MoveMin~MoveMax 동안 한 번만 물러남(방향 전환 없음) → 끝나면 Hold
+	 *   Hold    : 전이를 다시 구성 — 공격 감지 → Reactive Guard / 원거리 → Root /
+	 *             HoldSeconds±HoldVariance 지남 + 스태미나 ≥ Retreat 기준값 → Root (모자라면 계속 쉰다).
+	 *             물러나면 중거리가 되므로 "중거리 → Root" 전이는 두지 않는다.
+	 * Retreat이나 Hold가 없으면 false.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Lee|AI|Authoring", meta = (DevelopmentOnly))
+	static bool AddRetreatHold(UStateTree* StateTree, float RetreatRadius = 500.f, float MoveMinSeconds = 1.5f, float MoveMaxSeconds = 2.5f,
+		float HoldSeconds = 2.5f, float HoldVariance = 0.5f);
+
+	/**
+	 * 26.11.13 추가 - 원거리 적(Mid/Far)의 Reposition(EQS 이동) 뒤에 대기 상태를 붙이고 컴파일·저장한다. EQS 이동 자체는 그대로 둔다.
+	 *   Reposition     : 완료되면 Root 대신 RepositionHold
+	 *   RepositionHold : 타겟을 바라보며 HoldSeconds±HoldVariance 대기 → Root
+	 *                    매 틱 같은 구간의 AoeTargetAttack·RangedAttack으로 가 보고, 진입 조건이 맞으면 바로 공격
+	 *                    다른 거리 구간이 되면 Root
+	 * 이미 RepositionHold가 있는 구간은 건너뛴다. 붙인 구간 수를 반환한다 (실패 시 -1).
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Lee|AI|Authoring", meta = (DevelopmentOnly))
+	static int32 AddRepositionHold(UStateTree* StateTree, float HoldSeconds = 2.5f, float HoldVariance = 0.5f);
+
+	/**
+	 * 26.11.13 추가 - 근접 공격(Close/MeleeAttack의 자식)이 끝나면 바로 다시 공격하지 않고 잠깐 쉬게 하고 컴파일·저장한다.
+	 *   LightAttack/HeavyAttack : 완료되면 Root 대신 AttackRecover (실패 전이는 그대로)
+	 *   AttackRecover           : RecoverGuard(방패 가드 + 바라보기) / RecoverIdle(바라보기만) 중 랜덤,
+	 *                             RecoverSeconds±RecoverVariance 뒤 Root. 공격 감지 → Reactive Guard, 중·원거리 → Root
+	 * 이미 AttackRecover가 있으면 false.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Lee|AI|Authoring", meta = (DevelopmentOnly))
+	static bool AddAttackRecover(UStateTree* StateTree, float RecoverSeconds = 1.25f, float RecoverVariance = 0.25f);
 #pragma endregion
 };

@@ -39,6 +39,28 @@ private:
 	/** 잔상/타이머 전부 정리 (재실행/EndPlay 대비) */
 	void ClearAfterimages();
 
+	// ── 26.11.13 추가 - ver2: 본체를 잠깐 어둡게 (오버레이 머티리얼) ──
+	/** 타겟 메시에 BodyOverlayMaterial을 씌우고 페이드 타이머 시작 */
+	void StartBodyDarken(USkeletalMeshComponent* Mesh);
+
+	/** 본체 오버레이 불투명도 갱신, 시간이 다 되면 원래 오버레이로 복원 */
+	void UpdateBodyDarken();
+
+	/** 본체 오버레이를 원래대로 되돌리고 타이머 정리 */
+	void RestoreBodyOverlay();
+
+	/** 본체에 씌운 오버레이 MID (불투명도 갱신용) */
+	UPROPERTY(Transient)
+	TObjectPtr<UMaterialInstanceDynamic> BodyOverlayMID;
+
+	/** 씌우기 전의 원래 오버레이 머티리얼 (복원용) */
+	UPROPERTY(Transient)
+	TObjectPtr<UMaterialInterface> PreviousBodyOverlay;
+
+	TWeakObjectPtr<USkeletalMeshComponent> DarkenedMesh;
+	FTimerHandle BodyDarkenTimerHandle;
+	double BodyDarkenStartTime = 0.0;
+
 	/** 스폰된 잔상 컴포넌트와 스폰 시각 (인덱스 병렬 배열). 슬롯별 MID는 Sample->GetMaterial()로 필요 시 다시 조회 */
 	UPROPERTY(Transient)
 	TArray<TObjectPtr<UPoseableMeshComponent>> AfterimageSamples;
@@ -84,5 +106,20 @@ protected:
 	/** 머티리얼의 틴트 벡터 파라미터 이름 */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Lee|Afterimage")
 	FName TintParamName = TEXT("Tint");
+
+	/**
+	 * 26.11.13 추가 - (ver2) 퍼펙트 회피 순간 본체에 씌울 오버레이 머티리얼. 비우면 본체 효과 없음.
+	 * 잔상과 같은 Opacity/Tint 파라미터를 쓴다. 메시의 Overlay Material 슬롯을 잠시 빌렸다가 원래 값으로 돌려놓는다.
+	 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Lee|Afterimage|Body")
+	TObjectPtr<UMaterialInterface> BodyOverlayMaterial;
+
+	/** 26.11.13 추가 - (ver2) 본체가 어두웠다가 원래대로 돌아오는 시간(초) */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Lee|Afterimage|Body", meta = (ClampMin = "0.05"))
+	float BodyDarkenDuration = 0.3f;
+
+	/** 26.11.13 추가 - (ver2) 본체 오버레이 시작 불투명도 (0~1) */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Lee|Afterimage|Body", meta = (ClampMin = "0.0", ClampMax = "1.0"))
+	float BodyDarkenOpacity = 0.85f;
 
 };

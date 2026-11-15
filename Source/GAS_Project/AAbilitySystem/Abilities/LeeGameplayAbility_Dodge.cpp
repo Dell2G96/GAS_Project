@@ -364,6 +364,9 @@ void ULeeGameplayAbility_Dodge::OnIFrameBegin()
 
 	// 퍼펙트 회피 윈도우 — Duration GE 만료로 자동 제거, EndAbility에서도 이중 정리
 	PerfectDodgeWindowHandle = ApplyDurationEffect(PerfectDodgeWindowEffect, PerfectDodgeWindow);
+
+	// UE_LOG(LogLee, Warning, TEXT("[임시디버그][PerfectDodge] 무적·퍼펙트 구간 시작 (구간 %.2f초, 윈도우GE=%s)"),
+	// 	PerfectDodgeWindow, PerfectDodgeWindowHandle.IsValid() ? TEXT("적용") : TEXT("실패"));
 }
 
 // [서버] i-frame 종료 — 무적 GE 핸들 제거 (LooseTag 제거 금지 — Finisher 무적과 태그 공유)
