@@ -287,6 +287,17 @@ void ULeeDefenseComponent::HandleDamageResolved(AActor* EffectInstigator, AActor
 			return;
 		}
 
+		// 26.11.19 추가 - 스태미나가 이미 0 이하인 채 맞으면 경직 대신 그로기 (가드 피격 경로의 "이미 0" 검사와 같은 규칙).
+		// 가드 없는 피격은 스태미나를 깎지 않아 OnOutOfStamina(0이 되는 순간)가 다시 오지 않으므로 여기서 직접 판정한다.
+		// 예: Enemy가 자기 공격 비용(NoGroggy)으로 0이 된 뒤 맞는 경우, 플레이어가 달리기·회피로 0이 된 뒤 맞는 경우.
+		// 슈퍼아머보다 먼저 검사한다 — 스태미나 0은 체간이 무너진 상태라 공격 중이어도 그로기로 끊는다.
+		if (!OwnerASC->HasMatchingGameplayTag(MyTags::Souls::Status_Groggy)
+			&& OwnerASC->GetNumericAttribute(ULeeSoulsStatSet::GetStaminaAttribute()) <= 0.0f)
+		{
+			EnterGroggy(Attacker);
+			return;
+		}
+
 		// 26.11.11 추가 - 슈퍼아머: 데미지는 이미 들어갔으므로 공격 취소·경직만 건너뛴다
 		// (취소까지 건너뛰어야 "몽타주는 안 나오는데 공격만 끊기는" 문제가 생기지 않는다)
 		const bool bHeavyHit = ResultTags.HasTagExact(MyTags::Souls::DamageType_Attack_Heavy);
@@ -339,6 +350,13 @@ void ULeeDefenseComponent::HandleOutOfStamina(AActor* EffectInstigator, AActor* 
 	}
 
 	const FGameplayTagContainer& CauseTags = EffectSpec->GetDynamicAssetTags();
+
+	// 26.11.17 추가 - 달리기로 바닥난 것, Enemy가 끝까지 휘두르는 공격 비용으로 바닥난 것은 그로기가 아니다
+	if (CauseTags.HasTagExact(MyTags::Souls::StaminaCause_Sprint)
+		|| CauseTags.HasTagExact(MyTags::Souls::StaminaCause_NoGroggy))
+	{
+		return;
+	}
 
 	// ── 가드 중 피격으로 고갈 → 가드 브레이크 ──
 	if (CauseTags.HasTagExact(MyTags::Souls::DamageResult_GuardHit))

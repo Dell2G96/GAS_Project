@@ -19,6 +19,9 @@ class UGameplayEffect;
  *  다시 누르면 RollMontage(구르기), 시간이 지나면 DodgeMontage(스텝). 결정은 로컬 조작자가 하고,
  *  게스트는 GameCustom1(스텝)/GameCustom2(구르기) 신호로 서버에 알린다 (LocalPredicted).
  *
+ * 26.11.17 - 홀드 달리기: SprintHoldTime까지 계속 누르고 있으면 회피를 비용 없이 끝내고 SprintAbilityClass를 켠다.
+ *  스태미나 비용(Cost GE)은 스텝·구르기가 확정될 때(StartDodgeMove) 낸다.
+ *
  * 흐름:
  *  1) CommitAbility (Cost GE = 스태미나 소모, BP에서 지정) → 스텝/구르기 결정 → 몽타주 재생
  *  2) [서버] IFrameStartTime 타이머 → GE_DodgeInvincible(Infinite, 핸들 보관) + GE_PerfectDodgeWindow(Duration)
@@ -66,6 +69,13 @@ private:
 
 	/** [로컬 조작자] 결정 결과로 동작 시작 + (게스트면) 서버에 결정 전송 */
 	void DecideDodgeLocally(bool bRoll);
+
+	// ── 26.11.17 추가 - 홀드 달리기 ─────────────────────────────
+	/** [로컬 조작자] SprintHoldTime이 됐을 때 — 아직 누르고 있으면 달리기, 뗐으면 스텝 */
+	void OnSprintHoldCheck();
+
+	/** [로컬 조작자] 회피를 스텝·구르기 없이 끝내고 달리기 어빌리티를 켠다 (회피 비용은 내지 않음) */
+	void StartSprintFromHold();
 
 	/** [서버, 원격 플레이어] 게스트가 보낸 스텝/구르기 결정 신호 구독 */
 	void ListenForRemoteDecision();
@@ -212,4 +222,16 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Lee|Dodge|Roll", meta = (ClampMin = "0.0"))
 	float RollIFrameEndTime = 0.6f;
 
+	// ── 26.11.17 추가 - 홀드 달리기 설정 ─────────────────────────
+	/** 누른 순간부터 이 시간(초)까지 계속 누르고 있으면 달리기. DoubleTapWindow보다 짧으면 DoubleTapWindow에 판정 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Lee|Dodge|Sprint", meta = (ClampMin = "0.0"))
+	float SprintHoldTime = 0.3f;
+
+	/** 누르고 있는지 확인할 입력 액션 (예: IA_Dodge_Souls). 비우면 달리기로 넘어가지 않는다 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Lee|Dodge|Sprint")
+	TObjectPtr<const class UInputAction> DodgeInputAction;
+
+	/** 홀드 시 켤 달리기 어빌리티 (예: GA_Sprint_Souls). 같은 ASC에 부여되어 있어야 한다. 비우면 달리기 없음 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Lee|Dodge|Sprint")
+	TSubclassOf<UGameplayAbility> SprintAbilityClass;
 };

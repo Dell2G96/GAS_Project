@@ -2,8 +2,12 @@
 
 #include "LeeGameplayAbility_FinisherVictim.h"
 
+#include "AbilitySystemComponent.h"
 #include "Abilities/Tasks/AbilityTask_PlayMontageAndWait.h"
+#include "Abilities/Tasks/AbilityTask_WaitDelay.h"
+#include "Animation/AnimInstance.h"
 #include "Animation/AnimMontage.h"
+#include "GAS_Project/ACharacter/LeeHealthComponent.h"
 #include "GameFramework/Character.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GAS_Project/MyTags.h"
@@ -62,15 +66,12 @@ void ULeeGameplayAbility_FinisherVictim::ActivateAbility(
 	// 몽타주는 공격자가 아니라 피해자 자신의 스켈레톤 태그로 조회한다
 	const ELeeFinisherType Type = static_cast<ELeeFinisherType>(TriggerEventData->EventMagnitude);
 
-	const ULeeFinisherTargetComponent* TargetComponent = Avatar->FindComponentByClass<ULeeFinisherTargetComponent>();
-	const ULeeFinisherVictimRegistry* Registry = ULeeAssetManager::Get().GetFinisherVictimRegistry();
-	const ULeeFinisherVictimData* VictimData = (TargetComponent && Registry)
-		? Registry->FindVictimData(TargetComponent->GetSkeletonTag())
-		: nullptr;
+	const ULeeFinisherVictimData* VictimData = FindVictimData(Avatar);
 	UAnimMontage* VictimMontage = VictimData ? VictimData->GetVictimMontage(Type) : nullptr;
 
 	if (!VictimMontage)
 	{
+		const ULeeFinisherTargetComponent* TargetComponent = Avatar->FindComponentByClass<ULeeFinisherTargetComponent>();
 		UE_LOG(LogTemp, Warning, TEXT("[LeeGA_FinisherVictim] %s의 스켈레톤 태그(%s)에 해당하는 VictimData/몽타주를 찾지 못했습니다. LeeFinisherVictimRegistry 설정을 확인해주세요."),
 			*GetNameSafe(Avatar),
 			TargetComponent ? *TargetComponent->GetSkeletonTag().ToString() : TEXT("<NoComponent>"));
@@ -103,6 +104,59 @@ void ULeeGameplayAbility_FinisherVictim::ActivateAbility(
 	MontageTask->OnInterrupted.AddDynamic(this, &ThisClass::OnMontageInterrupted);
 	MontageTask->OnCancelled.AddDynamic(this, &ThisClass::OnMontageInterrupted);
 	MontageTask->ReadyForActivation();
+
+	// 26.11.17 추가 - 피해자 몽타주는 Auto Blend Out이 꺼져 있어 끝나도 완료 콜백이 오지 않으므로 몽타주 길이로 종료 시점을 잡는다
+	UAbilityTask_WaitDelay* FinishTask = UAbilityTask_WaitDelay::WaitDelay(this, VictimMontage->GetPlayLength());
+	FinishTask->OnFinish.AddDynamic(this, &ThisClass::OnVictimMontageFinished);
+	FinishTask->ReadyForActivation();
+}
+
+// 대상 액터의 스켈레톤 태그(FinisherTargetComponent)로 레지스트리에서 VictimData를 찾는다
+const ULeeFinisherVictimData* ULeeGameplayAbility_FinisherVictim::FindVictimData(const AActor* Victim)
+{
+	const ULeeFinisherTargetComponent* TargetComponent = Victim ? Victim->FindComponentByClass<ULeeFinisherTargetComponent>() : nullptr;
+	const ULeeFinisherVictimRegistry* Registry = ULeeAssetManager::Get().GetFinisherVictimRegistry();
+	return (TargetComponent && Registry) ? Registry->FindVictimData(TargetComponent->GetSkeletonTag()) : nullptr;
+}
+
+// 현재 섹션의 다음 섹션(Rise) 연결을 끊어 섹션 끝(쓰러진 자세)에서 멈추게 하고, 멈출 때까지 남은 시간(초)을 반환한다
+// 서버에서 ASC로 호출하므로 다른 클라이언트에도 복제된다. Auto Blend Out이 꺼진 몽타주여야 끝 자세가 유지된다
+float ULeeGameplayAbility_FinisherVictim::HoldDownedPose(UAbilitySystemComponent* ASC)
+{
+	UAnimInstance* AnimInstance = (ASC && ASC->AbilityActorInfo.IsValid()) ? ASC->AbilityActorInfo->GetAnimInstance() : nullptr;
+	UAnimMontage* Montage = ASC ? ASC->GetCurrentMontage() : nullptr;
+	if (!AnimInstance || !Montage)
+	{
+		return 0.0f;
+	}
+
+	const float Position = AnimInstance->Montage_GetPosition(Montage);
+	const int32 SectionIndex = Montage->GetSectionIndexFromPosition(Position);
+	if (SectionIndex == INDEX_NONE)
+	{
+		return 0.0f;
+	}
+
+	ASC->CurrentMontageSetNextSectionName(Montage->GetSectionName(SectionIndex), NAME_None);
+
+	float SectionStartTime = 0.0f;
+	float SectionEndTime = 0.0f;
+	Montage->GetSectionStartAndEndTime(SectionIndex, SectionStartTime, SectionEndTime);
+
+	const float PlayRate = FMath::Max(AnimInstance->Montage_GetPlayRate(Montage), KINDA_SMALL_NUMBER);
+	return FMath::Max(SectionEndTime - Position, 0.0f) / PlayRate;
+}
+
+// 몽타주 길이만큼 지난 뒤 호출 — 살아 있으면 종료(몽타주 블렌드 아웃), 죽었으면 쓰러진 자세를 유지하도록 그대로 둔다
+void ULeeGameplayAbility_FinisherVictim::OnVictimMontageFinished()
+{
+	const ULeeHealthComponent* HealthComponent = ULeeHealthComponent::FindHealthComponent(GetAvatarActorFromActorInfo());
+	if (HealthComponent && HealthComponent->IsDeadOrDying())
+	{
+		return;
+	}
+
+	EndAbility(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo, /*Replicate*/true, /*WasCancelled*/false);
 }
 
 void ULeeGameplayAbility_FinisherVictim::OnMontageCompleted()

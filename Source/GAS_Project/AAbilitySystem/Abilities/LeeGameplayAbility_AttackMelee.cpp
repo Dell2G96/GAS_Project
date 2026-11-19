@@ -105,15 +105,15 @@ void ULeeGameplayAbility_AttackMelee::ActivateAbility(
 	//      첫 단계 비용조차 지불 못하면(스태미나 0 포함) 몽타주를 아예 재생하지 않는다.
 	//      (기존엔 재생 후 CommitStep 이벤트에서 부족을 감지해 몽타주가 중간에 취소되며 헛스윙처럼 보이던 것을 원천 차단)
 	//      쿨다운 Commit 이전에 검사하여, 부족 시 쿨다운도 낭비하지 않는다.
-	if (CurrentAttackData.StaminaCostPerStep.IsValidIndex(0))
+	// 26.11.17 수정 - 첫 타 비용 대신 GetStaminaRequiredToStart(Enemy = 모든 타 합계, Player = 첫 타)로 검사
 	{
 		UAbilitySystemComponent* CostASC = GetAbilitySystemComponentFromActorInfo();
 		const float CurrentStamina = CostASC ? CostASC->GetNumericAttribute(ULeeSoulsStatSet::GetStaminaAttribute()) : 0.0f;
-		const float FirstStepCost = CurrentAttackData.StaminaCostPerStep[0];
-		if (CurrentStamina < FirstStepCost)
+		const float RequiredStamina = GetStaminaRequiredToStart(CurrentAttackData);
+		if (RequiredStamina > 0.0f && CurrentStamina < RequiredStamina)
 		{
 			UE_LOG(LogTemp, Log, TEXT("[LeeGA_AttackMelee] 스태미나 부족 (현재: %.1f / 필요: %.1f) — 공격 몽타주 미재생"),
-				CurrentStamina, FirstStepCost);
+				CurrentStamina, RequiredStamina);
 			EndAbility(Handle, ActorInfo, ActivationInfo, true, true);
 			return;
 		}
@@ -213,10 +213,14 @@ const FLeeMeleeAttackData* ULeeGameplayAbility_AttackMelee::SelectAttackData()
 {
 	const UAbilitySystemComponent* ASC = GetAbilitySystemComponentFromActorInfo();
 
+	// 26.11.17 수정 - 쿨타임이 아니고 + 끝까지 휘두를 스태미나가 있는 공격만 후보로 둔다
+	// (여러 공격 중 랜덤으로 비싼 것이 골라져 실패하는 대신, 지금 할 수 있는 공격을 고른다)
+	const float CurrentStamina = ASC ? ASC->GetNumericAttribute(ULeeSoulsStatSet::GetStaminaAttribute()) : 0.0f;
 	TArray<int32> AvailableIndices;
 	for (int32 Index = 0; Index < AttackDataList.Num(); ++Index)
 	{
-		if (!IsAttackDataOnCooldown(AttackDataList[Index], ASC))
+		if (!IsAttackDataOnCooldown(AttackDataList[Index], ASC)
+			&& CurrentStamina >= GetStaminaRequiredToStart(AttackDataList[Index]))
 		{
 			AvailableIndices.Add(Index);
 		}
@@ -481,6 +485,17 @@ void ULeeGameplayAbility_AttackMelee::EndAbility(
 	Super::EndAbility(Handle, ActorInfo, ActivationInfo, bReplicateEndAbility, bWasCancelled);
 }
 
+// 26.11.17 추가 - 공격 시작에 필요한 스태미나 — 기본(Enemy)은 이 몽타주 모든 타 비용의 합
+float ULeeGameplayAbility_AttackMelee::GetStaminaRequiredToStart(const FLeeMeleeAttackData& AttackData) const
+{
+	float Total = 0.0f;
+	for (const float StepCost : AttackData.StaminaCostPerStep)
+	{
+		Total += StepCost;
+	}
+	return Total;
+}
+
 // 스태미나 비용 검사/차감 — Enemy(CostIndex==DedupKey)/Player(CostIndex=0, DedupKey=콤보 인덱스) 공용
 bool ULeeGameplayAbility_AttackMelee::TryCommitAttackStepCost(int32 CostIndex, int32 DedupKey)
 {
@@ -496,7 +511,7 @@ bool ULeeGameplayAbility_AttackMelee::TryCommitAttackStepCost(int32 CostIndex, i
 		return false;
 	}
 
-	const float StepCost = CurrentAttackData.StaminaCostPerStep[CostIndex];
+	float StepCost = CurrentAttackData.StaminaCostPerStep[CostIndex];
 
 	UAbilitySystemComponent* ASC = GetAbilitySystemComponentFromActorInfo();
 	if (!ASC)
@@ -508,11 +523,25 @@ bool ULeeGameplayAbility_AttackMelee::TryCommitAttackStepCost(int32 CostIndex, i
 	const float CurrentStamina = ASC->GetNumericAttribute(ULeeSoulsStatSet::GetStaminaAttribute());
 	if (CurrentStamina < StepCost)
 	{
-		// 스태미나 부족 — 다음 Trace 구간 시작 전에 즉시 어빌리티(+몽타주) 종료
-		UE_LOG(LogTemp, Log, TEXT("[LeeGA_AttackMelee] 스태미나 부족 (현재: %.1f / 필요: %.1f) — 공격 단계 %d 취소"),
+		if (ShouldEndOnStaminaShortage())
+		{
+			// [Player] 스태미나 부족 — 다음 Trace 구간 시작 전에 즉시 어빌리티(+몽타주) 종료
+			UE_LOG(LogTemp, Log, TEXT("[LeeGA_AttackMelee] 스태미나 부족 (현재: %.1f / 필요: %.1f) — 공격 단계 %d 취소"),
+				CurrentStamina, StepCost, DedupKey);
+			EndAbility(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo, /*Replicate*/true, /*WasCancelled*/true);
+			return false;
+		}
+
+		// 26.11.17 추가 - [Enemy] 시작할 땐 충분했지만 도중에(피격·패링 등) 줄었다 → 끊지 않고 남은 만큼만 뺀다
+		UE_LOG(LogTemp, Log, TEXT("[LeeGA_AttackMelee] 스태미나 부족 (현재: %.1f / 필요: %.1f) — 공격 단계 %d 계속, 남은 만큼만 차감"),
 			CurrentStamina, StepCost, DedupKey);
-		EndAbility(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo, /*Replicate*/true, /*WasCancelled*/true);
-		return false;
+		StepCost = FMath::Max(CurrentStamina, 0.0f);
+		if (StepCost <= 0.0f)
+		{
+			// 이미 0 — 뺄 것이 없으므로 이 단계는 처리한 것으로만 기록
+			CommittedAttackSteps.Add(DedupKey);
+			return true;
+		}
 	}
 
 	// 스태미나 차감 GE 적용 (공격자 자신에게)
@@ -526,6 +555,11 @@ bool ULeeGameplayAbility_AttackMelee::TryCommitAttackStepCost(int32 CostIndex, i
 			// 음수로 설정하여 스태미나 감소
 			SpecHandle.Data->SetSetByCallerMagnitude(MyTags::Souls::SetByCaller_StaminaDamage, -StepCost);
 			SpecHandle.Data->AddDynamicAssetTag(MyTags::Souls::StaminaCause_AttackCost);
+			// 26.11.17 추가 - [Enemy] 끝까지 휘두르는 공격이므로 자기 공격 비용으로 0이 되어도 그로기에 빠지지 않는다
+			if (!ShouldEndOnStaminaShortage())
+			{
+				SpecHandle.Data->AddDynamicAssetTag(MyTags::Souls::StaminaCause_NoGroggy);
+			}
 			ASC->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
 		}
 	}

@@ -105,6 +105,8 @@ namespace MyTags
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Ability_Attack_Aoe);
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Ability_Guard);
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Ability_Dodge);
+		// 26.11.17 추가 - 달리기 어빌리티 식별 태그
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Ability_Sprint);
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Ability_HitReaction);
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Ability_Execution);
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Ability_Assassination);
@@ -142,6 +144,8 @@ namespace MyTags
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Status_Guard_Active);
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Status_Guard_Perfect);
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Status_Dodge_Active);
+		// 26.11.17 추가 - 달리는 중 (이동 속도 배율·이동 방향 회전은 LeeCharacterMovementComponent가 읽는다)
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Status_Sprinting);
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Status_Dodge_Perfect);
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Status_CounterWindow);
 		// 26.11.08 추가 - 마법 쉴드 작동 중 (쉴드 어빌리티 ActivationOwnedTags)
@@ -203,6 +207,8 @@ namespace MyTags
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Event_Attack_RefreshWarpTarget);
 		// [신규] 원거리 공격 발사 시점 — 몽타주의 Lee Gameplay Event(Server) 노티파이가 발사, GA_EnemyRangedAttack이 수신해 투사체를 스폰
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Event_Attack_Fire);
+		// 26.11.16 추가 - 차지(홀드) 시작 지점 — 몽타주의 Lee Gameplay Event(bSendOnLocalClient=true) 노티파이가 발사, 누르고 있으면 여기서 몽타주가 멈춘다
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Event_Attack_ChargeStart);
 
 		// ----- 이벤트 - 방어 판정 (ULeeDefenseComponent 발신) -----
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Event_Defense_GuardHit);
@@ -277,6 +283,10 @@ namespace MyTags
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(DamageType_ParryCounter);
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(DamageType_DodgeCost);
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(StaminaCause_AttackCost);
+		// 26.11.17 추가 - 달리기 스태미나 소모 — 이 원인으로 0이 되면 그로기에 빠지지 않는다 (LeeDefenseComponent)
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(StaminaCause_Sprint);
+		// 26.11.17 추가 - 이 소모로 0이 되어도 그로기에 빠지지 않는다 (Enemy가 끝까지 휘두르는 공격 비용)
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(StaminaCause_NoGroggy);
 		// [신규] 투사체(원거리) 공격 속성 태그 — 가드 방향 판정 기준을 투사체 위치로 바꾸는 등 원거리 전용 분기에 사용
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(DamageType_Attack_Projectile);
 		// [신규 26.10.20] 모래 공격 속성 태그 — 피격 시 DefenseComponent가 시야 방해 GE(GE_SandBlind)를 건다
@@ -307,6 +317,11 @@ namespace MyTags
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(GameplayCue_Hit_Impact);
 		// 26.11.12 추가 - 퍼펙트 가드 피드백 Cue (ULeeGameplayCueNotify_PerfectGuard)
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(GameplayCue_Guard_Perfect);
+		// 26.11.16 추가 - 차지 공격 연출 Cue (시작 / 단계 도달 / 발사). RawMagnitude = 차지 단계
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(GameplayCue_Attack_Charge_Start);
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(GameplayCue_Attack_Charge_Level1);
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(GameplayCue_Attack_Charge_Level2);
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(GameplayCue_Attack_Charge_Release);
 
 		// ----- 쿨타임 -----
 		// [신규 26.10.20] 근접 공격 몽타주별 쿨다운 태그의 부모. 개별 태그(Souls.Cooldown.<Enemy>.<Attack>)는 DefaultGameplayTags.ini에 추가

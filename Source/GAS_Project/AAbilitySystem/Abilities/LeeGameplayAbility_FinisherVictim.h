@@ -6,6 +6,9 @@
 #include "LeeGameplayAbility.h"
 #include "LeeGameplayAbility_FinisherVictim.generated.h"
 
+class UAbilitySystemComponent;
+class ULeeFinisherVictimData;
+
 /**
  * 처형/암살 피해자 어빌리티 (Enemy 측).
  *
@@ -27,6 +30,11 @@
  *  4) VictimMontage 재생. 인터럽트 포함 모든 종료가 EndAbility로 수렴 → 태그 정리 보장
  *
  * 데미지/사망 처리는 공격자 측(GA_Finisher의 AnimNotify 타이밍)이 담당한다.
+ *
+ * 26.11.17 추가 - 생존/사망 분기 (피해자 몽타주는 Auto Blend Out을 꺼 둘 것)
+ *  - 살아 있으면 몽타주 끝("Rise" 섹션 포함)까지 재생 후 종료 → 블렌드 아웃
+ *  - 죽었으면 GA_Death가 HoldDownedPose()로 다음 섹션(Rise) 연결을 끊어 현재 섹션 끝(쓰러진 자세)에서 멈추고,
+ *    이 어빌리티는 종료하지 않는다 (종료하면 몽타주가 멈추며 일어선 자세로 돌아가기 때문)
  * Enemy 기본 AbilitySet에 포함해 스폰 시 부여할 것.
  * Enemy BP에는 ULeeFinisherTargetComponent가 부착되어 SkeletonTag가 설정되어 있어야 한다.
  */
@@ -44,7 +52,17 @@ public:
 		const FGameplayAbilityActivationInfo ActivationInfo,
 		const FGameplayEventData* TriggerEventData) override;
 
+	// 26.11.17 추가 - 대상 액터의 스켈레톤 태그로 VictimData를 찾는다 (공격자 GA_Finisher도 즉사 여부 판단에 사용)
+	static const ULeeFinisherVictimData* FindVictimData(const AActor* Victim);
+
+	// 26.11.17 추가 - 피해자 몽타주를 현재 섹션 끝(쓰러진 자세)에서 멈추게 하고, 멈출 때까지 남은 시간(초)을 반환 (GA_Death가 서버에서 호출)
+	static float HoldDownedPose(UAbilitySystemComponent* ASC);
+
 private:
+	// 26.11.17 추가 - 몽타주 길이만큼 지난 뒤 호출. 살아 있으면 종료, 죽었으면 쓰러진 자세 유지를 위해 그대로 둔다
+	UFUNCTION()
+	void OnVictimMontageFinished();
+
 	UFUNCTION()
 	void OnMontageCompleted();
 

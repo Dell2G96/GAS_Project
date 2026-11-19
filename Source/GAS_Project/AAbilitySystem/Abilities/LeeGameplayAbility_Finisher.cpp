@@ -13,7 +13,10 @@
 #include "GAS_Project/MyTags.h"
 #include "GAS_Project/ACamera/LeeCameraMode.h"
 #include "GAS_Project/ACharacter/LeeHeroComponent.h"
+#include "GAS_Project/ACharacter/LeeHealthComponent.h"
+#include "GAS_Project/ACharacter/LeeFinisherVictimData.h"
 #include "GAS_Project/AEquipment/LeeMeleeWeaponInstance.h"
+#include "LeeGameplayAbility_FinisherVictim.h"
 
 ULeeGameplayAbility_Finisher::ULeeGameplayAbility_Finisher(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -410,7 +413,18 @@ void ULeeGameplayAbility_Finisher::OnDamageEventReceived(FGameplayEventData Payl
 	if (SpecHandle.IsValid())
 	{
 		// Payload.EventMagnitude = 노티파이의 DamageMultiplier (다단 히트 몽타주에서 히트별 비율 조절)
-		const float HitDamage = CurrentAnimSet.Damage * Payload.EventMagnitude;
+		float HitDamage = CurrentAnimSet.Damage * Payload.EventMagnitude;
+
+		// 26.11.17 추가 - 살아남지 않는 적(VictimData.bSurvivesFinisher == false)은 최대 HP만큼 데미지를 줘 확실히 죽인다
+		const ULeeFinisherVictimData* VictimData = ULeeGameplayAbility_FinisherVictim::FindVictimData(Target);
+		if (!VictimData || !VictimData->bSurvivesFinisher)
+		{
+			if (const ULeeHealthComponent* TargetHealth = ULeeHealthComponent::FindHealthComponent(Target))
+			{
+				HitDamage = FMath::Max(HitDamage, TargetHealth->GetMaxHealth());
+			}
+		}
+
 		SpecHandle.Data->SetSetByCallerMagnitude(MyTags::Souls::SetByCaller_Damage, -HitDamage);
 		TargetASC->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
 	}

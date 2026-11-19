@@ -151,9 +151,31 @@ float ULeeCharacterMovementComponent::GetMaxSpeed() const
 		{
 			return Super::GetMaxSpeed() * EstusMoveSpeedMultiplier;
 		}
+
+		// 26.11.17 추가 - 달리는 중이면 빨라진다 (GA_Sprint의 ActivationOwnedTags — 서버·조종 클라이언트 양쪽에서 붙는다)
+		if (ASC->HasMatchingGameplayTag(MyTags::Souls::Status_Sprinting))
+		{
+			return Super::GetMaxSpeed() * SprintSpeedMultiplier;
+		}
 	}
 
 	return Super::GetMaxSpeed();
+}
+
+// 26.11.17 추가 - 달리는 중에는 락온 중이어도 이동 방향을 바라본다 (락온 컴포넌트의 회전 설정은 건드리지 않고 이 프레임만 바꿨다 되돌린다)
+void ULeeCharacterMovementComponent::PhysicsRotation(float DeltaTime)
+{
+	const UAbilitySystemComponent* ASC = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(GetOwner());
+	const bool bSprinting = ASC && ASC->HasMatchingGameplayTag(MyTags::Souls::Status_Sprinting);
+	if (!bSprinting || bOrientRotationToMovement)
+	{
+		Super::PhysicsRotation(DeltaTime);
+		return;
+	}
+
+	bOrientRotationToMovement = true;
+	Super::PhysicsRotation(DeltaTime);
+	bOrientRotationToMovement = false;
 }
 
 // 현재 장착된 근접 무기 인스턴스의 GuardSpeedMultiplier를 반환. 장비/무기가 없으면 1.0(감속 없음)

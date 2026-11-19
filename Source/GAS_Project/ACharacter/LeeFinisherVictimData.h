@@ -30,6 +30,12 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Lee|Finisher")
 	TObjectPtr<UAnimMontage> AssassinationVictimMontage = nullptr;
 
+	// 26.11.17 추가 - 처형·암살을 당해도 살아남는 적인지 (정예·보스 = true, 일반 적 = false)
+	// false: 최대 HP만큼 데미지 → 즉사, 쓰러진 자세에서 디졸브
+	// true : 무기 FinisherData의 Damage만 받고, 피해자 몽타주의 "Rise" 섹션으로 일어난다
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Lee|Finisher")
+	bool bSurvivesFinisher = false;
+
 	UAnimMontage* GetVictimMontage(ELeeFinisherType Type) const
 	{
 		return (Type == ELeeFinisherType::Execution) ? ExecutionVictimMontage : AssassinationVictimMontage;

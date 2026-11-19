@@ -56,8 +56,9 @@ void ULeeGameplayAbility_Dodge::ActivateAbility(
 		return;
 	}
 
-	// Cost GE(스태미나 소모)는 BP에서 지정 — 부족하면 여기서 실패
-	if (!CommitAbility(Handle, ActorInfo, ActivationInfo))
+	// 26.11.17 수정 - 여기서는 쿨다운만 커밋한다. 스태미나 비용(Cost GE)은 스텝·구르기가 확정될 때(StartDodgeMove) 낸다
+	// (길게 눌러 달리기로 넘어가면 회피 비용을 내지 않는다. 비용이 부족하면 CanActivateAbility 단계에서 이미 막힌다)
+	if (!CommitAbilityCooldown(Handle, ActorInfo, ActivationInfo, /*ForceCooldown*/false))
 	{
 		EndAbility(Handle, ActorInfo, ActivationInfo, true, true);
 		return;
@@ -99,9 +100,11 @@ void ULeeGameplayAbility_Dodge::ActivateAbility(
 	else if (IsServerForRemotePlayer())
 	{
 		// [서버, 원격 플레이어] 게스트의 결정을 기다리고, 신호가 끝내 오지 않으면 스텝으로 처리
+		// 26.11.17 수정 - 게스트가 달리기 판정(SprintHoldTime)까지 기다릴 수 있으므로 둘 중 긴 시간을 기준으로 한다
+		// (달리기로 넘어가면 게스트가 회피를 끝내고, 그 종료가 복제되어 이 타이머보다 먼저 서버 회피가 끝난다)
 		TimerManager.SetTimer(DecisionTimerHandle,
 			FTimerDelegate::CreateUObject(this, &ThisClass::StartDodgeMove, false),
-			DoubleTapWindow + RemoteDecisionTimeout, /*bLoop*/false);
+			FMath::Max(DoubleTapWindow, SprintHoldTime) + RemoteDecisionTimeout, /*bLoop*/false);
 		ListenForRemoteDecision();
 	}
 	else
@@ -131,9 +134,62 @@ void ULeeGameplayAbility_Dodge::OnSecondInputPressed(float /*TimeWaited*/)
 }
 
 // 26.11.13 추가 - [로컬 조작자] 대기 시간이 지났다 → 스텝
+// 26.11.17 수정 - 아직 누르고 있으면 SprintHoldTime까지 더 기다렸다가 달리기 여부를 정한다
 void ULeeGameplayAbility_Dodge::OnDoubleTapWindowExpired()
 {
+	if (!IsActive() || bMoveStarted)
+	{
+		return;
+	}
+
+	if (SprintAbilityClass && IsInputActionHeld(DodgeInputAction))
+	{
+		const float RemainingHoldTime = SprintHoldTime - DoubleTapWindow;
+		if (RemainingHoldTime > KINDA_SMALL_NUMBER)
+		{
+			GetWorld()->GetTimerManager().SetTimer(DecisionTimerHandle,
+				FTimerDelegate::CreateUObject(this, &ThisClass::OnSprintHoldCheck), RemainingHoldTime, /*bLoop*/false);
+			return;
+		}
+		OnSprintHoldCheck();
+		return;
+	}
+
 	DecideDodgeLocally(false);
+}
+
+// 26.11.17 추가 - [로컬 조작자] 달리기 판정 시간 — 계속 누르고 있으면 달리기, 그 사이 뗐으면 스텝
+void ULeeGameplayAbility_Dodge::OnSprintHoldCheck()
+{
+	if (!IsActive() || bMoveStarted)
+	{
+		return;
+	}
+
+	if (IsInputActionHeld(DodgeInputAction))
+	{
+		StartSprintFromHold();
+	}
+	else
+	{
+		DecideDodgeLocally(false);
+	}
+}
+
+// 26.11.17 추가 - [로컬 조작자] 회피를 비용 없이 끝내고 달리기 어빌리티를 켠다
+// 회피 종료는 서버로 복제되어 서버 쪽 회피(결정 대기 중)도 스텝 없이 끝나고, 달리기 활성화는 예측 활성화로 서버에 전달된다
+void ULeeGameplayAbility_Dodge::StartSprintFromHold()
+{
+	bMoveStarted = true;
+	UAbilitySystemComponent* ASC = GetAbilitySystemComponentFromActorInfo();
+
+	UE_LOG(LogLee, Log, TEXT("[Dodge] 홀드 → 달리기 전환"));
+	EndAbility(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo, /*Replicate*/true, /*WasCancelled*/true);
+
+	if (ASC)
+	{
+		ASC->TryActivateAbilityByClass(SprintAbilityClass);
+	}
 }
 
 // 26.11.13 추가 - [로컬 조작자] 최종 결정 후 게스트라면 서버에 신호를 보내고 동작을 시작한다
@@ -213,6 +269,13 @@ void ULeeGameplayAbility_Dodge::StartDodgeMove(bool bRoll)
 
 	FTimerManager& TimerManager = GetWorld()->GetTimerManager();
 	TimerManager.ClearTimer(DecisionTimerHandle);
+
+	// 26.11.17 추가 - 스텝·구르기가 확정된 지금 회피 기본 비용(Cost GE)을 낸다 (판정 대기 중 스태미나가 줄어 모자라면 회피 취소)
+	if (!CommitAbilityCost(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo))
+	{
+		EndAbility(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo, true, true);
+		return;
+	}
 
 	// 서버도 한 번 더 확인 — 스태미나가 모자라면 스텝으로 대체
 	if (bRoll && !CanRoll())

@@ -10,6 +10,7 @@
 #include "GAS_Project/AAbilitySystem/LeeAbilitySystemComponent.h"
 #include "GAS_Project/ACharacter/LeeHealthComponent.h"
 #include "GAS_Project/ACharacter/LeeCharacter.h"
+#include "LeeGameplayAbility_FinisherVictim.h"
 #include "TimerManager.h"
 
 ULeeGameplayAbility_Death::ULeeGameplayAbility_Death(const FObjectInitializer& ObjectInitializer)
@@ -64,7 +65,17 @@ void ULeeGameplayAbility_Death::ActivateAbility(const FGameplayAbilitySpecHandle
 		StartDeath();
 	}
 
-	const float MontageLength = PlayDeathMontage(TriggerEventData);
+	// 26.11.17 수정 - 처형·암살 피해자로 죽으면 사망 몽타주를 재생하지 않고(처형 모션이 끊기지 않게)
+	// 피해자 몽타주를 쓰러진 자세에서 멈춘 뒤, 그 시점부터 대기 → 페이드로 이어간다
+	float MontageLength = 0.0f;
+	if (LeeASC->HasMatchingGameplayTag(MyTags::Souls::Status_Finisher_Victim))
+	{
+		MontageLength = ULeeGameplayAbility_FinisherVictim::HoldDownedPose(LeeASC);
+	}
+	else
+	{
+		MontageLength = PlayDeathMontage(TriggerEventData);
+	}
 
 	// 26.11.03 추가 - 몽타주 종료 + 대기 후 페이드 시작. 액터 파괴는 서버가 결정한다
 	// (AM_Death는 Auto Blend Out이 꺼져 있어 몽타주 완료 콜백이 오지 않으므로 몽타주 길이로 타이머를 건다)

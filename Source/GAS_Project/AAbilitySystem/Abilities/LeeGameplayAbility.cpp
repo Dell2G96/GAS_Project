@@ -10,6 +10,9 @@
 #include "GAS_Project/ACharacter/LeeCharacter.h"
 #include "GAS_Project/ACharacter/LeeHeroComponent.h"
 #include "GAS_Project/APlayer/LeePlayerController.h"
+#include "Engine/LocalPlayer.h"
+#include "EnhancedInputSubsystems.h"
+#include "InputAction.h"
 
 #define ENSURE_ABILITY_IS_INSTANTIATED_OR_RETURN(FunctionName, ReturnValue)																				\
 {																																						\
@@ -194,6 +197,33 @@ bool ULeeGameplayAbility::ChangeActivationGroup(ELeeAbilityActivationGroup NewGr
 	}
 
 	return true;
+}
+
+// 26.11.17 추가 - [로컬] 입력 액션에 매핑된 키 중 하나라도 지금 눌려 있는지 (트리거 종류와 무관한 실제 키 상태)
+bool ULeeGameplayAbility::IsInputActionHeld(const UInputAction* InputAction) const
+{
+	const FGameplayAbilityActorInfo* Info = GetCurrentActorInfo();
+	APlayerController* PC = Info ? Info->PlayerController.Get() : nullptr;
+	if (!InputAction || !PC || !PC->IsLocalController())
+	{
+		return false;
+	}
+
+	const UEnhancedInputLocalPlayerSubsystem* InputSubsystem =
+		ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PC->GetLocalPlayer());
+	if (!InputSubsystem)
+	{
+		return false;
+	}
+
+	for (const FKey& Key : InputSubsystem->QueryKeysMappedToAction(InputAction))
+	{
+		if (PC->IsInputKeyDown(Key))
+		{
+			return true;
+		}
+	}
+	return false;
 }
 
 bool ULeeGameplayAbility::CheckCost(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo,

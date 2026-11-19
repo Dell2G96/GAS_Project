@@ -113,6 +113,7 @@ namespace MyTags
 		UE_DEFINE_GAMEPLAY_TAG(Ability_Attack_Aoe, "Souls.Abilities.Attack.Aoe")
 		UE_DEFINE_GAMEPLAY_TAG(Ability_Guard, "Souls.Abilities.Guard")
 		UE_DEFINE_GAMEPLAY_TAG(Ability_Dodge, "Souls.Abilities.Dodge")
+		UE_DEFINE_GAMEPLAY_TAG(Ability_Sprint, "Souls.Abilities.Sprint")
 		UE_DEFINE_GAMEPLAY_TAG(Ability_HitReaction, "Souls.Abilities.HitReaction")
 		UE_DEFINE_GAMEPLAY_TAG(Ability_Execution, "Souls.Abilities.Execution")
 		UE_DEFINE_GAMEPLAY_TAG(Ability_Assassination, "Souls.Abilities.Assassination")
@@ -145,6 +146,7 @@ namespace MyTags
 		UE_DEFINE_GAMEPLAY_TAG(Status_Guard_Active, "Souls.Status.Guard.Active")
 		UE_DEFINE_GAMEPLAY_TAG(Status_Guard_Perfect, "Souls.Status.Guard.Perfect")
 		UE_DEFINE_GAMEPLAY_TAG(Status_Dodge_Active, "Souls.Status.Dodge.Active")
+		UE_DEFINE_GAMEPLAY_TAG(Status_Sprinting, "Souls.Status.Sprinting")
 		// 26.10.30 추가 - 에스트 마시는 중
 		UE_DEFINE_GAMEPLAY_TAG(Status_Estus_Drinking, "Souls.Status.Estus.Drinking")
 		UE_DEFINE_GAMEPLAY_TAG(Status_Dodge_Perfect, "Souls.Status.Dodge.Perfect")
@@ -200,6 +202,7 @@ namespace MyTags
 		// [신규] Warp 타깃 재계산 이벤트 (다단 공격의 2번째+ Warp 구간 직전에 Lee Gameplay Event(Server) 노티파이가 발사)
 		UE_DEFINE_GAMEPLAY_TAG(Event_Attack_RefreshWarpTarget, "Souls.Events.Attack.RefreshWarpTarget")
 		UE_DEFINE_GAMEPLAY_TAG(Event_Attack_Fire, "Souls.Events.Attack.Fire")
+		UE_DEFINE_GAMEPLAY_TAG(Event_Attack_ChargeStart, "Souls.Events.Attack.ChargeStart")
 
 		// ----- 이벤트 - 방어 판정 (ULeeDefenseComponent 발신) -----
 		UE_DEFINE_GAMEPLAY_TAG(Event_Defense_GuardHit, "Souls.Events.Defense.GuardHit")
@@ -263,6 +266,8 @@ namespace MyTags
 		UE_DEFINE_GAMEPLAY_TAG(DamageType_ParryCounter, "Souls.DamageType.ParryCounter")
 		UE_DEFINE_GAMEPLAY_TAG(DamageType_DodgeCost, "Souls.DamageType.DodgeCost")
 		UE_DEFINE_GAMEPLAY_TAG(StaminaCause_AttackCost, "Souls.StaminaCause.AttackCost")
+		UE_DEFINE_GAMEPLAY_TAG(StaminaCause_Sprint, "Souls.StaminaCause.Sprint")
+		UE_DEFINE_GAMEPLAY_TAG(StaminaCause_NoGroggy, "Souls.StaminaCause.NoGroggy")
 		UE_DEFINE_GAMEPLAY_TAG(DamageType_Attack_Projectile, "Souls.DamageType.Attack.Projectile")
 		// 모래 공격 속성 태그 (피격 시 시야 방해)
 		UE_DEFINE_GAMEPLAY_TAG(DamageType_Attack_Sand, "Souls.DamageType.Attack.Sand")
@@ -286,6 +291,10 @@ namespace MyTags
 		UE_DEFINE_GAMEPLAY_TAG(GameplayCue_Shield_Hit, "GameplayCue.Souls.Shield.Hit")
 		UE_DEFINE_GAMEPLAY_TAG(GameplayCue_Hit_Impact, "GameplayCue.Souls.Hit.Impact")
 		UE_DEFINE_GAMEPLAY_TAG(GameplayCue_Guard_Perfect, "GameplayCue.Souls.Guard.Perfect")
+		UE_DEFINE_GAMEPLAY_TAG(GameplayCue_Attack_Charge_Start, "GameplayCue.Souls.Attack.Charge.Start")
+		UE_DEFINE_GAMEPLAY_TAG(GameplayCue_Attack_Charge_Level1, "GameplayCue.Souls.Attack.Charge.Level1")
+		UE_DEFINE_GAMEPLAY_TAG(GameplayCue_Attack_Charge_Level2, "GameplayCue.Souls.Attack.Charge.Level2")
+		UE_DEFINE_GAMEPLAY_TAG(GameplayCue_Attack_Charge_Release, "GameplayCue.Souls.Attack.Charge.Release")
 
 		// 근접 공격 몽타주별 쿨다운 태그의 부모
 		UE_DEFINE_GAMEPLAY_TAG(Cooldown, "Souls.Cooldown")

@@ -49,6 +49,9 @@ public:
 	 virtual float GetMaxSpeed() const override;
 	//~End of UMovementComponent interface
 
+	// 26.11.17 추가 - 달리는 중(Status.Sprinting)에는 락온 중이어도 이동 방향으로 몸을 돌린다
+	virtual void PhysicsRotation(float DeltaTime) override;
+
 protected:
 
 	virtual void InitializeComponent() override;
@@ -71,4 +74,8 @@ protected:
 	// 26.11.02 추가 - 보스전 넉다운(Status.Downed) 중 최대 속도 배수 (기어가기)
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Lee|Downed", meta = (ClampMin = "0.0", ClampMax = "1.0"))
 	float DownedMoveSpeedMultiplier = 0.2f;
+
+	// 26.11.17 추가 - 달리기(Status.Sprinting) 중 최대 속도 배수. 플레이어 기본 걷기 300 x 2 = 600(블렌드스페이스 Run 위치)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Lee|Sprint", meta = (ClampMin = "1.0"))
+	float SprintSpeedMultiplier = 2.0f;
 };

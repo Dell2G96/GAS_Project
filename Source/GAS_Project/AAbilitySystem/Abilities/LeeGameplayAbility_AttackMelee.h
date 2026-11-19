@@ -92,7 +92,9 @@ struct FLeeMeleeAttackData
  *  2) ActivationOwnedTags에 의해 Souls.Status.Attack.Attacking 태그 자동 부여
  *  3) WaitGameplayEvent(Attack.CommitStep) 먼저 등록 (공격 단계 스태미나 비용용)
  *  4) WaitGameplayEvent(Trace) 등록, AttackDataList 중 1개 랜덤 선택 -> PlayMontageAndWait
- *  5) Attack.CommitStep 이벤트 수신 시 스태미나 비용 검사/차감 (부족하면 즉시 EndAbility)
+ *  5) Attack.CommitStep 이벤트 수신 시 스태미나 비용 차감
+ *     26.11.17 - Enemy는 시작 전에 모든 타 비용 합계를 확인하고, 도중에 모자라지면 끊지 않고 남은 만큼만 뺀다(그로기 없음).
+ *                Player는 기존대로 첫 타만 확인하고, 도중 부족 시 EndAbility.
  *  6) ANS_ToggleTrace가 발사하는 트레이스 이벤트 수신 시 HitResult로 SetByCaller 방식 데미지 GE 적용
  *  7) 몽타주 완료/중단 -> EndAbility -> Attacking 태그 자동 제거
  *
@@ -223,6 +225,20 @@ protected:
 	 * "타마다 서로 다른 몽타주"이면서도 중복 차감을 막는다.
 	 */
 	virtual bool TryCommitAttackStepCost(int32 CostIndex, int32 DedupKey);
+
+	/**
+	 * 26.11.17 추가 - 공격을 시작하려면 필요한 스태미나.
+	 * 기본(Enemy) = 이 몽타주 모든 타 비용의 합 → 시작했으면 끝까지 휘두를 수 있을 때만 공격한다.
+	 * Player 콤보는 타마다 별도 몽타주라 첫 타 비용만 본다(override).
+	 */
+	virtual float GetStaminaRequiredToStart(const FLeeMeleeAttackData& AttackData) const;
+
+	/**
+	 * 26.11.17 추가 - 공격 도중 다음 타 비용이 모자라면 공격을 끊을지.
+	 * 기본(Enemy) = false → 끊지 않고 남은 스태미나만큼만 빼고 끝까지 휘두른다 (그로기로 이어지지 않음).
+	 * Player = true (기존 동작 유지).
+	 */
+	virtual bool ShouldEndOnStaminaShortage() const { return false; }
 
 	/**
 	 * 공격 몽타주 재생 태스크 생성/델리게이트 연결.

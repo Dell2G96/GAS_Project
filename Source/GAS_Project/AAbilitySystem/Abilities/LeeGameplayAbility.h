@@ -77,6 +77,12 @@ public:
 	ELeeAbilityActivationGroup GetActivationGroup() const { return ActivationGroup; }
 
 protected:
+	/**
+	 * 26.11.17 추가 - [로컬] 입력 액션에 매핑된 키 중 하나라도 지금 눌려 있는지.
+	 * 입력 트리거(Pressed 등)와 상관없이 실제 키 상태로 판단한다 — 홀드 판정(강공격 차지, 달리기)용.
+	 * 직접 조종하는 클라이언트에서만 의미가 있고, 서버의 원격 플레이어 인스턴스에서는 항상 false.
+	 */
+	bool IsInputActionHeld(const class UInputAction* InputAction) const;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category= "Lee|Ability Activation")
 	ELeeAbilityActivationGroup ActivationGroup;
