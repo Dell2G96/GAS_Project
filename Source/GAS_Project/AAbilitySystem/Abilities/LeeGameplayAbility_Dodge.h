@@ -140,6 +140,15 @@ private:
 	FTimerHandle IFrameBeginTimerHandle;
 	FTimerHandle IFrameEndTimerHandle;
 
+	// 26.11.21 추가 - [서버] 퍼펙트 회피 성공 시 이번 회피에 쓴 스태미나를 돌려준다 (회피 1회당 1번)
+	void RefundDodgeStamina();
+
+	// 26.11.21 추가 - [서버] 이번 회피에서 실제로 줄어든 스태미나 (기본 비용 + 구르기 추가 비용)
+	float DodgeStaminaSpent = 0.0f;
+
+	// 26.11.21 추가 - [서버] 이번 회피에서 이미 환급했는지 (다단 공격에 여러 번 퍼펙트 판정이 나도 1번만)
+	bool bStaminaRefunded = false;
+
 protected:
 	/** 회피 몽타주 */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Lee|Dodge|Montage")
@@ -188,6 +197,14 @@ protected:
 	/** 회피 종료 후 스태미나 회복을 지연시키는 GE. BP에서 GE_StaminaRegenDelay 지정 (Duration = SetByCaller Souls.SetByCaller.Duration) */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Lee|Dodge|Effect")
 	TSubclassOf<UGameplayEffect> StaminaRegenDelayEffect;
+
+	/**
+	 * 26.11.21 추가 - 퍼펙트 회피 성공 시 쓴 스태미나를 돌려줄 GE.
+	 * Instant, Stamina AddBase, SetByCaller(Souls.SetByCaller.StaminaDamage) 구조면 된다 → BP에서 GE_StaminaDamage 지정 (양수 값으로 넣어 회복)
+	 * 비워두면 환급하지 않는다.
+	 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Lee|Dodge|Effect")
+	TSubclassOf<UGameplayEffect> StaminaRefundEffect;
 
 	/** 회피 종료 후 스태미나 회복 지연 시간(초) */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Lee|Dodge", meta = (ClampMin = "0.0"))

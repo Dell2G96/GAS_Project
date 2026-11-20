@@ -166,7 +166,9 @@ void ULeeGameplayAbility_Finisher::ActivateAbility(
 	{
 		if (ULeeHeroComponent* Hero = ULeeHeroComponent::FindHeroComponent(Avatar))
 		{
-			const float CameraMaxDuration = CurrentAnimSet.AttackerMontage->GetPlayLength() + 0.5f;
+			// 26.11.20 수정 - 몽타주 에셋 Rate Scale(배속)을 반영한 실제 재생 시간 기준
+			const float AttackerRateScale = FMath::Max(CurrentAnimSet.AttackerMontage->RateScale, KINDA_SMALL_NUMBER);
+			const float CameraMaxDuration = CurrentAnimSet.AttackerMontage->GetPlayLength() / AttackerRateScale + 0.5f;
 			Hero->SetAbilityCameraMode(CurrentAnimSet.CameraMode, Handle, Target, CameraMaxDuration);
 		}
 	}

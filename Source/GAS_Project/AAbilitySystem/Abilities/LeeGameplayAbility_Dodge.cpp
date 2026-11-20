@@ -12,6 +12,7 @@
 #include "Math/RotationMatrix.h"
 #include "GAS_Project/LeeLogChannels.h"
 #include "GAS_Project/MyTags.h"
+#include "GAS_Project/_Souls/Abilities/LeeSoulsStatSet.h"
 
 // 생성자 — 태그/그룹/정책 설정
 ULeeGameplayAbility_Dodge::ULeeGameplayAbility_Dodge(const FObjectInitializer& ObjectInitializer)
@@ -270,6 +271,17 @@ void ULeeGameplayAbility_Dodge::StartDodgeMove(bool bRoll)
 	FTimerManager& TimerManager = GetWorld()->GetTimerManager();
 	TimerManager.ClearTimer(DecisionTimerHandle);
 
+	const FGameplayAbilityActorInfo* ActorInfo = GetCurrentActorInfo();
+	const bool bIsServer = ActorInfo && ActorInfo->IsNetAuthority();
+
+	// 26.11.21 추가 - [서버] 비용을 내기 전 스태미나를 기록해 둔다 (퍼펙트 회피 시 실제로 쓴 만큼 환급)
+	UAbilitySystemComponent* OwnerASC = GetAbilitySystemComponentFromActorInfo();
+	const float StaminaBeforeCost = (bIsServer && OwnerASC)
+		? OwnerASC->GetNumericAttribute(ULeeSoulsStatSet::GetStaminaAttribute())
+		: 0.0f;
+	DodgeStaminaSpent = 0.0f;
+	bStaminaRefunded = false;
+
 	// 26.11.17 추가 - 스텝·구르기가 확정된 지금 회피 기본 비용(Cost GE)을 낸다 (판정 대기 중 스태미나가 줄어 모자라면 회피 취소)
 	if (!CommitAbilityCost(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo))
 	{
@@ -282,9 +294,6 @@ void ULeeGameplayAbility_Dodge::StartDodgeMove(bool bRoll)
 	{
 		bRoll = false;
 	}
-
-	const FGameplayAbilityActorInfo* ActorInfo = GetCurrentActorInfo();
-	const bool bIsServer = ActorInfo && ActorInfo->IsNetAuthority();
 
 	UAnimMontage* Montage = DodgeMontage;
 	FName Section = NAME_None;
@@ -304,6 +313,13 @@ void ULeeGameplayAbility_Dodge::StartDodgeMove(bool bRoll)
 	else
 	{
 		Section = SelectDodgeSection();
+	}
+
+	// 26.11.21 추가 - [서버] 기본 비용 + 구르기 추가 비용으로 실제 줄어든 양
+	if (bIsServer && OwnerASC)
+	{
+		const float StaminaAfterCost = OwnerASC->GetNumericAttribute(ULeeSoulsStatSet::GetStaminaAttribute());
+		DodgeStaminaSpent = FMath::Max(StaminaBeforeCost - StaminaAfterCost, 0.0f);
 	}
 
 	if (Section != NAME_None && Montage->GetSectionIndex(Section) == INDEX_NONE)
@@ -457,6 +473,27 @@ void ULeeGameplayAbility_Dodge::OnPerfectDodgeEventReceived(FGameplayEventData /
 		FGameplayCueParameters CueParams;
 		CueParams.Instigator = GetAvatarActorFromActorInfo();
 		ASC->ExecuteGameplayCue(MyTags::Souls::GameplayCue_Dodge_Perfect, CueParams);
+	}
+
+	// 26.11.21 추가 - 퍼펙트 회피 보상: 이번 회피에 쓴 스태미나 환급
+	RefundDodgeStamina();
+}
+
+// [서버] 이번 회피에 쓴 스태미나를 GE로 돌려준다 (GE를 거쳐야 스탯셋의 0~Max 클램프와 HUD 갱신 이벤트가 동작한다)
+void ULeeGameplayAbility_Dodge::RefundDodgeStamina()
+{
+	const FGameplayAbilityActorInfo* ActorInfo = GetCurrentActorInfo();
+	if (!ActorInfo || !ActorInfo->IsNetAuthority() || bStaminaRefunded || DodgeStaminaSpent <= 0.0f || !StaminaRefundEffect)
+	{
+		return;
+	}
+	bStaminaRefunded = true;
+
+	const FGameplayEffectSpecHandle RefundSpec = MakeOutgoingGameplayEffectSpec(StaminaRefundEffect, GetAbilityLevel());
+	if (RefundSpec.IsValid())
+	{
+		RefundSpec.Data->SetSetByCallerMagnitude(MyTags::Souls::SetByCaller_StaminaDamage, DodgeStaminaSpent);
+		ApplyGameplayEffectSpecToOwner(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo, RefundSpec);
 	}
 }
 

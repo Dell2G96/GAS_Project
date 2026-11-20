@@ -106,7 +106,9 @@ void ULeeGameplayAbility_FinisherVictim::ActivateAbility(
 	MontageTask->ReadyForActivation();
 
 	// 26.11.17 추가 - 피해자 몽타주는 Auto Blend Out이 꺼져 있어 끝나도 완료 콜백이 오지 않으므로 몽타주 길이로 종료 시점을 잡는다
-	UAbilityTask_WaitDelay* FinishTask = UAbilityTask_WaitDelay::WaitDelay(this, VictimMontage->GetPlayLength());
+	// 26.11.20 수정 - 몽타주 에셋의 Rate Scale(배속)을 반영한 실제 재생 시간으로 기다린다
+	const float VictimRateScale = FMath::Max(VictimMontage->RateScale, KINDA_SMALL_NUMBER);
+	UAbilityTask_WaitDelay* FinishTask = UAbilityTask_WaitDelay::WaitDelay(this, VictimMontage->GetPlayLength() / VictimRateScale);
 	FinishTask->OnFinish.AddDynamic(this, &ThisClass::OnVictimMontageFinished);
 	FinishTask->ReadyForActivation();
 }
@@ -143,7 +145,8 @@ float ULeeGameplayAbility_FinisherVictim::HoldDownedPose(UAbilitySystemComponent
 	float SectionEndTime = 0.0f;
 	Montage->GetSectionStartAndEndTime(SectionIndex, SectionStartTime, SectionEndTime);
 
-	const float PlayRate = FMath::Max(AnimInstance->Montage_GetPlayRate(Montage), KINDA_SMALL_NUMBER);
+	// 26.11.20 수정 - 실제 재생 속도 = 재생 요청 배속 × 몽타주 에셋 Rate Scale
+	const float PlayRate = FMath::Max(AnimInstance->Montage_GetPlayRate(Montage) * Montage->RateScale, KINDA_SMALL_NUMBER);
 	return FMath::Max(SectionEndTime - Position, 0.0f) / PlayRate;
 }
 
