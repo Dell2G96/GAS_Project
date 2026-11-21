@@ -101,7 +101,7 @@ void ULeeAttackTokenComponent::PruneInvalidRequesters()
 }
 
 // CanClaim/TryClaim이 공유하는 판정 로직 (P0-2 판정 규칙). bCommit이 true일 때만 실제로 점유한다
-bool ULeeAttackTokenComponent::EvaluateClaim(AActor* Requester, FGameplayTag QuotaTag, int32 Cost, bool bCommit, FLeeAttackClaimHandle* OutHandle)
+bool ULeeAttackTokenComponent::EvaluateClaim(AActor* Requester, FGameplayTag QuotaTag, int32 Cost, bool bCommit, FLeeAttackClaimHandle* OutHandle, bool bIgnoreQuota)
 {
 	const AActor* Owner = GetOwner();
 	if (!Owner || !Owner->HasAuthority())
@@ -121,7 +121,8 @@ bool ULeeAttackTokenComponent::EvaluateClaim(AActor* Requester, FGameplayTag Quo
 		return false;
 	}
 
-	if (PerAttackerCooldown > 0.f)
+	// 26.11.22 - 우선 예약은 "반납 직후 재예약 금지" 쿨다운도 무시한다 (붙은 즉시 공격해야 하므로)
+	if (PerAttackerCooldown > 0.f && !bIgnoreQuota)
 	{
 		if (const double* LastRelease = LastReleaseTime.Find(Requester))
 		{
@@ -157,6 +158,11 @@ bool ULeeAttackTokenComponent::EvaluateClaim(AActor* Requester, FGameplayTag Quo
 			if (Config.MaxAttackers == 0)
 			{
 				return false;
+			}
+			// 26.11.22 - 우선 예약은 인원·Cost 상한을 넘겨도 받는다 (점유 기록은 남겨 다른 적의 예약은 그만큼 막힌다)
+			if (bIgnoreQuota)
+			{
+				continue;
 			}
 			if (GetAttackerCount(Tag) + 1 > Config.MaxAttackers)
 			{
@@ -227,6 +233,12 @@ bool ULeeAttackTokenComponent::TryClaim(AActor* Requester, FGameplayTag QuotaTag
 	}
 
 	return EvaluateClaim(Requester, QuotaTag, Cost, /*bCommit=*/true, &OutHandle);
+}
+
+// 26.11.22 추가 - [서버] 인원·Cost 상한과 쿨다운을 무시하는 우선 예약 (바짝 붙은 적의 즉시 공격용)
+bool ULeeAttackTokenComponent::TryClaimPriority(AActor* Requester, FGameplayTag QuotaTag, int32 Cost, FLeeAttackClaimHandle& OutHandle)
+{
+	return EvaluateClaim(Requester, QuotaTag, Cost, /*bCommit=*/true, &OutHandle, /*bIgnoreQuota=*/true);
 }
 
 // [서버] Handle의 ClaimId가 현재 저장된 엔트리와 일치할 때만 반납 (늦은 ExitState 방어, P0-5 회수 경로 1)

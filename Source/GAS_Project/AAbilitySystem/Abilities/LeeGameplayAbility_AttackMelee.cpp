@@ -14,6 +14,8 @@
 #include "Animation/AnimInstance.h"
 #include "GameFramework/Character.h"
 #include "GAS_Project/MyTags.h"
+#include "GAS_Project/LeeLogChannels.h"
+#include "GAS_Project/AAI/LeeTargetSelectionComponent.h"
 #include "GAS_Project/_Souls/Abilities/LeeSoulsStatSet.h"
 #include "LeeHitOverride.h"
 
@@ -304,7 +306,25 @@ AActor* ULeeGameplayAbility_AttackMelee::GetWarpFacingTarget() const
 {
 	APawn* Pawn = Cast<APawn>(GetAvatarActorFromActorInfo());
 	AAIController* AIC = Pawn ? Cast<AAIController>(Pawn->GetController()) : nullptr;
-	return AIC ? AIC->GetFocusActor() : nullptr;
+	if (!AIC)
+	{
+		return nullptr;
+	}
+
+	if (AActor* FocusActor = AIC->GetFocusActor())
+	{
+		return FocusActor;
+	}
+
+	// 26.11.22 수정 - Focus가 비어 있으면 AI가 고른 전투 타겟을 쓴다.
+	// 공격 상태에 FaceTarget 태스크가 없는 StateTree는 직전 상태가 나가며 ClearFocus()해 Focus가 비고,
+	// 그러면 워프 대상이 없어 공격 중 타겟 쪽으로 회전하지 않았다 (신오비 콤보에서 확인).
+	const ULeeTargetSelectionComponent* Selection = ULeeTargetSelectionComponent::FindTargetSelectionComponent(AIC);
+	if (!Selection)
+	{
+		Selection = ULeeTargetSelectionComponent::FindTargetSelectionComponent(Pawn);
+	}
+	return Selection ? Selection->GetCurrentTarget() : nullptr;
 }
 
 // [모션워핑] GetWarpFacingTarget() 대상 기준으로 CurrentAttackData.bWarpTranslation에 따라 워프 타깃을 갱신한다 (하이브리드 방식 A/B 분기)
@@ -312,12 +332,21 @@ void ULeeGameplayAbility_AttackMelee::UpdateAttackWarpTarget()
 {
 	AActor* Avatar = GetAvatarActorFromActorInfo();
 	UMotionWarpingComponent* MW = Avatar ? Avatar->FindComponentByClass<UMotionWarpingComponent>() : nullptr;
+
+	// 26.11.22 추가 - [AttackWarp] 진단 로그: 워프 대상 계산 결과 (적 공격 중 회전이 안 되는 문제 추적용)
+	AActor* Target = MW ? GetWarpFacingTarget() : nullptr;
+	UE_LOG(LogLee, Log, TEXT("[AttackWarp] %s Montage=%s MW=%d Target=%s WarpTranslation=%d Dist=%.0f ActorYaw=%.0f ToTargetYaw=%.0f"),
+		*GetNameSafe(Avatar), *GetNameSafe(CurrentAttackData.Montage), MW != nullptr, *GetNameSafe(Target),
+		CurrentAttackData.bWarpTranslation,
+		(Avatar && Target) ? FVector::Dist2D(Avatar->GetActorLocation(), Target->GetActorLocation()) : -1.0f,
+		Avatar ? Avatar->GetActorRotation().Yaw : 0.0f,
+		(Avatar && Target) ? (Target->GetActorLocation() - Avatar->GetActorLocation()).Rotation().Yaw : 0.0f);
+
 	if (!MW)
 	{
 		return;
 	}
 
-	AActor* Target = GetWarpFacingTarget();
 	if (!Target)
 	{
 		// 대상은 없지만 대체 방향(Player = 이동 입력 방향)이 있으면 그 방향으로 회전 워프.
@@ -350,25 +379,29 @@ void ULeeGameplayAbility_AttackMelee::UpdateAttackWarpTarget()
 		return;
 	}
 
-	// 방식 A: 위치 + 회전 — 접근거리 밖이면 순간이동 방지를 위해 워프하지 않음
+	// 방식 A: 위치 + 회전
 	const float DistToTarget = FVector::Dist2D(AvatarLoc, TargetLoc);
-	if (CurrentAttackData.MaxWarpDistance > 0.0f && DistToTarget > CurrentAttackData.MaxWarpDistance)
-	{
-		
-		MW->RemoveWarpTarget(WarpTargetName);
-		return;
-	}
 
 	// 이미 접근거리 안이면(너무 가까우면) 뒤로 끌려가지 않도록 현재 위치 유지
 	const FVector ApproachLoc = TargetLoc - ToTargetDir * CurrentAttackData.ApproachDistance;
 	const bool bAlreadyClose = (DistToTarget <= CurrentAttackData.ApproachDistance);
-	const FVector FinalLoc = bAlreadyClose ? AvatarLoc : ApproachLoc;
+	FVector FinalLoc = bAlreadyClose ? AvatarLoc : ApproachLoc;
+
+	// 26.11.22 수정 - 최대 이동 거리 제한: 목표 지점이 MaxWarpDistance보다 멀면 타겟 방향으로 그만큼만 다가간다.
+	// 이전에는 워프 타깃을 통째로 지워서 회전까지 꺼졌다 (신오비 콤보가 타겟 쪽으로 돌지 않던 원인).
+	if (CurrentAttackData.MaxWarpDistance > 0.0f
+		&& FVector::Dist2D(AvatarLoc, FinalLoc) > CurrentAttackData.MaxWarpDistance)
+	{
+		FinalLoc = AvatarLoc + ToTargetDir * CurrentAttackData.MaxWarpDistance;
+	}
 
 	MW->AddOrUpdateWarpTargetFromLocationAndRotation(WarpTargetName, FinalLoc, ToTargetDir.Rotation());
 
 	// (몽타주 노티파이의 Warp Target Name과 여기 WarpTargetName 문자열이 다르면 FindWarpTarget이 못찾음 -> 노티파이가 조용히 무시됨)
 	const FMotionWarpingTarget* Registered = MW->FindWarpTarget(WarpTargetName);
-	
+	UE_LOG(LogLee, Log, TEXT("[AttackWarp] %s 워프 타깃 등록=%d Name=%s Loc=%s Yaw=%.0f AlreadyClose=%d"),
+		*GetNameSafe(Avatar), Registered != nullptr, *WarpTargetName.ToString(), *FinalLoc.ToCompactString(),
+		ToTargetDir.Rotation().Yaw, bAlreadyClose);
 }
 
 // [모션워핑] 현재 몽타주 위치 ~ 다음 이동 워프 구간 끝까지의 원본 루트모션 이동량을 FacingRotation 기준 월드 오프셋으로 변환
@@ -429,6 +462,8 @@ void ULeeGameplayAbility_AttackMelee::OnRefreshWarpTargetEventReceived(FGameplay
 {
 	// 26.11.02 수정 - 서버 + 로컬 클라이언트 양쪽에서 갱신 (LocalPredicted: 양쪽 몽타주의 워프 이동량을 맞춘다)
 	const bool bServerOrLocal = GetActorInfo().IsNetAuthority() || GetActorInfo().IsLocallyControlled();
+	UE_LOG(LogLee, Log, TEXT("[AttackWarp] %s RefreshWarpTarget 이벤트 수신 ServerOrLocal=%d Active=%d"),
+		*GetNameSafe(GetAvatarActorFromActorInfo()), bServerOrLocal, IsActive());
 	if (!bServerOrLocal || !IsActive())
 	{
 		return;

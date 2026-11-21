@@ -27,6 +27,14 @@ struct FLeeClaimAttackTokenInstanceData
 	UPROPERTY(EditAnywhere, Category = "Parameter")
 	FLeeAttackReservationConfig Reservation;
 
+	/** 26.11.22 추가 - true면 인원·Cost 상한을 무시하는 우선 예약(TryClaimPriority)을 쓴다 (바짝 붙은 적의 즉시 공격) */
+	UPROPERTY(EditAnywhere, Category = "Parameter")
+	bool bPriorityClaim = false;
+
+	/** 26.11.22 추가 - 예약 성공 시 Reservation.QuotaTag와 함께 사용 시각을 남길 태그 (비우면 기록 안 함). 우선 공격 재발동 간격 판정용 */
+	UPROPERTY(EditAnywhere, Category = "Parameter")
+	FGameplayTag ExtraRecordTag;
+
 	/** 런타임 발급 정보 — EnterState에서 채우고 ExitState에서 반납한다 */
 	UPROPERTY()
 	FLeeAttackClaimHandle Handle;

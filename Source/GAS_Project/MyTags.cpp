@@ -304,6 +304,7 @@ namespace MyTags
 		UE_DEFINE_GAMEPLAY_TAG(Attacker_Melee_Light, "Souls.Attacker.Melee.Light")
 		UE_DEFINE_GAMEPLAY_TAG(Attacker_Melee_Heavy, "Souls.Attacker.Melee.Heavy")
 		UE_DEFINE_GAMEPLAY_TAG(Attacker_Ranged, "Souls.Attacker.Ranged")
+		UE_DEFINE_GAMEPLAY_TAG(Attacker_Priority, "Souls.Attacker.Priority")
 
 		// ----- AI - StateTree 이벤트 (SendStateTreeEvent) -----
 		UE_DEFINE_GAMEPLAY_TAG(AIEvent_Died, "Souls.AI.Event.Died")

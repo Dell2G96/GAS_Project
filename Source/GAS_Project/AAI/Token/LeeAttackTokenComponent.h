@@ -106,6 +106,14 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Lee|AttackToken")
 	bool TryClaim(AActor* Requester, FGameplayTag QuotaTag, int32 Cost, FLeeAttackClaimHandle& OutHandle);
 
+	/**
+	 * 26.11.22 추가 - [서버] 우선 예약. 인원·Cost 상한과 PerAttackerCooldown을 무시하고 토큰을 받는다.
+	 * 플레이어가 바짝 붙은 적이 바로 공격할 때 쓴다. 이미 공격 중인 다른 적의 토큰은 건드리지 않는다.
+	 * bAcceptAttackTokens=false(전면 거부)와 MaxAttackers=0(카테고리 금지)은 그대로 지킨다.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Lee|AttackToken")
+	bool TryClaimPriority(AActor* Requester, FGameplayTag QuotaTag, int32 Cost, FLeeAttackClaimHandle& OutHandle);
+
 	/** [서버] Handle의 ClaimId가 현재 저장된 엔트리와 일치할 때만 반납 (늦은 ExitState 방어) */
 	UFUNCTION(BlueprintCallable, Category = "Lee|AttackToken")
 	void ReleaseByHandle(const FLeeAttackClaimHandle& Handle);
@@ -148,8 +156,8 @@ private:
 	/** OnEndPlay를 이미 바인딩한 Requester 집합 (중복 바인딩 방지) */
 	TSet<TWeakObjectPtr<AActor>> EndPlayBoundRequesters;
 
-	/** CanClaim/TryClaim이 공유하는 판정 로직. bCommit이 true일 때만 실제로 점유한다 */
-	bool EvaluateClaim(AActor* Requester, FGameplayTag QuotaTag, int32 Cost, bool bCommit, FLeeAttackClaimHandle* OutHandle);
+	/** CanClaim/TryClaim이 공유하는 판정 로직. bCommit이 true일 때만 실제로 점유한다. bIgnoreQuota면 인원·Cost 상한과 쿨다운을 건너뛴다 */
+	bool EvaluateClaim(AActor* Requester, FGameplayTag QuotaTag, int32 Cost, bool bCommit, FLeeAttackClaimHandle* OutHandle, bool bIgnoreQuota = false);
 
 	/** 요청 태그 + 상위 조상 태그 중 SlotConfigs에 등록된 것만 추려 검사 대상으로 반환 */
 	void ResolveQuotaTagsToCheck(FGameplayTag QuotaTag, TArray<FGameplayTag>& OutTags) const;

@@ -56,7 +56,8 @@ struct FLeeMeleeAttackData
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Lee|Attack|Warp", meta = (EditCondition = "bWarpTranslation", ClampMin = "0.0"))
 	float ApproachDistance = 150.0f;
 
-	/** bWarpTranslation=true일 때, 이 거리보다 적이 멀면 위치 워프를 하지 않음(순간이동 방지). 0이면 제한 없음 */
+	/** bWarpTranslation=true일 때, 워프로 끌려가는 최대 이동 거리(cm). 타겟이 더 멀면 타겟 방향으로 이만큼만 다가간다(회전은 항상 함). 0이면 제한 없음
+	 *  (26.11.22 변경 - 이전에는 "적이 이 거리보다 멀면 워프 전체를 끔"이라 회전까지 꺼지는 문제가 있었다) */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Lee|Attack|Warp", meta = (EditCondition = "bWarpTranslation", ClampMin = "0.0"))
 	float MaxWarpDistance = 400.0f;
 

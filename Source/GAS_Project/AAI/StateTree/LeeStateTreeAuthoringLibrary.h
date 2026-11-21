@@ -278,4 +278,20 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Lee|AI|Authoring", meta = (DevelopmentOnly))
 	static bool AddAttackRecover(UStateTree* StateTree, float RecoverSeconds = 1.25f, float RecoverVariance = 0.25f);
 #pragma endregion
+
+#pragma region 26.11.22 추가 - 바짝 붙으면 토큰 우선 예약 후 즉시 공격
+	/**
+	 * 이미 있는 Enemy StateTree에 PriorityAttack 상태를 붙이고 컴파일·저장한다 (에셋을 직접 수정).
+	 *   PriorityAttack : Root 자식, Close 바로 앞(Counter·Reactive Guard 뒤). 진입 조건 =
+	 *                    Close 구간 + 거리 ≤ TriggerDistance + 마지막 우선 공격 후 Interval초 경과
+	 *                    (+ Retreat가 있으면 스태미나가 후퇴 기준 이상).
+	 *                    자식은 기존 MeleeAttack과 같은 약/강 Utility 가중 랜덤이며, 토큰을 정원 무시로 예약한다.
+	 *                    끝나면 AttackRecover(없으면 Root)로 간다.
+	 *   끊기 전이       : Close의 대기 상태(GuardStrafe·Strafe·Hold·AttackRecover 등)에 같은 조건의 OnTick 전이를 붙인다.
+	 *                    MeleeAttack·AoeAttack(이미 공격 중)·Retreat와 Root의 Counter·Reactive Guard·Magic Shield는 끊지 않는다.
+	 * 이미 PriorityAttack이 있거나 Close/MeleeAttack이 없으면 false.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Lee|AI|Authoring", meta = (DevelopmentOnly))
+	static bool AddPriorityCloseAttack(UStateTree* StateTree, float TriggerDistance = 150.f, float Interval = 1.5f);
+#pragma endregion
 };

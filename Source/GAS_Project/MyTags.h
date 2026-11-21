@@ -332,6 +332,8 @@ namespace MyTags
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Attacker_Melee_Light);
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Attacker_Melee_Heavy);
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Attacker_Ranged);
+		// [신규 26.11.22] 바짝 붙었을 때의 우선 공격 사용 기록용 (Quota 상한 설정에는 쓰지 않는다)
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Attacker_Priority);
 
 		// ----- AI - StateTree 이벤트 (SendStateTreeEvent) -----
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(AIEvent_Died);

@@ -1603,6 +1603,248 @@ bool ULeeStateTreeAuthoringLibrary::AddAttackRecover(UStateTree* StateTree, floa
 }
 #pragma endregion
 
+#pragma region 26.11.22 추가 - 바짝 붙으면 토큰 우선 예약 후 즉시 공격
+namespace LeeAuthoring
+{
+	/** 이름으로 직계 자식 상태를 찾는다 (없으면 nullptr) */
+	inline UStateTreeState* FindChildState(UStateTreeState& Parent, const TCHAR* Name)
+	{
+		for (UStateTreeState* Child : Parent.Children)
+		{
+			if (Child && Child->Name == Name)
+			{
+				return Child;
+			}
+		}
+		return nullptr;
+	}
+
+	/** 상태의 Lee Activate Ability Task에 지정된 어빌리티 태그를 읽는다 (없으면 빈 태그) */
+	inline FGameplayTag FindActivateAbilityTag(const UStateTreeState& State)
+	{
+		for (const FStateTreeEditorNode& Task : State.Tasks)
+		{
+			if (Task.Node.GetScriptStruct() == FLeeStateTreeTask_ActivateAbility::StaticStruct())
+			{
+				if (const FLeeActivateAbilityInstanceData* Data = Task.Instance.GetPtr<FLeeActivateAbilityInstanceData>())
+				{
+					return Data->AbilityTag;
+				}
+			}
+		}
+		return FGameplayTag();
+	}
+
+	/** 진입 조건 / 전이 조건을 같은 코드로 붙이기 위한 오버로드 */
+	template<typename T, typename... TArgs>
+	TStateTreeEditorNode<T>& AddConditionTo(UStateTreeState& State, TArgs&&... Args)
+	{
+		return State.AddEnterCondition<T>(Forward<TArgs>(Args)...);
+	}
+
+	template<typename T, typename... TArgs>
+	TStateTreeEditorNode<T>& AddConditionTo(FStateTreeTransition& Transition, TArgs&&... Args)
+	{
+		return Transition.AddCondition<T>(Forward<TArgs>(Args)...);
+	}
+
+	/**
+	 * 우선 공격 조건 묶음: Close 구간(타겟 있음) + 거리 ≤ TriggerDistance + 마지막 우선 공격 후 Interval초 경과
+	 * (+ MinStaminaRatio > 0이면 스태미나 비율 ≥ MinStaminaRatio — 후퇴해야 할 때는 공격하지 않게)
+	 */
+	template<typename TOwner>
+	void AddPriorityAttackConditions(UStateTreeEditorData& EditorData, TOwner& Owner, const FStateTreeEditorNode& EvalNode,
+	                                 float TriggerDistance, float Interval, float MinStaminaRatio)
+	{
+		// 타겟이 없으면 DistanceToTarget이 0이 되므로 Close 구간 플래그로 "타겟 있음"을 먼저 보장한다
+		TStateTreeEditorNode<FStateTreeCompareBoolCondition>& CloseCond = AddConditionTo<FStateTreeCompareBoolCondition>(Owner);
+		CloseCond.GetInstanceData().bRight = true;
+		EditorData.AddPropertyBinding(EvalNode, TEXT("bIsCloseTier"), CloseCond, TEXT("bLeft"));
+
+		TStateTreeEditorNode<FStateTreeCompareFloatCondition>& DistCond =
+			AddConditionTo<FStateTreeCompareFloatCondition>(Owner, EGenericAICheck::LessOrEqual);
+		DistCond.GetInstanceData().Right = TriggerDistance;
+		EditorData.AddPropertyBinding(EvalNode, TEXT("DistanceToTarget"), DistCond, TEXT("Left"));
+
+		TStateTreeEditorNode<FLeeStateTreeCondition_TimeSinceLastUse>& IntervalCond =
+			AddConditionTo<FLeeStateTreeCondition_TimeSinceLastUse>(Owner);
+		IntervalCond.GetInstanceData().AttackTag = MyTags::Souls::Attacker_Priority;
+		IntervalCond.GetInstanceData().MinSeconds = Interval;
+		EditorData.AddPropertyBinding(EvalNode, TEXT("Actor"), IntervalCond, TEXT("RequesterPawn"));
+
+		if (MinStaminaRatio > 0.f)
+		{
+			TStateTreeEditorNode<FStateTreeCompareFloatCondition>& StaminaCond =
+				AddConditionTo<FStateTreeCompareFloatCondition>(Owner, EGenericAICheck::GreaterOrEqual);
+			StaminaCond.GetInstanceData().Right = MinStaminaRatio;
+			EditorData.AddPropertyBinding(EvalNode, TEXT("SelfStaminaRatio"), StaminaCond, TEXT("Left"));
+		}
+	}
+}
+
+// 바짝 붙은 플레이어에게 토큰을 정원 무시로 예약해 즉시 공격하는 PriorityAttack 상태와 끊기 전이를 붙이고 컴파일·저장한다
+bool ULeeStateTreeAuthoringLibrary::AddPriorityCloseAttack(UStateTree* StateTree, float TriggerDistance, float Interval)
+{
+	UStateTreeEditorData* EditorData = StateTree ? Cast<UStateTreeEditorData>(StateTree->EditorData) : nullptr;
+	if (!EditorData || EditorData->SubTrees.IsEmpty() || !EditorData->SubTrees[0])
+	{
+		UE_LOG(LogTemp, Error, TEXT("[LeeAuthoring] AddPriorityCloseAttack: StateTree가 비어 있습니다."));
+		return false;
+	}
+
+	const FStateTreeEditorNode* EvalNode = EditorData->Evaluators.FindByPredicate([](const FStateTreeEditorNode& Node)
+	{
+		return Node.Node.GetScriptStruct() == FLeeStateTreeEvaluator_CombatContext::StaticStruct();
+	});
+	if (!EvalNode)
+	{
+		UE_LOG(LogTemp, Error, TEXT("[LeeAuthoring] AddPriorityCloseAttack: Lee Combat Context 평가기가 없습니다: %s"), *StateTree->GetName());
+		return false;
+	}
+
+	UStateTreeState& Root = *EditorData->SubTrees[0];
+	if (LeeAuthoring::FindChildState(Root, TEXT("PriorityAttack")))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[LeeAuthoring] AddPriorityCloseAttack: 이미 PriorityAttack이 있어 건너뜁니다: %s"), *StateTree->GetName());
+		return false;
+	}
+
+	UStateTreeState* CloseState = LeeAuthoring::FindChildState(Root, TEXT("Close"));
+	UStateTreeState* MeleeAttack = CloseState ? LeeAuthoring::FindChildState(*CloseState, TEXT("MeleeAttack")) : nullptr;
+	if (!MeleeAttack || MeleeAttack->Children.IsEmpty())
+	{
+		UE_LOG(LogTemp, Error, TEXT("[LeeAuthoring] AddPriorityCloseAttack: Close/MeleeAttack(자식 공격 상태)이 없습니다: %s"), *StateTree->GetName());
+		return false;
+	}
+	UStateTreeState* AttackRecover = LeeAuthoring::FindChildState(*CloseState, TEXT("AttackRecover"));
+
+	// Retreat(스태미나 부족 후퇴)가 있으면 같은 기준값을 읽어, 후퇴해야 할 스태미나에서는 우선 공격하지 않게 한다
+	float MinStaminaRatio = 0.f;
+	if (const UStateTreeState* Retreat = LeeAuthoring::FindChildState(*CloseState, TEXT("Retreat")))
+	{
+		for (const FStateTreeEditorNode& Cond : Retreat->EnterConditions)
+		{
+			if (Cond.Node.GetScriptStruct() == FStateTreeCompareFloatCondition::StaticStruct())
+			{
+				if (const FStateTreeCompareFloatConditionInstanceData* Data = Cond.Instance.GetPtr<FStateTreeCompareFloatConditionInstanceData>())
+				{
+					MinStaminaRatio = static_cast<float>(Data->Right);
+				}
+			}
+		}
+	}
+
+	StateTree->Modify();
+	EditorData->Modify();
+	Root.Modify();
+	CloseState->Modify();
+
+	// --- PriorityAttack: Close 바로 앞에 둔다 → Counter·Reactive Guard·Magic Shield가 먼저 검사된다 ---
+	UStateTreeState& Priority = Root.AddChildState(TEXT("PriorityAttack"));
+	Root.Children.RemoveSingle(&Priority);
+	Root.Children.Insert(&Priority, Root.Children.IndexOfByKey(CloseState));
+	Priority.SelectionBehavior = EStateTreeStateSelectionBehavior::TrySelectChildrenAtRandomWeightedByUtility;
+	LeeAuthoring::AddPriorityAttackConditions(*EditorData, Priority, *EvalNode, TriggerDistance, Interval, MinStaminaRatio);
+
+	// 자식: 기존 MeleeAttack의 LightAttack/HeavyAttack과 같은 어빌리티·Consideration, 토큰만 우선 예약
+	int32 ChildCount = 0;
+	for (const UStateTreeState* Source : MeleeAttack->Children)
+	{
+		if (!Source)
+		{
+			continue;
+		}
+		const FGameplayTag AbilityTag = LeeAuthoring::FindActivateAbilityTag(*Source);
+		const bool bIsHeavy = Source->Name == TEXT("HeavyAttack");
+		if (!AbilityTag.IsValid() || (!bIsHeavy && Source->Name != TEXT("LightAttack")))
+		{
+			continue;
+		}
+
+		UStateTreeState& AttackState = Priority.AddChildState(*FString::Printf(TEXT("Priority%s"), *Source->Name.ToString()));
+
+		// Consideration은 손으로 튜닝했을 수 있어 값째 복사하고, ID만 새로 발급해 평가기 바인딩을 다시 건다
+		for (const FStateTreeEditorNode& SourceConsideration : Source->Considerations)
+		{
+			FStateTreeEditorNode& Copy = AttackState.Considerations.Add_GetRef(SourceConsideration);
+			Copy.ID = FGuid::NewGuid();
+			if (Copy.Node.GetScriptStruct() == FLeeConsideration_TimeSinceLastUse::StaticStruct())
+			{
+				EditorData->AddPropertyBinding(*EvalNode, TEXT("Actor"), Copy, TEXT("RequesterPawn"));
+			}
+			else if (Copy.Node.GetScriptStruct() == FLeeConsideration_TargetHasTag::StaticStruct())
+			{
+				EditorData->AddPropertyBinding(*EvalNode, TEXT("TargetActor"), Copy, TEXT("TargetActor"));
+			}
+		}
+
+		const FString ReservationSource = bIsHeavy ? TEXT("AttackerProfileComponent.HeavyAttack") : TEXT("AttackerProfileComponent.LightAttack");
+		TStateTreeEditorNode<FLeeStateTreeTask_ClaimAttackToken>& ClaimTask = AttackState.AddTask<FLeeStateTreeTask_ClaimAttackToken>();
+		ClaimTask.GetInstanceData().bPriorityClaim = true;
+		ClaimTask.GetInstanceData().ExtraRecordTag = MyTags::Souls::Attacker_Priority;
+		EditorData->AddPropertyBinding(*EvalNode, TEXT("AttackTokenComponent"), ClaimTask, TEXT("TokenComponent"));
+		EditorData->AddPropertyBinding(*EvalNode, ReservationSource, ClaimTask, TEXT("Reservation"));
+
+		TStateTreeEditorNode<FLeeStateTreeTask_ActivateAbility>& AbilityTask = AttackState.AddTask<FLeeStateTreeTask_ActivateAbility>();
+		AbilityTask.GetInstanceData().AbilityTag = AbilityTag;
+
+		// 완료 → 공격 후 숨 고르기(없으면 Root) / 실패 → 짧은 지연 후 Root (일반 근접 공격과 동일)
+		AttackState.AddTransition(EStateTreeTransitionTrigger::OnStateCompleted, EStateTreeTransitionType::GotoState,
+			AttackRecover ? AttackRecover : &Root);
+		FStateTreeTransition& Failed = AttackState.AddTransition(EStateTreeTransitionTrigger::OnStateFailed, EStateTreeTransitionType::GotoState, &Root);
+		Failed.bDelayTransition = true;
+		Failed.DelayDuration = 0.5f;
+		Failed.DelayRandomVariance = 0.2f;
+		++ChildCount;
+	}
+
+	if (ChildCount == 0)
+	{
+		UE_LOG(LogTemp, Error, TEXT("[LeeAuthoring] AddPriorityCloseAttack: MeleeAttack에서 Light/HeavyAttack 어빌리티 태그를 찾지 못했습니다: %s"), *StateTree->GetName());
+		Root.Children.RemoveSingle(&Priority);
+		return false;
+	}
+
+	// --- 끊기 전이: Close의 대기 상태에만 붙인다 (이미 공격 중이거나 후퇴 중인 상태는 제외) ---
+	int32 InterruptCount = 0;
+	for (UStateTreeState* Child : CloseState->Children)
+	{
+		if (!Child || Child->Name == TEXT("MeleeAttack") || Child->Name == TEXT("AoeAttack") || Child->Name == TEXT("Retreat"))
+		{
+			continue;
+		}
+		Child->Modify();
+		// 배열 끝에 붙여 같은 High 우선순위인 Reactive Guard 전이가 먼저 검사되게 한다
+		FStateTreeTransition& ToPriority = Child->AddTransition(EStateTreeTransitionTrigger::OnTick, EStateTreeTransitionType::GotoState, &Priority);
+		ToPriority.Priority = EStateTreeTransitionPriority::High;
+		LeeAuthoring::AddPriorityAttackConditions(*EditorData, ToPriority, *EvalNode, TriggerDistance, Interval, MinStaminaRatio);
+		++InterruptCount;
+	}
+
+	FStateTreeCompilerLog Log;
+	if (!UStateTreeEditingSubsystem::CompileStateTree(StateTree, Log))
+	{
+		UE_LOG(LogTemp, Error, TEXT("[LeeAuthoring] AddPriorityCloseAttack: 컴파일 실패: %s"), *StateTree->GetName());
+		return false;
+	}
+
+	UPackage* Package = StateTree->GetOutermost();
+	Package->MarkPackageDirty();
+	const FString FileName = FPackageName::LongPackageNameToFilename(Package->GetName(), FPackageName::GetAssetPackageExtension());
+	FSavePackageArgs SaveArgs;
+	SaveArgs.TopLevelFlags = RF_Public | RF_Standalone;
+	if (!UPackage::SavePackage(Package, StateTree, *FileName, SaveArgs))
+	{
+		UE_LOG(LogTemp, Error, TEXT("[LeeAuthoring] AddPriorityCloseAttack: 저장 실패: %s"), *FileName);
+		return false;
+	}
+
+	UE_LOG(LogTemp, Log, TEXT("[LeeAuthoring] AddPriorityCloseAttack 완료 (거리 %.0f, 간격 %.1f초, 스태미나 ≥ %.2f, 공격 %d종, 끊기 전이 %d개): %s"),
+		TriggerDistance, Interval, MinStaminaRatio, ChildCount, InterruptCount, *Package->GetName());
+	return true;
+}
+#pragma endregion
+
 #else // WITH_EDITOR
 
 bool ULeeStateTreeAuthoringLibrary::AddIdlePatrol(UStateTree*, TSubclassOf<UStateTreeTaskBlueprintBase>, FName, float)
@@ -1631,6 +1873,11 @@ int32 ULeeStateTreeAuthoringLibrary::AddRepositionHold(UStateTree*, float, float
 }
 
 bool ULeeStateTreeAuthoringLibrary::AddAttackRecover(UStateTree*, float, float)
+{
+	return false;
+}
+
+bool ULeeStateTreeAuthoringLibrary::AddPriorityCloseAttack(UStateTree*, float, float)
 {
 	return false;
 }

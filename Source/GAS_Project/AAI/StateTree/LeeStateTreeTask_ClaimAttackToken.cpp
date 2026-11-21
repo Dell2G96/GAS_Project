@@ -37,8 +37,12 @@ EStateTreeRunStatus FLeeStateTreeTask_ClaimAttackToken::EnterState(FStateTreeExe
 		return EStateTreeRunStatus::Failed;
 	}
 
+	// 26.11.22 - 우선 예약이면 인원 상한을 무시하고 받는다
 	FLeeAttackClaimHandle NewHandle;
-	if (!Data.TokenComponent->TryClaim(Data.RequesterPawn, Data.Reservation.QuotaTag, Data.Reservation.Cost, NewHandle))
+	const bool bClaimed = Data.bPriorityClaim
+		? Data.TokenComponent->TryClaimPriority(Data.RequesterPawn, Data.Reservation.QuotaTag, Data.Reservation.Cost, NewHandle)
+		: Data.TokenComponent->TryClaim(Data.RequesterPawn, Data.Reservation.QuotaTag, Data.Reservation.Cost, NewHandle);
+	if (!bClaimed)
 	{
 		return EStateTreeRunStatus::Failed;
 	}
@@ -75,5 +79,11 @@ void FLeeStateTreeTask_ClaimAttackToken::RecordUseOnProfile(const FInstanceDataT
 	if (ULeeAttackerProfileComponent* Profile = ULeeAttackerProfileComponent::FindAttackerProfileComponent(Data.RequesterPawn))
 	{
 		Profile->RecordUse(Data.Reservation.QuotaTag);
+
+		// 26.11.22 - 우선 공격 재발동 간격(Lee Time Since Last Use 조건)을 일반 공격 기록과 따로 재기 위한 추가 기록
+		if (Data.ExtraRecordTag.IsValid())
+		{
+			Profile->RecordUse(Data.ExtraRecordTag);
+		}
 	}
 }
