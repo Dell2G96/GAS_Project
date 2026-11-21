@@ -424,8 +424,11 @@ bool ULeeTargetLockComponent::HasLineOfSight(const FVector& From, AActor* Candid
 	FCollisionQueryParams QueryParams(SCENE_QUERY_STAT(LeeTargetLockLOS), /*bTraceComplex*/false, GetPawn<APawn>());
 	QueryParams.AddIgnoredActor(Candidate);
 
+	// 26.11.22 수정 - 벽·기둥·지형(WorldStatic)만 시야를 가린다고 판정한다.
+	// 이전에는 Visibility 채널을 써서 타겟 앞을 지나가는 다른 적(캡슐·메시)에도 시야가 막혀 락온이 풀렸다.
 	FHitResult Hit;
-	const bool bBlocked = World->LineTraceSingleByChannel(Hit, From, GetFocusLocationFor(Candidate), ECC_Visibility, QueryParams);
+	const bool bBlocked = World->LineTraceSingleByObjectType(Hit, From, GetFocusLocationFor(Candidate),
+		FCollisionObjectQueryParams(ECC_WorldStatic), QueryParams);
 	return !bBlocked;
 }
 
