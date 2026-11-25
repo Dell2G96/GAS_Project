@@ -166,6 +166,8 @@ namespace MyTags
 		UE_DEFINE_GAMEPLAY_TAG(Status_Boss_PhaseChangeQueued, "Souls.Status.Boss.PhaseChangeQueued")
 		UE_DEFINE_GAMEPLAY_TAG(Status_Downed, "Souls.Status.Downed")
 		UE_DEFINE_GAMEPLAY_TAG(Status_ParryRecovery, "Souls.Status.ParryRecovery")
+		// 26.11.26 추가 - 띄우기(Air Combo)로 공중에 뜬 상태
+		UE_DEFINE_GAMEPLAY_TAG(Status_Airborne, "Souls.Status.Airborne")
 
 		// ----- 상태 - 처형/암살 (피니셔) -----
 		UE_DEFINE_GAMEPLAY_TAG(Status_Groggy, "Souls.Status.Groggy")

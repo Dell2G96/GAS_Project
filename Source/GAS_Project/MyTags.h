@@ -170,6 +170,8 @@ namespace MyTags
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Status_Downed);
 		// 26.11.25 추가 - 패리당한 뒤 잠깐 공격하지 않는 상태 (일반 Enemy)
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Status_ParryRecovery);
+		// 26.11.26 추가 - 띄우기(Air Combo)로 공중에 뜬 상태 (뜬 순간 ~ 기상 끝). ABP 태그 맵·AI 정지·공중 피격 분기에 사용
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Status_Airborne);
 
 		// ----- 상태 - 처형/암살 (피니셔) -----
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Status_Groggy);

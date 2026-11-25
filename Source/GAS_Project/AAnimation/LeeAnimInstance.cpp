@@ -5,6 +5,8 @@
 
 #include "AbilitySystemComponent.h"
 #include "AbilitySystemGlobals.h"
+#include "GameFramework/Character.h"
+#include "GameFramework/CharacterMovementComponent.h"
 #include "GAS_Project/ACharacter/LeePawnExtensionComponent.h"
 #include "GAS_Project/ACharacter/LeeTargetLockComponent.h"
 #include "GAS_Project/AAbilitySystem/LeeAbilitySystemComponent.h"
@@ -52,7 +54,7 @@ void ULeeAnimInstance::InitializeWithAbilitySystem(class UAbilitySystemComponent
 	GameplayTagPropertyMap.Initialize(this, ASC);
 }
 
-// 매 프레임 게임 스레드 갱신 — 락온 컴포넌트의 스탠스 값을 레이어가 읽을 수 있게 미러링
+// 매 프레임 게임 스레드 갱신 — 락온 스탠스·공중 여부를 레이어/상태 머신이 읽을 수 있게 미러링
 void ULeeAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 {
 	Super::NativeUpdateAnimation(DeltaSeconds);
@@ -60,4 +62,9 @@ void ULeeAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 	const ULeeTargetLockComponent* LockComp =
 		ULeeTargetLockComponent::FindTargetLockComponent(GetOwningActor());
 	GuardLeftFootBack = LockComp ? LockComp->IsGuardLeftFootBack() : false;
+
+	// 26.11.26 추가 - 공중 여부 (Thread-safe 함수에서 컴포넌트에 접근할 수 없으므로 여기서 미리 담아 둔다)
+	const ACharacter* Character = Cast<ACharacter>(GetOwningActor());
+	const UCharacterMovementComponent* MoveComp = Character ? Character->GetCharacterMovement() : nullptr;
+	bIsFalling = MoveComp ? MoveComp->IsFalling() : false;
 }

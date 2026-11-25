@@ -36,6 +36,11 @@ public:
 	UPROPERTY(BlueprintReadOnly, Category="Character State Data")
 	bool GuardLeftFootBack = false;
 
+	/** 26.11.26 추가 - 이동 컴포넌트가 지금 공중(MOVE_Falling)인지 미러. 띄워진 Enemy의 착지 판정(FallLoop → Land)에 쓴다.
+	 *  이동 모드는 다른 클라이언트에도 복제되므로 게스트 화면에서도 맞게 나온다 */
+	UPROPERTY(BlueprintReadOnly, Category="Character State Data")
+	bool bIsFalling = false;
+
 	UPROPERTY(EditDefaultsOnly, Category="GameplayTags")
 	FGameplayTagBlueprintPropertyMap GameplayTagPropertyMap;
 		
