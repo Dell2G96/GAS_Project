@@ -449,6 +449,15 @@ void ULeeTargetSelectionComponent::ClearTarget()
 	SendAIEvent(MyTags::Souls::AIEvent_TargetInvalidated);
 }
 
+// [서버] 공격당했을 때 타겟이 없으면 즉시 재선정. 이미 싸우는 대상이 있으면 기존 위협도 규칙(주기 판정)에 맡긴다
+void ULeeTargetSelectionComponent::HandleOwnerAttacked()
+{
+	if (!CurrentTarget.IsValid())
+	{
+		UpdateTargetSelection();
+	}
+}
+
 // 판정 주기마다 호출되는 타겟 선정 로직 본체 (리뷰 §3-12 수식)
 void ULeeTargetSelectionComponent::UpdateTargetSelection()
 {

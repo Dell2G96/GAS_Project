@@ -7,6 +7,7 @@
 #include "Navigation/PathFollowingComponent.h"
 #include "StateTreeExecutionContext.h"
 #include "GAS_Project/LeeLogChannels.h"
+#include "GAS_Project/AAI/StateTree/LeeEnvQueryContext_OtherEnemies.h"
 
 namespace
 {
@@ -37,6 +38,20 @@ namespace
 			}
 		}
 
+		return false;
+	}
+
+	// 26.11.25 추가 - Point에서 Radius(2D) 안에 Locations 중 하나라도 있으면 true
+	bool IsNearAnyLocation(const FVector& Point, const TArray<FVector>& Locations, float Radius)
+	{
+		const float RadiusSq = FMath::Square(Radius);
+		for (const FVector& Location : Locations)
+		{
+			if (FVector::DistSquared2D(Point, Location) < RadiusSq)
+			{
+				return true;
+			}
+		}
 		return false;
 	}
 }
@@ -161,6 +176,42 @@ EStateTreeRunStatus FLeeStateTreeTask_StrafeAroundTarget::Tick(FStateTreeExecuti
 			: EStateTreeRunStatus::Running;
 	}
 	Data.ConsecutiveProjectionFailures = 0;
+
+	// 26.11.25 추가 - 목표점 근처에 다른 Enemy(목적지 또는 현재 위치)가 있으면 반대 방향으로, 양쪽 다 막히면 대기
+	if (Data.OtherEnemyAvoidRadius > 0.f)
+	{
+		TArray<FVector> OtherEnemyLocations;
+		ULeeEnvQueryContext_OtherEnemies::GatherOtherEnemyLocations(Data.Actor, OtherEnemyLocations);
+
+		if (IsNearAnyLocation(Goal, OtherEnemyLocations, Data.OtherEnemyAvoidRadius))
+		{
+			Data.DirectionSign *= -1.f;
+			Data.TimeSinceDirectionChange = 0.f;
+
+			const float OppositeAngleDeg = ActualAngleDeg + Data.DirectionSign * LeadAngleDeg;
+			FVector OppositeGoal;
+			const bool bOppositeFound = TryFindStrafeGoal(Data.Actor->GetWorld(), TargetLocation, OppositeAngleDeg, EffectiveRadius, Data.NavProjectionExtent, Data.MaxProjectionAttempts, OppositeGoal);
+
+			if (bOppositeFound && !IsNearAnyLocation(OppositeGoal, OtherEnemyLocations, Data.OtherEnemyAvoidRadius))
+			{
+				Data.CurrentAngleDeg = OppositeAngleDeg;
+				Goal = OppositeGoal;
+			}
+			else
+			{
+				// 양쪽 다 막힘 — 이 Task가 낸 이동만 멈추고 다음 갱신까지 제자리에서 기다린다
+				if (Data.MoveRequestId.IsValid())
+				{
+					if (UPathFollowingComponent* PathFollowingComp = Data.AIController->GetPathFollowingComponent())
+					{
+						PathFollowingComp->AbortMove(*Data.AIController, FPathFollowingResultFlags::OwnerFinished, Data.MoveRequestId);
+					}
+					Data.MoveRequestId = FAIRequestID::InvalidRequest;
+				}
+				return EStateTreeRunStatus::Running;
+			}
+		}
+	}
 
 	FAIMoveRequest MoveRequest;
 	MoveRequest.SetGoalLocation(Goal);

@@ -84,6 +84,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Lee|TargetSelection")
 	void ClearTarget();
 
+	/** [서버] Enemy가 공격당했을 때 호출 — 타겟이 없으면 다음 주기를 기다리지 않고 바로 재선정한다 (공격자가 위협도 1순위) */
+	void HandleOwnerAttacked();
+
 	/** 타겟이 바뀔 때마다 브로드캐스트 (Old, New) */
 	FLeeOnTargetChanged OnTargetChanged;
 

@@ -1845,6 +1845,106 @@ bool ULeeStateTreeAuthoringLibrary::AddPriorityCloseAttack(UStateTree* StateTree
 }
 #pragma endregion
 
+#pragma region 26.11.25 추가 - 플레이어 둘레 빈 지점으로 접근
+// Mid/Far의 Approach에서 MoveTo(플레이어 직행)를 끄고 빈 지점 접근 Task(EQS 주기 재계산)를 넣은 뒤 컴파일·저장한다
+int32 ULeeStateTreeAuthoringLibrary::UseOpenSpotApproach(UStateTree* StateTree, UEnvQuery* ApproachQuery, float RequeryInterval)
+{
+	UStateTreeEditorData* EditorData = StateTree ? Cast<UStateTreeEditorData>(StateTree->EditorData) : nullptr;
+	if (!EditorData || EditorData->SubTrees.IsEmpty() || !EditorData->SubTrees[0] || !ApproachQuery)
+	{
+		UE_LOG(LogTemp, Error, TEXT("[LeeAuthoring] UseOpenSpotApproach: StateTree 또는 EQS가 비어 있습니다."));
+		return -1;
+	}
+
+	// 타겟을 내보내는 전투 컨텍스트 Evaluator를 찾는다
+	const FStateTreeEditorNode* EvalNode = EditorData->Evaluators.FindByPredicate([](const FStateTreeEditorNode& Node)
+	{
+		return Node.Node.GetScriptStruct() == FLeeStateTreeEvaluator_CombatContext::StaticStruct();
+	});
+	if (!EvalNode)
+	{
+		UE_LOG(LogTemp, Error, TEXT("[LeeAuthoring] UseOpenSpotApproach: Lee Combat Context 평가기가 없습니다: %s"), *StateTree->GetName());
+		return -1;
+	}
+
+	UStateTreeState& Root = *EditorData->SubTrees[0];
+	StateTree->Modify();
+	EditorData->Modify();
+
+	int32 PatchedCount = 0;
+	for (UStateTreeState* Tier : Root.Children)
+	{
+		if (!Tier || (Tier->Name != TEXT("Mid") && Tier->Name != TEXT("Far")))
+		{
+			continue;
+		}
+
+		for (UStateTreeState* Approach : Tier->Children)
+		{
+			if (!Approach || Approach->Name != TEXT("Approach"))
+			{
+				continue;
+			}
+
+			// 이미 빈 지점 접근 Task가 있으면 건너뛴다
+			const bool bAlreadyPatched = Approach->Tasks.ContainsByPredicate([](const FStateTreeEditorNode& Node)
+			{
+				return Node.Node.GetScriptStruct() == FLeeStateTreeTask_MoveToEQSLocation::StaticStruct();
+			});
+			if (bAlreadyPatched)
+			{
+				continue;
+			}
+
+			Approach->Modify();
+
+			// 플레이어 직행 MoveTo는 지우지 않고 끈다 (바인딩을 건드리지 않아 단순하고, 에디터에서 다시 켜면 원래대로 돌아간다)
+			for (FStateTreeEditorNode& TaskNode : Approach->Tasks)
+			{
+				if (TaskNode.Node.GetScriptStruct() == FStateTreeMoveToTask::StaticStruct())
+				{
+					TaskNode.Node.GetMutable<FStateTreeTaskBase>().bTaskEnabled = false;
+				}
+			}
+
+			// 플레이어 둘레 빈 지점으로 접근 — 진행 방향을 보고 걷고, 빈 지점이 없으면 플레이어에게 직행한다
+			TStateTreeEditorNode<FLeeStateTreeTask_MoveToEQSLocation>& MoveTask = Approach->AddTask<FLeeStateTreeTask_MoveToEQSLocation>();
+			FLeeMoveToEQSLocationInstanceData& MoveData = MoveTask.GetInstanceData();
+			MoveData.QueryTemplate = ApproachQuery;
+			MoveData.RequeryInterval = RequeryInterval;
+			MoveData.bFaceTargetWhileMoving = false;
+			MoveData.bMoveToTargetOnQueryFail = true;
+			// 예전 MoveTo처럼 시간 제한 없이 다가가야 하므로 넉넉히 둔다 (거리 구간이 바뀌면 전이로 먼저 빠져나간다)
+			MoveData.MaxMoveDuration = 30.f;
+			EditorData->AddPropertyBinding(*EvalNode, TEXT("TargetActor"), MoveTask, TEXT("TargetActor"));
+
+			++PatchedCount;
+		}
+	}
+
+	FStateTreeCompilerLog Log;
+	if (!UStateTreeEditingSubsystem::CompileStateTree(StateTree, Log))
+	{
+		UE_LOG(LogTemp, Error, TEXT("[LeeAuthoring] UseOpenSpotApproach: 컴파일 실패: %s"), *StateTree->GetName());
+		return -1;
+	}
+
+	UPackage* Package = StateTree->GetOutermost();
+	Package->MarkPackageDirty();
+	const FString FileName = FPackageName::LongPackageNameToFilename(Package->GetName(), FPackageName::GetAssetPackageExtension());
+	FSavePackageArgs SaveArgs;
+	SaveArgs.TopLevelFlags = RF_Public | RF_Standalone;
+	if (!UPackage::SavePackage(Package, StateTree, *FileName, SaveArgs))
+	{
+		UE_LOG(LogTemp, Error, TEXT("[LeeAuthoring] UseOpenSpotApproach: 저장 실패: %s"), *FileName);
+		return -1;
+	}
+
+	UE_LOG(LogTemp, Log, TEXT("[LeeAuthoring] UseOpenSpotApproach 완료 (Approach %d개, 재계산 %.2f초): %s"), PatchedCount, RequeryInterval, *Package->GetName());
+	return PatchedCount;
+}
+#pragma endregion
+
 #else // WITH_EDITOR
 
 bool ULeeStateTreeAuthoringLibrary::AddIdlePatrol(UStateTree*, TSubclassOf<UStateTreeTaskBlueprintBase>, FName, float)
@@ -1880,6 +1980,11 @@ bool ULeeStateTreeAuthoringLibrary::AddAttackRecover(UStateTree*, float, float)
 bool ULeeStateTreeAuthoringLibrary::AddPriorityCloseAttack(UStateTree*, float, float)
 {
 	return false;
+}
+
+int32 ULeeStateTreeAuthoringLibrary::UseOpenSpotApproach(UStateTree*, UEnvQuery*, float)
+{
+	return -1;
 }
 
 FString ULeeStateTreeAuthoringLibrary::DescribeEnvQuery(UEnvQuery*)

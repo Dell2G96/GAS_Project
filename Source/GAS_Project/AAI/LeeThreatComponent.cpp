@@ -9,6 +9,8 @@
 #include "GameFramework/PlayerState.h"
 #include "GAS_Project/AMessage/LeeVerbMessageHelpers.h"
 #include "GAS_Project/ACharacter/LeePawnExtensionComponent.h"
+#include "GAS_Project/ACharacter/LeeEnemySensingComponent.h"
+#include "GAS_Project/AAI/LeeTargetSelectionComponent.h"
 #include "GAS_Project/LeeLogChannels.h"
 #include "GAS_Project/_Souls/Abilities/LeeSoulsStatSet.h"
 
@@ -173,6 +175,28 @@ void ULeeThreatComponent::AddThreat(AActor* RawInstigator, float Amount)
 	FLeeThreatEntry& Entry = ThreatTable.FindOrAdd(NormalizedInstigator);
 	Entry.Threat = ComputeDecayedThreat(Entry, Now) + Amount * DamageToThreatScale;
 	Entry.LastUpdateTime = Now;
+
+	NotifyAttackedBy(NormalizedInstigator);
+}
+
+// 공격당했음을 알린다: 감지 컴포넌트는 공격자를 즉시 인지하고, 타겟 선정은 타겟이 없을 때 바로 공격자를 잡는다
+void ULeeThreatComponent::NotifyAttackedBy(APawn* Attacker) const
+{
+	APawn* OwnerPawn = Cast<APawn>(GetOwner());
+	if (!OwnerPawn || !Attacker)
+	{
+		return;
+	}
+
+	if (ULeeEnemySensingComponent* SensingComp = ULeeEnemySensingComponent::FindEnemySensingComponent(OwnerPawn))
+	{
+		SensingComp->NotifyAttackedBy(Attacker);
+	}
+
+	if (ULeeTargetSelectionComponent* TargetSelection = ULeeTargetSelectionComponent::FindTargetSelectionComponent(OwnerPawn->GetController()))
+	{
+		TargetSelection->HandleOwnerAttacked();
+	}
 }
 
 // 조회 시점까지 감쇠를 적용한 현재 위협도를 반환 (lazy decay, 테이블은 변경하지 않음)

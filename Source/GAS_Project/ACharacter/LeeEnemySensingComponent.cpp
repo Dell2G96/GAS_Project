@@ -8,6 +8,14 @@
 #include "GameFramework/PlayerController.h"
 #include "TimerManager.h"
 #include "GAS_Project/MyTags.h"
+#include "GAS_Project/LeeLogChannels.h"
+
+// 기억 중인 플레이어를 시야 판정에서 놓칠 때마다 실패 사유를 로그로 남기는 진단 스위치 (0 = 끔, 1 = 켬)
+static TAutoConsoleVariable<int32> CVarLeeDebugSensing(
+	TEXT("Lee.AI.DebugSensing"),
+	0,
+	TEXT("1이면 Enemy가 기억 중인 플레이어를 시야 판정에서 놓칠 때마다 사유(거리/각도/가림)를 로그로 남긴다."),
+	ECVF_Cheat);
 
 ULeeEnemySensingComponent::ULeeEnemySensingComponent()
 {
@@ -69,14 +77,16 @@ void ULeeEnemySensingComponent::SenseTick()
 	{
 		const APlayerController* PC = It->Get();
 		APawn* PlayerPawn = PC ? PC->GetPawn() : nullptr;
-		const bool bCanPerceive = PlayerPawn && CanPerceive(PlayerPawn);
-
-		
+		// 기억에 남아 있으면 이미 전투 중인 대상 → 완화된 조건으로 판정
+		const bool bAlreadyAware = PlayerPawn && LastSeenTimeByPawn.Contains(PlayerPawn);
+		FString FailReason;
+		const bool bCanPerceive = PlayerPawn && CanPerceive(PlayerPawn, bAlreadyAware, &FailReason);
 
 		if (bCanPerceive)
 		{
 			bPerceivedAny = true;
 			LastSeenTimeByPawn.Add(PlayerPawn, Now);
+			LastFailReasonByPawn.Remove(PlayerPawn);
 			PerceivedPawns.Add(PlayerPawn);
 		}
 		else if (PlayerPawn)
@@ -87,6 +97,15 @@ void ULeeEnemySensingComponent::SenseTick()
 			if (LastSeen && (Now - *LastSeen) <= LoseSightDelay)
 			{
 				PerceivedPawns.Add(PlayerPawn);
+
+				// [진단] 기억 중인 플레이어를 놓친 사유를 남긴다
+				LastFailReasonByPawn.Add(PlayerPawn, FailReason);
+				if (CVarLeeDebugSensing.GetValueOnGameThread() != 0)
+				{
+					UE_LOG(LogLee, Log, TEXT("[Sensing] %s → %s 시야 실패: %s (남은 기억 %.1f초)"),
+						*GetNameSafe(GetOwner()), *GetNameSafe(PlayerPawn), *FailReason,
+						LoseSightDelay - (Now - *LastSeen));
+				}
 			}
 		}
 	}
@@ -96,6 +115,15 @@ void ULeeEnemySensingComponent::SenseTick()
 	{
 		if (!It->Key.IsValid() || (Now - It->Value) > LoseSightDelay)
 		{
+			// [진단] 플레이어를 완전히 잊는 순간은 드물고 중요하므로 CVar와 관계없이 항상 남긴다
+			if (APawn* ForgottenPawn = It->Key.Get())
+			{
+				const FString* LastReason = LastFailReasonByPawn.Find(ForgottenPawn);
+				UE_LOG(LogLee, Warning, TEXT("[Sensing] %s가 %s를 잊음 (%.1f초 동안 못 봄) — 마지막 실패 사유: %s"),
+					*GetNameSafe(GetOwner()), *GetNameSafe(ForgottenPawn), LoseSightDelay,
+					LastReason ? **LastReason : TEXT("알 수 없음"));
+			}
+			LastFailReasonByPawn.Remove(It->Key);
 			It.RemoveCurrent();
 		}
 	}
@@ -116,7 +144,8 @@ void ULeeEnemySensingComponent::SenseTick()
 	}
 }
 
-bool ULeeEnemySensingComponent::CanPerceive(const APawn* PlayerPawn) const
+// 거리 → 전방 시야각 → 차폐 순으로 검사. 이미 전투 중인 대상은 조건을 완화한다. 실패 사유는 OutFailReason에 적는다(진단 로그용)
+bool ULeeEnemySensingComponent::CanPerceive(const APawn* PlayerPawn, bool bAlreadyAware, FString* OutFailReason) const
 {
 	const AActor* Owner = GetOwner();
 	if (!Owner || !PlayerPawn)
@@ -127,36 +156,120 @@ bool ULeeEnemySensingComponent::CanPerceive(const APawn* PlayerPawn) const
 	const FVector OwnerLocation = Owner->GetActorLocation();
 	const FVector PlayerLocation = PlayerPawn->GetActorLocation();
 
-	// ① 거리
-	if (FVector::DistSquared(OwnerLocation, PlayerLocation) > FMath::Square(SightRadius))
+	// ① 거리 — 처음 발견은 SightRadius, 전투 중에는 CombatLoseSightRadius까지 유지
+	const float Distance = FVector::Dist(OwnerLocation, PlayerLocation);
+	const float MaxDistance = bAlreadyAware ? CombatLoseSightRadius : SightRadius;
+	if (Distance > MaxDistance)
 	{
+		if (OutFailReason)
+		{
+			*OutFailReason = FString::Printf(TEXT("거리 %.0fcm > %.0fcm"), Distance, MaxDistance);
+		}
 		return false;
 	}
 
-	// ② 전방 시야각 (원뿔 전체 각 SightAngleDeg → 반각과 비교)
-	const FVector OwnerForward = Owner->GetActorForwardVector().GetSafeNormal2D();
-	const FVector ToPlayer = (PlayerLocation - OwnerLocation).GetSafeNormal2D();
-	const float FrontDotThreshold = FMath::Cos(FMath::DegreesToRadians(SightAngleDeg * 0.5f));
-	if (FVector::DotProduct(OwnerForward, ToPlayer) < FrontDotThreshold)
+	// 전투 중 + 가까움 → 시야각·가림과 관계없이 인지 (바로 옆 플레이어를 장애물 모서리 때문에 잊지 않게)
+	if (bAlreadyAware && Distance <= CloseAwarenessRadius)
 	{
-		return false;
+		return true;
 	}
 
-	// ③ 차폐 검사 (눈높이 → 플레이어 중심)
+	// ② 전방 시야각 — 처음 발견할 때만 검사 (전투 중에는 옆·뒤로 돌아가도 유지)
+	if (!bAlreadyAware)
+	{
+		const FVector OwnerForward = Owner->GetActorForwardVector().GetSafeNormal2D();
+		const FVector ToPlayer = (PlayerLocation - OwnerLocation).GetSafeNormal2D();
+		const float FrontDotThreshold = FMath::Cos(FMath::DegreesToRadians(SightAngleDeg * 0.5f));
+		const float FrontDot = FVector::DotProduct(OwnerForward, ToPlayer);
+		if (FrontDot < FrontDotThreshold)
+		{
+			if (OutFailReason)
+			{
+				const float AngleDeg = FMath::RadiansToDegrees(FMath::Acos(FMath::Clamp(FrontDot, -1.f, 1.f)));
+				*OutFailReason = FString::Printf(TEXT("시야각 밖 %.0f° > %.0f°"), AngleDeg, SightAngleDeg * 0.5f);
+			}
+			return false;
+		}
+	}
+
+	// ③ 차폐 검사 (벽·지형만 시야를 가린다)
 	if (bCheckLineOfSight)
 	{
-		FCollisionQueryParams QueryParams(SCENE_QUERY_STAT(LeeEnemySensing), /*bTraceComplex*/false, Owner);
-		QueryParams.AddIgnoredActor(PlayerPawn);
-
-		FHitResult Hit;
-		const FVector EyeLocation = OwnerLocation + FVector(0.0f, 0.0f, EyeHeightOffset);
-		if (GetWorld()->LineTraceSingleByChannel(Hit, EyeLocation, PlayerLocation, ECC_Visibility, QueryParams))
+		FString Blocker;
+		if (!HasLineOfSight(PlayerPawn, &Blocker))
 		{
+			if (OutFailReason)
+			{
+				*OutFailReason = FString::Printf(TEXT("시야 가림 %s"), *Blocker);
+			}
 			return false;
 		}
 	}
 
 	return true;
+}
+
+// 눈높이 → 플레이어 중심으로 Visibility 트레이스. 다른 폰(동료 Enemy 등)에 맞으면 무시 목록에 넣고 다시 쏜다
+bool ULeeEnemySensingComponent::HasLineOfSight(const APawn* PlayerPawn, FString* OutBlocker) const
+{
+	const AActor* Owner = GetOwner();
+	if (!Owner || !PlayerPawn)
+	{
+		return false;
+	}
+
+	FCollisionQueryParams QueryParams(SCENE_QUERY_STAT(LeeEnemySensing), /*bTraceComplex*/false, Owner);
+	QueryParams.AddIgnoredActor(PlayerPawn);
+
+	const FVector EyeLocation = Owner->GetActorLocation() + FVector(0.0f, 0.0f, EyeHeightOffset);
+	const FVector PlayerLocation = PlayerPawn->GetActorLocation();
+
+	// 폰이 줄지어 서 있어도 몇 번이면 충분하다 (무한 반복 방지용 상한)
+	constexpr int32 MaxPawnSkips = 4;
+	for (int32 Attempt = 0; Attempt <= MaxPawnSkips; ++Attempt)
+	{
+		FHitResult Hit;
+		if (!GetWorld()->LineTraceSingleByChannel(Hit, EyeLocation, PlayerLocation, ECC_Visibility, QueryParams))
+		{
+			return true;
+		}
+
+		AActor* HitActor = Hit.GetActor();
+		if (Cast<APawn>(HitActor))
+		{
+			QueryParams.AddIgnoredActor(HitActor);
+			continue;
+		}
+
+		if (OutBlocker)
+		{
+			*OutBlocker = FString::Printf(TEXT("%s (%s)"), *GetNameSafe(HitActor), *GetNameSafe(Hit.GetComponent()));
+		}
+		return false;
+	}
+
+	// 폰만 계속 맞은 경우 — 벽·지형은 없었으므로 보인 것으로 본다
+	return true;
+}
+
+// [서버] 공격당하면 시야와 관계없이 공격자를 인지 목록·기억에 넣고 미인식 상태를 해제한다
+void ULeeEnemySensingComponent::NotifyAttackedBy(APawn* Attacker)
+{
+	if (GetOwnerRole() != ROLE_Authority || !Attacker || !Attacker->IsPlayerControlled())
+	{
+		return;
+	}
+
+	const double Now = GetWorld()->GetTimeSeconds();
+	LastSeenTimeByPawn.Add(Attacker, Now);
+	LastFailReasonByPawn.Remove(Attacker);
+	PerceivedPawns.AddUnique(Attacker);
+	LastPerceivedTime = Now;
+
+	if (bUnaware)
+	{
+		SetUnaware(false);
+	}
 }
 
 void ULeeEnemySensingComponent::SetUnaware(bool bNewUnaware)

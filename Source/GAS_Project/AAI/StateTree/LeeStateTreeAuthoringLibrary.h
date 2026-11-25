@@ -294,4 +294,15 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Lee|AI|Authoring", meta = (DevelopmentOnly))
 	static bool AddPriorityCloseAttack(UStateTree* StateTree, float TriggerDistance = 150.f, float Interval = 1.5f);
 #pragma endregion
+
+#pragma region 26.11.25 추가 - 플레이어 둘레 빈 지점으로 접근
+	/**
+	 * Mid/Approach, Far/Approach의 MoveTo(플레이어 직행)를 끄고, EQS로 고른 "플레이어 둘레 빈 지점"으로
+	 * 다가가는 Lee Move To EQS Location을 넣은 뒤 컴파일·저장한다 (에셋을 직접 수정하므로 복사본에 쓴다).
+	 * 빈 지점이 없으면 예전처럼 플레이어에게 직행한다. 이미 적용된 Approach는 건너뛴다.
+	 * 반환: 바꾼 Approach 수, 실패 시 -1
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Lee|AI|Authoring", meta = (DevelopmentOnly))
+	static int32 UseOpenSpotApproach(UStateTree* StateTree, UEnvQuery* ApproachQuery, float RequeryInterval = 0.5f);
+#pragma endregion
 };

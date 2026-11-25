@@ -8,6 +8,7 @@
 #include "GameplayEffectTypes.h"
 #include "LeeThreatComponent.generated.h"
 
+class APawn;
 class UAbilitySystemComponent;
 
 /** 특정 대상 1명에 대한 위협도 기록 */
@@ -29,6 +30,7 @@ struct FLeeThreatEntry
  * 시간이 지나면 반감기(ThreatHalfLife)로 감쇠시킨다.
  * ULeeTargetSelectionComponent가 타겟 선정 1순위 기준으로 이 값을 조회한다.
  * V1은 피해로만 위협도가 오른다 (Q9 결정안 — 가드/패리/회복 등은 제외).
+ * 위협도가 오를 때 공격자를 감지 컴포넌트에 알려 시야 밖 공격자도 즉시 타겟 후보가 되게 한다.
  * 서버 전용. 리스폰 시 초기화 정책은 ULeeTargetSelectionComponent 등 외부 호출부가
  * ResetThreat()를 호출해 처리한다 (Q7 결정안).
  */
@@ -103,6 +105,9 @@ private:
 
 	/** HealthAttribute 변경 델리게이트 핸들러. 감소분(=피해량)만 위협도로 환산한다 */
 	void HandleHealthAttributeChanged(const FOnAttributeChangeData& Data);
+
+	/** 공격자를 감지 컴포넌트(즉시 인지)와 타겟 선정 컴포넌트(타겟 없으면 즉시 선정)에 알린다 */
+	void NotifyAttackedBy(APawn* Attacker) const;
 
 	/** 바인딩 해제를 위해 보관하는 ASC와 델리게이트 핸들 */
 	TWeakObjectPtr<UAbilitySystemComponent> BoundASC;

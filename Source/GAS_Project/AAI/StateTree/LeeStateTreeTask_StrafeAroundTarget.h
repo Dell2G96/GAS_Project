@@ -72,6 +72,13 @@ struct FLeeStrafeAroundTargetInstanceData
 	UPROPERTY(EditAnywhere, Category = "Parameter")
 	bool bRetryOppositeOnFail = true;
 
+	/**
+	 * 26.11.25 추가 - 다음 목표점 이 반경(cm) 안에 다른 Enemy의 목적지/현재 위치가 있으면 반대 방향으로 돈다.
+	 * 양쪽 다 막히면 그 갱신은 제자리에서 기다린다. 0이면 끈다.
+	 */
+	UPROPERTY(EditAnywhere, Category = "Parameter", meta = (ClampMin = "0.0"))
+	float OtherEnemyAvoidRadius = 150.f;
+
 	/** TODO: 튜닝 필요 */
 	UPROPERTY(EditAnywhere, Category = "Parameter", meta = (ClampMin = "0.0"))
 	float MinDuration = 1.5f;

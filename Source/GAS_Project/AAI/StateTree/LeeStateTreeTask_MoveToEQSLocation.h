@@ -40,9 +40,25 @@ struct FLeeMoveToEQSLocationInstanceData
 	UPROPERTY(EditAnywhere, Category = "Parameter", meta = (ClampMin = "0.1"))
 	float MaxMoveDuration = 4.f;
 
+	/** 26.11.25 추가 - 이동 중 이 주기(초)마다 EQS를 다시 돌려 목표를 갱신한다 (움직이는 플레이어 둘레로 접근할 때). 0이면 처음 한 번만 */
+	UPROPERTY(EditAnywhere, Category = "Parameter", meta = (ClampMin = "0.0"))
+	float RequeryInterval = 0.f;
+
+	/** 26.11.25 추가 - true면 타겟을 바라본 채 옆/뒤로 걷고, false면 가는 방향을 보고 걷는다 (접근은 false) */
+	UPROPERTY(EditAnywhere, Category = "Parameter")
+	bool bFaceTargetWhileMoving = true;
+
+	/** 26.11.25 추가 - EQS 결과가 없으면 실패하지 않고 타겟에게 바로 다가간다 (접근용) */
+	UPROPERTY(EditAnywhere, Category = "Parameter")
+	bool bMoveToTargetOnQueryFail = false;
+
 	// --- 런타임 상태 ---
 	UPROPERTY()
 	float ElapsedSeconds = 0.f;
+
+	/** 26.11.25 추가 - 마지막 EQS 실행 후 지난 시간 */
+	UPROPERTY()
+	float TimeSinceQuery = 0.f;
 
 	/** 이 Task가 직접 발급한 이동 요청 ID — ExitState에서 이 요청만 중단한다 */
 	UPROPERTY()
@@ -50,8 +66,9 @@ struct FLeeMoveToEQSLocationInstanceData
 };
 
 /**
- * EQS를 한 번 실행해 가장 점수가 높은 지점을 구하고, 타겟을 바라본 채(Focus 고정) 그 지점으로 걸어가는 Task.
+ * EQS를 실행해 가장 점수가 높은 지점을 구하고, 타겟을 바라본 채(Focus 고정) 그 지점으로 걸어가는 Task.
  * 도착/시간 초과 시 Succeeded, EQS 결과가 없거나 이동 요청이 실패하면 Failed.
+ * 26.11.25 추가 - RequeryInterval > 0이면 이동 중 주기적으로 목표를 다시 구한다 (빈 지점으로 접근).
  */
 USTRUCT(meta = (DisplayName = "Lee Move To EQS Location", Category = "Lee|AI|Action"))
 struct GAS_PROJECT_API FLeeStateTreeTask_MoveToEQSLocation : public FStateTreeAIActionTaskBase
