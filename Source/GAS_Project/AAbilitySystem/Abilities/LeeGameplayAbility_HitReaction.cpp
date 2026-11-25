@@ -71,6 +71,17 @@ void ULeeGameplayAbility_HitReaction::ActivateAbility(
 	bPlayingGroggyEnd = false;
 
 	UAnimMontage* SelectedMontage = SelectMontageForEvent(TriggerEventData->EventTag);
+
+	// 26.11.26 수정 - 패리당하는 순간 공격 대기를 건다 (몽타주 길이 + 랜덤 대기).
+	// 이전에는 몽타주가 정상 종료될 때만 걸어서, 패리 직후 맞아 경직으로 덮이거나 몽타주가 없으면 대기가 빠졌다.
+	if (TriggerEventData->EventTag == MyTags::Souls::Event_Combat_Parried)
+	{
+		const float MontageDuration = SelectedMontage
+			? SelectedMontage->GetPlayLength() / FMath::Max(SelectedMontage->RateScale, KINDA_SMALL_NUMBER)
+			: 0.0f;
+		StartParryRecovery(MontageDuration);
+	}
+
 	if (!SelectedMontage)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("[LeeGA_HitReaction] %s에 해당하는 리액션 몽타주가 설정되지 않음. BP에서 지정해주세요."),
@@ -262,18 +273,13 @@ void ULeeGameplayAbility_HitReaction::OnMontageFinished()
 		}
 	}
 
-	// 26.11.25 추가 - 패리당함 몽타주가 끝나면 잠깐 공격하지 않는다 (그로기로 넘어간 경우는 위에서 이미 빠져나감)
-	if (ActiveEventTag == MyTags::Souls::Event_Combat_Parried)
-	{
-		StartParryRecovery();
-	}
-
 	EndAbility(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo, /*Replicate*/true, /*WasCancelled*/false);
 }
 
-// 26.11.25 추가 - [서버] 패리당한 Enemy에 Status.ParryRecovery를 붙이고, ParryRecoveryMin~Max 초 뒤에 뗀다.
+// 26.11.25 추가 - [서버] 패리당한 Enemy에 Status.ParryRecovery를 붙이고, (몽타주 길이 + ParryRecoveryMin~Max) 초 뒤에 뗀다.
 // 공격 GA는 이 태그가 있으면 발동하지 않고, StateTree 공격 상태도 이 태그가 있으면 진입하지 않는다 → 그동안 가드·스트레이프 등 비공격 행동.
-void ULeeGameplayAbility_HitReaction::StartParryRecovery()
+// 26.11.26 수정 - 패리당하는 순간 호출 (몽타주 정상 종료에 의존하지 않음)
+void ULeeGameplayAbility_HitReaction::StartParryRecovery(float MontageDuration)
 {
 	UAbilitySystemComponent* ASC = GetAbilitySystemComponentFromActorInfo();
 	const APawn* Pawn = Cast<APawn>(GetAvatarActorFromActorInfo());
@@ -287,13 +293,18 @@ void ULeeGameplayAbility_HitReaction::StartParryRecovery()
 	// 연속으로 패리당해도 태그는 1개만 유지하고, 대기 시간은 새로 다시 센다
 	ASC->SetLooseGameplayTagCount(MyTags::Souls::Status_ParryRecovery, 1);
 
-	const float Duration = FMath::FRandRange(ParryRecoveryMin, FMath::Max(ParryRecoveryMin, ParryRecoveryMax));
+	const float Wait = FMath::FRandRange(ParryRecoveryMin, FMath::Max(ParryRecoveryMin, ParryRecoveryMax));
+	const float Duration = FMath::Max(0.0f, MontageDuration) + Wait;
+	UE_LOG(LogTemp, Log, TEXT("[ParryRecovery] %s 공격 대기 시작: 몽타주 %.2f초 + 대기 %.2f초 = %.2f초"),
+		*GetNameSafe(Pawn), MontageDuration, Wait, Duration);
+
 	TWeakObjectPtr<UAbilitySystemComponent> WeakASC(ASC);
 	World->GetTimerManager().SetTimer(ParryRecoveryTimerHandle, FTimerDelegate::CreateWeakLambda(ASC, [WeakASC]()
 	{
 		if (UAbilitySystemComponent* StrongASC = WeakASC.Get())
 		{
 			StrongASC->SetLooseGameplayTagCount(MyTags::Souls::Status_ParryRecovery, 0);
+			UE_LOG(LogTemp, Log, TEXT("[ParryRecovery] %s 공격 대기 끝"), *GetNameSafe(StrongASC->GetAvatarActor()));
 		}
 	}), Duration, false);
 }

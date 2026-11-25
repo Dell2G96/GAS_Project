@@ -124,8 +124,9 @@ protected:
 	float ParryRecoveryMax = 1.5f;
 
 private:
-	/** 26.11.25 추가 - [서버] Status.ParryRecovery 태그를 붙이고 랜덤 시간 뒤 떼는 타이머를 건다 */
-	void StartParryRecovery();
+	/** 26.11.25 추가 - [서버] Status.ParryRecovery 태그를 붙이고 (몽타주 길이 + 랜덤 대기) 뒤 떼는 타이머를 건다
+	 *  26.11.26 수정 - 패리당하는 순간 호출한다 (몽타주가 다른 리액션에 끊겨도 대기가 빠지지 않게) */
+	void StartParryRecovery(float MontageDuration);
 
 	FTimerHandle ParryRecoveryTimerHandle;
 
