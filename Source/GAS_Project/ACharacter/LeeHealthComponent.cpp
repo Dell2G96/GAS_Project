@@ -274,7 +274,11 @@ void ULeeHealthComponent::HandleOutOfHealth(AActor* DamageInstigator, AActor* Da
 			}
 
 			FScopedPredictionWindow NewScopedWindow(AbilitySystemComponent, true);
-			AbilitySystemComponent->HandleGameplayEvent(Payload.EventTag, &Payload);
+			const int32 ActivatedCount = AbilitySystemComponent->HandleGameplayEvent(Payload.EventTag, &Payload);
+
+			// 26.11.26 추가 - [진단] 사망 이벤트로 Death 어빌리티가 실제로 켜졌는지 (0이면 사망 몽타주·공격 취소가 일어나지 않음)
+			UE_LOG(LogLee, Log, TEXT("[DeathDiag] %s 사망 이벤트 → 활성화된 어빌리티 %d개, 몽타주=%s"),
+				*GetNameSafe(AbilitySystemComponent->GetAvatarActor()), ActivatedCount, *GetNameSafe(Payload.OptionalObject2));
 		}
 
 		// Send a standardized verb message that other systems can observe

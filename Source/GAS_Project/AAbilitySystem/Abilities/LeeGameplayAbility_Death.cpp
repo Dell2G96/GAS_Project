@@ -42,7 +42,14 @@ void ULeeGameplayAbility_Death::ActivateAbility(const FGameplayAbilitySpecHandle
 	FGameplayTagContainer AbilityTypesToIgnore;
 	AbilityTypesToIgnore.AddTag(MyTags::Souls::Ability_Behavior_SurvivesDeath);
 
+	// 26.11.26 추가 - [진단] 사망 시 공격 등 다른 어빌리티가 실제로 취소되는지 (공격 중 사망 시 사망 몽타주 미재생 추적)
+	const bool bWasAttacking = LeeASC->HasMatchingGameplayTag(MyTags::Souls::Status_Attack_Attacking);
+
 	LeeASC->CancelAbilities(nullptr, &AbilityTypesToIgnore, this);
+
+	UE_LOG(LogLee, Log, TEXT("[DeathDiag] %s Death 활성화 (%s) 공격 중이었음=%d → 취소 후 공격 중=%d"),
+		*GetNameSafe(ActorInfo->AvatarActor.Get()), HasAuthority(&ActivationInfo) ? TEXT("서버") : TEXT("클라"),
+		bWasAttacking, LeeASC->HasMatchingGameplayTag(MyTags::Souls::Status_Attack_Attacking));
 
 	SetCanBeCanceled(false);
 
@@ -125,9 +132,14 @@ void ULeeGameplayAbility_Death::HandleDeathFinished(AActor* OwningActor)
 		HealthComponent->OnDeathFinished.RemoveDynamic(this, &ThisClass::HandleDeathFinished);
 	}
 
+	// 26.11.26 추가 - [진단] 사망 완료 시 Death 어빌리티가 실제로 끝나는지 (리스폰 후 두 번째 사망 미활성 추적)
+	UE_LOG(LogLee, Log, TEXT("[DeathDiag] %s 사망 완료 → Death 어빌리티 종료 시도 (활성=%d, ActorInfo=%d)"),
+		*GetNameSafe(OwningActor), IsActive(), CurrentActorInfo != nullptr);
+
 	if (IsActive())
 	{
 		EndAbility(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo, true, false);
+		UE_LOG(LogLee, Log, TEXT("[DeathDiag] %s 종료 후 활성=%d"), *GetNameSafe(OwningActor), IsActive());
 	}
 }
 
@@ -145,6 +157,15 @@ void ULeeGameplayAbility_Death::EndAbility(const FGameplayAbilitySpecHandle Hand
 	}
 
 	Super::EndAbility(Handle, ActorInfo, ActivationInfo, bReplicateEndAbility, bWasCancelled);
+
+	// 26.11.26 추가 - ActivateAbility에서 Exclusive_Blocking으로 바꾼 활성화 그룹을 원래 값(BP 기본값)으로 되돌린다.
+	// 플레이어 ASC는 PlayerState에 있어 리스폰해도 같은 인스턴스를 다시 쓴다. 그룹이 Blocking으로 남아 있으면
+	// 다음 사망 때 공격(Exclusive_Blocking) 중이면 CanActivateAbility가 막혀 사망 어빌리티가 켜지지 않았다.
+	// (Super::EndAbility가 Blocking 카운트를 먼저 빼므로 그 뒤에 되돌려야 카운트가 어긋나지 않는다)
+	if (!IsActive())
+	{
+		ActivationGroup = GetClass()->GetDefaultObject<ULeeGameplayAbility_Death>()->GetActivationGroup();
+	}
 }
 
 void ULeeGameplayAbility_Death::StartDeath()
