@@ -115,8 +115,10 @@ FLeeGuardThreatResult LeeGuardThreat::Update(FLeeGuardThreatState& State, const 
 	const bool bInLeadTime = TimeToHit <= PerfectGuardLeadTime;
 
 	Result.bThreatActive = true;
-	// 일반 가드는 공격을 보자마자, 퍼펙트는 타격 직전에 올린다 (그래야 GA_Guard의 퍼펙트 판정 시간 안에 맞는다)
-	Result.bShouldGuardNow = State.bGuardRolled && (!State.bPerfectRolled || bInLeadTime);
+	// 26.11.25 수정 - 가드는 일반·퍼펙트 모두 공격을 보자마자 올린다.
+	// 이전에는 퍼펙트를 노릴 때 타격 직전까지 가드를 미뤘는데, 그 사이 "근접 즉시 공격" 전환이 먼저 통과해 퍼펙트 기회가 사라졌다.
+	// 퍼펙트는 타격 직전에 bShouldRefreshPerfect로 GA_Guard의 퍼펙트 판정 시간을 다시 열어 만든다.
+	Result.bShouldGuardNow = State.bGuardRolled;
 	Result.bShouldRefreshPerfect = State.bPerfectRolled && !State.bRefreshIssued && bInLeadTime;
 	if (Result.bShouldRefreshPerfect)
 	{

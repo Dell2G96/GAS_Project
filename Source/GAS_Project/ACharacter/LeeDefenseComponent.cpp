@@ -8,6 +8,7 @@
 #include "GAS_Project/LeeLogChannels.h"
 #include "GAS_Project/MyTags.h"
 #include "GAS_Project/ACharacter/LeeHitStopSubsystem.h"
+#include "GAS_Project/AEquipment/LeeEquipmentMeshSelection.h"
  #include "GAS_Project/AAbilitySystem/LeeAbilitySystemComponent.h"
  #include "GAS_Project/_Souls/Abilities/LeeSoulsStatSet.h"
 
@@ -663,6 +664,22 @@ void ULeeDefenseComponent::ExecuteHitImpactCue(const FGameplayEffectSpec* Effect
 		if (HitResult->bBlockingHit || !HitResult->ImpactPoint.IsZero())
 		{
 			Params.Location = HitResult->ImpactPoint;
+		}
+	}
+
+	// 26.11.25 추가 - 퍼펙트 가드는 무기와 무기가 맞닿은 지점에서 터뜨린다.
+	// 공격자 칼날 선분과 방어자 칼날 선분에서 서로 가장 가까운 두 점의 중간을 쓴다. (한쪽이라도 무기를 못 찾으면 기존 위치 유지)
+	if (CueTag == MyTags::Souls::GameplayCue_Guard_Perfect && Attacker)
+	{
+		static const FName BaseSocket = TEXT("WeaponBase");
+		static const FName TipSocket = TEXT("WeaponTip");
+		FVector AttackerBase, AttackerTip, DefenderBase, DefenderTip;
+		if (LeeEquipmentMeshSelection::FindWeaponBlade(Attacker, BaseSocket, TipSocket, AttackerBase, AttackerTip)
+			&& LeeEquipmentMeshSelection::FindWeaponBlade(Owner, BaseSocket, TipSocket, DefenderBase, DefenderTip))
+		{
+			FVector OnAttackerBlade, OnDefenderBlade;
+			FMath::SegmentDistToSegmentSafe(AttackerBase, AttackerTip, DefenderBase, DefenderTip, OnAttackerBlade, OnDefenderBlade);
+			Params.Location = (OnAttackerBlade + OnDefenderBlade) * 0.5f;
 		}
 	}
 

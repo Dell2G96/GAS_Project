@@ -168,6 +168,8 @@ namespace MyTags
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Status_Estus_Drinking);
 		// 26.11.02 추가 - 보스전 넉다운 상태 (이동만 가능, 동료가 부활 가능)
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Status_Downed);
+		// 26.11.25 추가 - 패리당한 뒤 잠깐 공격하지 않는 상태 (일반 Enemy)
+		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Status_ParryRecovery);
 
 		// ----- 상태 - 처형/암살 (피니셔) -----
 		UE_DECLARE_GAMEPLAY_TAG_EXTERN(Status_Groggy);

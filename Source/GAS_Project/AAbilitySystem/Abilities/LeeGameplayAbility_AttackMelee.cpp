@@ -43,6 +43,8 @@ ULeeGameplayAbility_AttackMelee::ULeeGameplayAbility_AttackMelee(const FObjectIn
 	// (적 StateTree에는 그로기 검사가 없어, 그로기 중 스태미나가 차오르면 공격이 그로기 몽타주를 끊었다.
 	//  플레이어는 입력 단계에서 이미 막고 있어 동작 변화 없음)
 	ActivationBlockedTags.AddTag(MyTags::Souls::Status_Groggy);
+	// 26.11.25 추가 - 패리당한 뒤 대기 시간 동안 공격하지 않는다 (일반 Enemy만 이 태그를 받는다)
+	ActivationBlockedTags.AddTag(MyTags::Souls::Status_ParryRecovery);
 
 	// 26.11.06 추가 - 부활 중 공격 입력 → 부활을 끊고 공격 (적은 부활 어빌리티가 없어 영향 없음)
 	CancelAbilitiesWithTag.AddTag(MyTags::Souls::Ability_Revive);
@@ -84,9 +86,16 @@ void ULeeGameplayAbility_AttackMelee::ActivateAbility(
 	}
 
 	const FLeeMeleeAttackData* SelectedAttackData = SelectAttackData();
-	if (!SelectedAttackData || !SelectedAttackData->Montage)
+	if (!SelectedAttackData)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("[LeeGA_AttackMelee] 선택된 공격 데이터가 유효하지 않거나 몽타주가 null입니다."));
+		// 26.11.25 수정 - 쿨타임·스태미나·최대 시작 거리 때문에 지금 쓸 공격이 없는 정상 상황 (경고 아님)
+		UE_LOG(LogLee, Log, TEXT("[LeeGA_AttackMelee] %s: 지금 쓸 수 있는 공격 없음 (쿨타임·스태미나·거리)"), *GetNameSafe(ActorInfo->AvatarActor.Get()));
+		EndAbility(Handle, ActorInfo, ActivationInfo, true, true);
+		return;
+	}
+	if (!SelectedAttackData->Montage)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[LeeGA_AttackMelee] 선택된 공격 데이터의 몽타주가 null입니다."));
 		EndAbility(Handle, ActorInfo, ActivationInfo, true, true);
 		return;
 	}
@@ -218,11 +227,21 @@ const FLeeMeleeAttackData* ULeeGameplayAbility_AttackMelee::SelectAttackData()
 	// 26.11.17 수정 - 쿨타임이 아니고 + 끝까지 휘두를 스태미나가 있는 공격만 후보로 둔다
 	// (여러 공격 중 랜덤으로 비싼 것이 골라져 실패하는 대신, 지금 할 수 있는 공격을 고른다)
 	const float CurrentStamina = ASC ? ASC->GetNumericAttribute(ULeeSoulsStatSet::GetStaminaAttribute()) : 0.0f;
+
+	// 26.11.25 추가 - 타겟까지 거리 (타겟이 없으면 -1 = 거리 제한을 적용하지 않음)
+	const AActor* Avatar = GetAvatarActorFromActorInfo();
+	const AActor* Target = GetWarpFacingTarget();
+	const float DistToTarget = (Avatar && Target) ? FVector::Dist2D(Avatar->GetActorLocation(), Target->GetActorLocation()) : -1.0f;
+
 	TArray<int32> AvailableIndices;
 	for (int32 Index = 0; Index < AttackDataList.Num(); ++Index)
 	{
-		if (!IsAttackDataOnCooldown(AttackDataList[Index], ASC)
-			&& CurrentStamina >= GetStaminaRequiredToStart(AttackDataList[Index]))
+		const FLeeMeleeAttackData& Data = AttackDataList[Index];
+		// 26.11.25 추가 - 최대 시작 거리보다 멀면 후보에서 뺀다 (제자리 단타가 닿지 않는 거리에서 나가던 문제)
+		const bool bInRange = Data.MaxStartDistance <= 0.0f || DistToTarget < 0.0f || DistToTarget <= Data.MaxStartDistance;
+		if (bInRange
+			&& !IsAttackDataOnCooldown(Data, ASC)
+			&& CurrentStamina >= GetStaminaRequiredToStart(Data))
 		{
 			AvailableIndices.Add(Index);
 		}

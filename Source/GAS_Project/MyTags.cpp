@@ -165,6 +165,7 @@ namespace MyTags
 		// 26.11.11 추가 - 보스 2페이즈 전환 예약
 		UE_DEFINE_GAMEPLAY_TAG(Status_Boss_PhaseChangeQueued, "Souls.Status.Boss.PhaseChangeQueued")
 		UE_DEFINE_GAMEPLAY_TAG(Status_Downed, "Souls.Status.Downed")
+		UE_DEFINE_GAMEPLAY_TAG(Status_ParryRecovery, "Souls.Status.ParryRecovery")
 
 		// ----- 상태 - 처형/암살 (피니셔) -----
 		UE_DEFINE_GAMEPLAY_TAG(Status_Groggy, "Souls.Status.Groggy")

@@ -29,6 +29,8 @@ ULeeGameplayAbility_EnemyRangedAttack::ULeeGameplayAbility_EnemyRangedAttack(con
 	ActivationBlockedTags.AddTag(MyTags::Souls::Status_Shield_Active);
 	// 26.11.13 추가 - 그로기 중에는 공격을 시작하지 않는다 (StateTree에 그로기 검사가 없음)
 	ActivationBlockedTags.AddTag(MyTags::Souls::Status_Groggy);
+	// 26.11.25 추가 - 패리당한 뒤 대기 시간 동안 공격하지 않는다
+	ActivationBlockedTags.AddTag(MyTags::Souls::Status_ParryRecovery);
 
 	FireEventTag = MyTags::Souls::Event_Attack_Fire;
 }

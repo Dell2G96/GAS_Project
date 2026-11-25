@@ -115,7 +115,8 @@ struct FLeeCombatContextInstanceData
 	UPROPERTY(EditAnywhere, Category = "Output")
 	bool bShouldGuardNow = false;
 
-	/** 26.11.08 추가 - 이번 틱에 퍼펙트 판정 시간을 다시 열어야 함 (방패 적) */
+	/** 26.11.08 추가 - 이번 틱에 퍼펙트 판정 시간을 다시 열어야 함.
+	 *  26.11.25 - 참이고 가드 중이면 평가기가 직접 Event_Guard_RefreshPerfectWindow를 보낸다 (모든 가드 태스크 공통) */
 	UPROPERTY(EditAnywhere, Category = "Output")
 	bool bShouldRefreshPerfect = false;
 

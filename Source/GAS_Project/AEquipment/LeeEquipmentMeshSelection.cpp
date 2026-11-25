@@ -69,3 +69,32 @@ TArray<UMeshComponent*> LeeEquipmentMeshSelection::FindMeshes(AActor* Owner, FNa
 	}
 	return Result;
 }
+
+// 26.11.25 추가 - 장비 액터 → 캐릭터에 직접 붙은 메시 순서로, 손잡이·칼끝 소켓을 모두 가진 첫 메시의 칼날 선분을 구한다 (방패 등은 소켓이 없어 자동 제외)
+bool LeeEquipmentMeshSelection::FindWeaponBlade(AActor* Owner, FName BaseSocket, FName TipSocket, FVector& OutBase, FVector& OutTip)
+{
+	if (!Owner || BaseSocket.IsNone() || TipSocket.IsNone()) return false;
+
+	TArray<AActor*> Candidates;
+	if (const auto* Manager = Owner->FindComponentByClass<ULeeEquipmentManagerComponent>())
+		for (const auto* Instance : Manager->GetEquipmentInstancesOfType(ULeeEquipmentInstance::StaticClass()))
+			if (IsValid(Instance)) Candidates.Append(Instance->GetSpawnedActors());
+	Candidates.Add(Owner);
+
+	for (AActor* Actor : Candidates)
+	{
+		if (!IsValid(Actor)) continue;
+		TArray<UMeshComponent*> Meshes;
+		Actor->GetComponents(Meshes);
+		for (const UMeshComponent* Mesh : Meshes)
+		{
+			if (IsValid(Mesh) && Mesh->DoesSocketExist(BaseSocket) && Mesh->DoesSocketExist(TipSocket))
+			{
+				OutBase = Mesh->GetSocketLocation(BaseSocket);
+				OutTip = Mesh->GetSocketLocation(TipSocket);
+				return true;
+			}
+		}
+	}
+	return false;
+}

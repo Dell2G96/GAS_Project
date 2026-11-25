@@ -207,6 +207,21 @@ void FLeeStateTreeEvaluator_CombatContext::Tick(FStateTreeExecutionContext& Cont
 	Data.bGuardThreatActive = Threat.bThreatActive;
 	Data.bShouldGuardNow = Threat.bShouldGuardNow;
 	Data.bShouldRefreshPerfect = Threat.bShouldRefreshPerfect;
+
+	// 26.11.25 추가 - 퍼펙트로 정해진 타격 직전이고 이미 가드 중이면, GA_Guard의 퍼펙트 판정 시간을 다시 연다.
+	// 평가기에서 직접 보내므로 어떤 가드 태스크(반응 가드·방패 가드)를 쓰는 트리든 바인딩 없이 동작한다.
+	if (Data.bShouldRefreshPerfect && Data.Actor)
+	{
+		UAbilitySystemComponent* SelfASC = UAbilitySystemBlueprintLibrary::GetAbilitySystemComponent(Data.Actor);
+		if (SelfASC && SelfASC->HasMatchingGameplayTag(MyTags::Souls::Status_Guard_Active))
+		{
+			FGameplayEventData Payload;
+			Payload.EventTag = MyTags::Souls::Event_Guard_RefreshPerfectWindow;
+			Payload.Instigator = Data.TargetActor;
+			Payload.Target = Data.Actor;
+			UAbilitySystemBlueprintLibrary::SendGameplayEventToActor(Data.Actor, MyTags::Souls::Event_Guard_RefreshPerfectWindow, Payload);
+		}
+	}
 }
 
 // 26.11.08 추가 - 퍼펙트를 노리는 설정인데 리드 타임이 GA_Guard의 퍼펙트 판정 시간 이상이면 퍼펙트가 절대 나오지 않으므로 경고한다

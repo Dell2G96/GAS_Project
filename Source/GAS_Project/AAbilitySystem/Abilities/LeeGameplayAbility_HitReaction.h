@@ -111,5 +111,22 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Lee|HitReaction")
 	FName WarpTargetName = TEXT("ParriedWarp");
 
+	/** 26.11.25 추가 - 패리당함 몽타주가 끝난 뒤 잠깐 공격하지 않게 할지 (일반 Enemy BP에서 켬. 보스·플레이어는 끔) */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Lee|HitReaction|ParryRecovery")
+	bool bApplyParryRecovery = false;
+
+	/** 26.11.25 추가 - 공격 대기 시간 최소(초). 이 범위에서 랜덤 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Lee|HitReaction|ParryRecovery", meta = (EditCondition = "bApplyParryRecovery", ClampMin = "0.0"))
+	float ParryRecoveryMin = 0.5f;
+
+	/** 26.11.25 추가 - 공격 대기 시간 최대(초) */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Lee|HitReaction|ParryRecovery", meta = (EditCondition = "bApplyParryRecovery", ClampMin = "0.0"))
+	float ParryRecoveryMax = 1.5f;
+
+private:
+	/** 26.11.25 추가 - [서버] Status.ParryRecovery 태그를 붙이고 랜덤 시간 뒤 떼는 타이머를 건다 */
+	void StartParryRecovery();
+
+	FTimerHandle ParryRecoveryTimerHandle;
 
 };

@@ -61,6 +61,13 @@ struct FLeeMeleeAttackData
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Lee|Attack|Warp", meta = (EditCondition = "bWarpTranslation", ClampMin = "0.0"))
 	float MaxWarpDistance = 400.0f;
 
+	/**
+	 * 26.11.25 추가 - [Enemy] 최대 시작 거리(cm). 공격을 고르는 순간 Enemy 중심~타겟 중심의 수평 거리가 이 값 이하일 때만 후보가 된다.
+	 * 0이면 제한 없음. 몸이 붙어 있어도 약 80cm(캡슐 반경 포함)이므로 그보다 크게 둔다. (Player 콤보 선택에는 쓰지 않는다)
+	 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Lee|Attack|Range", meta = (ClampMin = "0.0"))
+	float MaxStartDistance = 0.0f;
+
 	/** 이 몽타주의 쿨타임(초). 0이면 쿨타임 없음. GA의 CooldownGameplayEffectClass(SetByCaller Duration GE)에 전달된다 */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Lee|Attack|Cooldown", meta = (ClampMin = "0.0"))
 	float CooldownDuration = 0.0f;

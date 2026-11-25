@@ -2,6 +2,9 @@
 
 #include "Animation/AnimMontage.h"
 #include "GameFramework/Actor.h"
+#include "GameFramework/Pawn.h"
+#include "TimerManager.h"
+#include "Engine/World.h"
 #include "MotionWarpingComponent.h"
 #include "Abilities/Tasks/AbilityTask_PlayMontageAndWait.h"
 #include "Abilities/Tasks/AbilityTask_WaitGameplayTag.h"
@@ -259,7 +262,40 @@ void ULeeGameplayAbility_HitReaction::OnMontageFinished()
 		}
 	}
 
+	// 26.11.25 추가 - 패리당함 몽타주가 끝나면 잠깐 공격하지 않는다 (그로기로 넘어간 경우는 위에서 이미 빠져나감)
+	if (ActiveEventTag == MyTags::Souls::Event_Combat_Parried)
+	{
+		StartParryRecovery();
+	}
+
 	EndAbility(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo, /*Replicate*/true, /*WasCancelled*/false);
+}
+
+// 26.11.25 추가 - [서버] 패리당한 Enemy에 Status.ParryRecovery를 붙이고, ParryRecoveryMin~Max 초 뒤에 뗀다.
+// 공격 GA는 이 태그가 있으면 발동하지 않고, StateTree 공격 상태도 이 태그가 있으면 진입하지 않는다 → 그동안 가드·스트레이프 등 비공격 행동.
+void ULeeGameplayAbility_HitReaction::StartParryRecovery()
+{
+	UAbilitySystemComponent* ASC = GetAbilitySystemComponentFromActorInfo();
+	const APawn* Pawn = Cast<APawn>(GetAvatarActorFromActorInfo());
+	UWorld* World = GetWorld();
+	if (!bApplyParryRecovery || !ASC || !World || !GetActorInfo().IsNetAuthority()
+		|| (Pawn && Pawn->IsPlayerControlled()))
+	{
+		return;
+	}
+
+	// 연속으로 패리당해도 태그는 1개만 유지하고, 대기 시간은 새로 다시 센다
+	ASC->SetLooseGameplayTagCount(MyTags::Souls::Status_ParryRecovery, 1);
+
+	const float Duration = FMath::FRandRange(ParryRecoveryMin, FMath::Max(ParryRecoveryMin, ParryRecoveryMax));
+	TWeakObjectPtr<UAbilitySystemComponent> WeakASC(ASC);
+	World->GetTimerManager().SetTimer(ParryRecoveryTimerHandle, FTimerDelegate::CreateWeakLambda(ASC, [WeakASC]()
+	{
+		if (UAbilitySystemComponent* StrongASC = WeakASC.Get())
+		{
+			StrongASC->SetLooseGameplayTagCount(MyTags::Souls::Status_ParryRecovery, 0);
+		}
+	}), Duration, false);
 }
 
 // 그로기 GE 만료 — End 섹션이 있으면 그 섹션(일어나기)을 재생하고, 없으면 바로 종료(loop 몽타주도 같이 끊김)

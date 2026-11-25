@@ -7,4 +7,7 @@ namespace LeeEquipmentMeshSelection
 {
 	GAS_PROJECT_API TArray<UMeshComponent*> FindMeshes(AActor* Owner, FName EquipmentAttachSocket);
 	GAS_PROJECT_API TArray<UMeshComponent*> FindPreviewMeshes(const AActor* Owner);
+
+	/** 26.11.25 추가 - Owner가 든 무기 중 BaseSocket·TipSocket을 모두 가진 메시를 찾아 칼날 선분(손잡이→칼끝) 월드 위치를 돌려준다. 못 찾으면 false */
+	GAS_PROJECT_API bool FindWeaponBlade(AActor* Owner, FName BaseSocket, FName TipSocket, FVector& OutBase, FVector& OutTip);
 }
