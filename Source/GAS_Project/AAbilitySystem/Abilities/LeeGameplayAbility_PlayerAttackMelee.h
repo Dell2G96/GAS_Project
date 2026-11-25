@@ -83,6 +83,10 @@ struct FLeeChargeLevelData
  *    그 지점에서 버튼을 누르고 있을 때 몽타주가 멈추고 차지가 시작된다. 노티파이가 없는 타는 차지 없음.
  *  - 누른 시간에 따라 ChargeLevels 단계가 오르고(단계마다 Cue 실행), 떼거나 최대 시간이 지나면 그 단계 값으로 이어서 벤다.
  *  - 게스트는 자기 화면 기준으로 단계를 정해 서버에 알리고(GameCustom2 + 단계 값), 서버는 그 신호가 올 때까지 같은 지점에서 멈춰 기다린다.
+ *
+ * 26.11.26 추가 - 대시(달리기) 공격 (DashAttackData.Montage가 비어 있으면 동작하지 않음):
+ *  - 달리는 중(Status.Sprinting)에 이 공격이 켜지면 1타(AttackDataList[0]) 대신 DashAttackData로 벤다.
+ *  - 대시 공격 뒤 콤보 입력은 일반 콤보 2타(AttackDataList[1])로 이어진다. 대시 공격에서는 차지하지 않는다.
  */
 UCLASS()
 class GAS_PROJECT_API ULeeGameplayAbility_PlayerAttackMelee : public ULeeGameplayAbility_AttackMelee
@@ -93,7 +97,12 @@ public:
 	ULeeGameplayAbility_PlayerAttackMelee(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 protected:
-	/** 콤보 첫 타(AttackDataList[0])를 반환 — 부모의 랜덤 선택 대신 순차 콤보 시작점으로 사용 */
+	/** 26.11.26 추가 - 달리기가 취소되기 전에(ActivateAbility보다 먼저 불림) 지금 달리는 중인지 기록한다 */
+	virtual void PreActivate(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo,
+		const FGameplayAbilityActivationInfo ActivationInfo, FOnGameplayAbilityEnded::FDelegate* OnGameplayAbilityEndedDelegate,
+		const FGameplayEventData* TriggerEventData = nullptr) override;
+
+	/** 콤보 첫 타(AttackDataList[0])를 반환 — 부모의 랜덤 선택 대신 순차 콤보 시작점으로 사용. 대시 공격이면 DashAttackData 반환 */
 	virtual const FLeeMeleeAttackData* SelectAttackData() override;
 
 	/** 콤보 윈도우/입력 Task를 등록한 뒤 첫 타 몽타주를 재생 */
@@ -161,7 +170,20 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Lee|Attack|Charge", meta = (Categories = "GameplayCue"))
 	FGameplayTag ChargeReleaseCueTag;
 
+	/**
+	 * 26.11.26 추가 - 대시 공격 데이터. 달리는 중에 이 공격이 켜지면 1타 대신 이 데이터로 벤다 (다음 입력은 일반 콤보 2타로 이어짐).
+	 * 몽타주가 비어 있으면 대시 공격 없이 일반 1타가 나간다. 몽타주에는 일반 타와 같은 노티파이(콤보 윈도우·전환·CommitStep·WeaponTrace)를 둔다.
+	 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Lee|Attack|Dash")
+	FLeeMeleeAttackData DashAttackData;
+
 private:
+	/** 26.11.26 추가 - 지금 재생 중인 타가 대시 공격인지 (대시로 시작했고 아직 2타로 넘어가지 않음) */
+	bool IsPlayingDashAttack() const { return bStartedAsDashAttack && CurrentComboIndex == 0; }
+
+	/** 26.11.26 추가 - 이번 활성화가 대시 공격으로 시작했는지 (PreActivate에서 정함) */
+	bool bStartedAsDashAttack = false;
+
 	/** ComboWindowOpen/Close/Transition WaitGameplayEvent Task 등록 (어빌리티당 1회 — 각 타 몽타주 Notify가 같은 태그로 계속 쏨) */
 	void RegisterComboTasks();
 

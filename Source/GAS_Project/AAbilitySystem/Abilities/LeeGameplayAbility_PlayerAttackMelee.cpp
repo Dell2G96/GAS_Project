@@ -48,10 +48,32 @@ ULeeGameplayAbility_PlayerAttackMelee::ULeeGameplayAbility_PlayerAttackMelee(con
 	ChargeStartTag = MyTags::Souls::Event_Attack_ChargeStart;
 }
 
-// 콤보 첫 타 선택 — 부모의 랜덤 선택 대신 항상 AttackDataList[0]부터 시작
+// 26.11.26 추가 - 활성화 직전, 달리기가 취소되기 전에 대시 공격 여부를 정한다
+// (달리기는 ActivateAbility 안의 활성화 그룹 처리에서 취소되므로 그보다 먼저인 여기서 태그를 읽어야 한다)
+void ULeeGameplayAbility_PlayerAttackMelee::PreActivate(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo,
+	const FGameplayAbilityActivationInfo ActivationInfo, FOnGameplayAbilityEnded::FDelegate* OnGameplayAbilityEndedDelegate,
+	const FGameplayEventData* TriggerEventData)
+{
+	const UAbilitySystemComponent* ASC = ActorInfo ? ActorInfo->AbilitySystemComponent.Get() : nullptr;
+	const bool bSprinting = ASC && ASC->HasMatchingGameplayTag(MyTags::Souls::Status_Sprinting);
+	bStartedAsDashAttack = bSprinting && DashAttackData.Montage != nullptr;
+
+	if (bStartedAsDashAttack)
+	{
+		UE_LOG(LogLee, Log, TEXT("[Combo] %s 달리기 중 공격 → 대시 공격"), ActorInfo->IsNetAuthority() ? TEXT("Server") : TEXT("Client"));
+	}
+
+	Super::PreActivate(Handle, ActorInfo, ActivationInfo, OnGameplayAbilityEndedDelegate, TriggerEventData);
+}
+
+// 콤보 첫 타 선택 — 부모의 랜덤 선택 대신 항상 AttackDataList[0]부터 시작 (대시 공격이면 DashAttackData가 1타를 대신한다)
 const FLeeMeleeAttackData* ULeeGameplayAbility_PlayerAttackMelee::SelectAttackData()
 {
 	CurrentComboIndex = 0;
+	if (bStartedAsDashAttack)
+	{
+		return &DashAttackData;
+	}
 	return AttackDataList.IsValidIndex(0) ? &AttackDataList[0] : nullptr;
 }
 
@@ -59,7 +81,7 @@ const FLeeMeleeAttackData* ULeeGameplayAbility_PlayerAttackMelee::SelectAttackDa
 void ULeeGameplayAbility_PlayerAttackMelee::PlayAttackMontage(UAnimMontage* Montage, FName StartSection)
 {
 	ResetComboState();
-	UE_LOG(LogLee, Log, TEXT("[Combo] %s 1타 시작"), GetComboNetRole(this));
+	UE_LOG(LogLee, Log, TEXT("[Combo] %s 1타 시작 (대시=%d)"), GetComboNetRole(this), bStartedAsDashAttack);
 
 	// 시작 프레임 이벤트 유실을 막기 위해 몽타주 ReadyForActivation보다 먼저 등록
 	RegisterComboTasks();
@@ -454,7 +476,8 @@ float ULeeGameplayAbility_PlayerAttackMelee::GetStaminaRequiredToStart(const FLe
 // 차지 시작 지점 도달 — 직접 조종하는 쪽은 누르고 있을 때만 차지, 서버의 게스트 캐릭터는 게스트 신호가 올 때까지 멈춰 기다린다
 void ULeeGameplayAbility_PlayerAttackMelee::OnChargeStart(FGameplayEventData Payload)
 {
-	if (!IsActive() || bCharging || ChargeLevels.IsEmpty())
+	// 26.11.26 추가 - 대시 공격은 차지하지 않는다 (서버·게스트 모두 같은 판정이라 서버가 신호를 기다리며 멈추지 않는다)
+	if (!IsActive() || bCharging || ChargeLevels.IsEmpty() || IsPlayingDashAttack())
 	{
 		return;
 	}
