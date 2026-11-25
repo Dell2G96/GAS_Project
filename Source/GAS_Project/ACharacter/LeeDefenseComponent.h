@@ -150,6 +150,10 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Lee|Defense", meta = (ClampMin = "0.0"))
 	float StaminaDamageOnParry = 30.0f;
 
+	/** 26.11.26 추가 - 퍼펙트 가드 히트스톱(슬로우) 시간 배율. 공격의 히트스톱 시간에 곱하고, 연속 타격 감쇠는 적용하지 않는다 (싱글 전용) */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Lee|Defense", meta = (ClampMin = "0.0"))
+	float PerfectGuardHitStopScale = 1.5f;
+
 	/**
 	 * 가드 유효범위 — 정면(Forward) 기준 "좌우 각각" 몇 도까지 가드가 성립하는지(half-angle, 도).
 	 * 예: 45로 설정하면 정면 기준 ±45도(총 90도) 범위 안에서 맞아야 가드 성립.

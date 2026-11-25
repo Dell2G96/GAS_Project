@@ -34,7 +34,8 @@ public:
 
 	// 싱글이면 두 액터에 히트스톱을 건다. 이미 멈춰 있으면 끝나는 시간만 늘린다
 	// 26.11.12 수정 - 같은 공격자의 연속 타격은 점점 짧게, 공격자는 피격자보다 짧게 멈춘다
-	void ApplyHitStop(AActor* Attacker, AActor* Victim, float Duration, float TimeScale);
+	// 26.11.26 추가 - bApplyChainDecay = false면 연속 타격 감쇠 없이 Duration 그대로 건다 (퍼펙트 가드)
+	void ApplyHitStop(AActor* Attacker, AActor* Victim, float Duration, float TimeScale, bool bApplyChainDecay = true);
 
 	// 히트스톱을 쓸 수 있는 월드인지 (단독 실행)
 	bool CanUseHitStop() const;

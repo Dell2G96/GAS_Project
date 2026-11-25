@@ -29,14 +29,16 @@ bool ULeeHitStopSubsystem::CanUseHitStop() const
 
 // 두 액터의 CustomTimeDilation을 낮추고, 실제 시간 기준으로 끝나는 시각을 기록한다
 // 26.11.12 수정 - 콤보 감쇠 배율을 곱하고, 공격자는 피격자보다 짧게 멈춘다
-void ULeeHitStopSubsystem::ApplyHitStop(AActor* Attacker, AActor* Victim, float Duration, float TimeScale)
+// 26.11.26 수정 - bApplyChainDecay = false면 감쇠 배율을 곱하지 않는다 (퍼펙트 가드)
+void ULeeHitStopSubsystem::ApplyHitStop(AActor* Attacker, AActor* Victim, float Duration, float TimeScale, bool bApplyChainDecay)
 {
 	if (!CanUseHitStop() || Duration <= 0.0f)
 	{
 		return;
 	}
 
-	const float VictimDuration = Duration * ConsumeChainScale(Attacker, Duration);
+	const float ChainScale = bApplyChainDecay ? ConsumeChainScale(Attacker, Duration) : 1.0f;
+	const float VictimDuration = Duration * ChainScale;
 	const float AttackerDuration = VictimDuration * AttackerDurationScale;
 	const double Now = FPlatformTime::Seconds();
 	const float ClampedScale = FMath::Clamp(TimeScale, 0.0f, 1.0f);

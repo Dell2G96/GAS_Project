@@ -693,17 +693,24 @@ void ULeeDefenseComponent::ExecuteHitImpactCue(const FGameplayEffectSpec* Effect
 }
 
 // 26.11.12 추가 - 데미지 Spec에 실린 히트스톱 값으로 공격자·피격자(이 컴포넌트 소유자)를 잠깐 멈춘다 (싱글이 아니면 서브시스템이 무시)
+// 26.11.26 수정 - 퍼펙트 가드면 PerfectGuardHitStopScale만큼 길게, 연속 타격 감쇠 없이 건다
 void ULeeDefenseComponent::ApplyHitStop(const FGameplayEffectSpec* EffectSpec, AActor* Attacker) const
 {
-	const float Duration = EffectSpec->GetSetByCallerMagnitude(MyTags::Souls::SetByCaller_HitStopDuration, /*WarnIfNotFound*/false, 0.0f);
+	float Duration = EffectSpec->GetSetByCallerMagnitude(MyTags::Souls::SetByCaller_HitStopDuration, /*WarnIfNotFound*/false, 0.0f);
 	if (Duration <= 0.0f)
 	{
 		return;
 	}
 
+	const bool bPerfectGuard = EffectSpec->GetDynamicAssetTags().HasTagExact(MyTags::Souls::DamageResult_PerfectGuard);
+	if (bPerfectGuard)
+	{
+		Duration *= PerfectGuardHitStopScale;
+	}
+
 	const float TimeScale = EffectSpec->GetSetByCallerMagnitude(MyTags::Souls::SetByCaller_HitStopTimeScale, /*WarnIfNotFound*/false, 0.05f);
 	if (ULeeHitStopSubsystem* HitStopSubsystem = GetWorld() ? GetWorld()->GetSubsystem<ULeeHitStopSubsystem>() : nullptr)
 	{
-		HitStopSubsystem->ApplyHitStop(Attacker, GetOwner(), Duration, TimeScale);
+		HitStopSubsystem->ApplyHitStop(Attacker, GetOwner(), Duration, TimeScale, /*bApplyChainDecay*/!bPerfectGuard);
 	}
 }
