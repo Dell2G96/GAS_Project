@@ -22,7 +22,7 @@ struct FLeeKnockbackParams
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Knockback", meta = (ClampMin = "0.01"))
 	float Duration = 0.2f;
 
-	/** 피해자가 가드 중일 때 거리 배율 (0이면 가드 시 넉백 없음) */
+	/** 피해자가 가드 중이거나 마법 쉴드 중일 때 거리 배율 (0이면 가드·쉴드 시 넉백 없음) */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Knockback", meta = (ClampMin = "0.0"))
 	float GuardScale = 0.5f;
 };

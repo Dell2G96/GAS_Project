@@ -55,7 +55,10 @@ void ULeeGameplayAbility_Knockback::SendKnockbackEvent(AActor* InstigatorActor, 
 	}
 
 	// 가드 중이면 가드 배율 적용
-	const float Scale = VictimASC->HasMatchingGameplayTag(MyTags::Souls::Status_Guard_Active) ? Params.GuardScale : 1.0f;
+	// 26.11.26 수정 - 마법 쉴드(Status.Shield.Active)도 가드로 보고 같은 배율을 쓴다 (이전엔 쉴드를 맞혀도 넉백이 그대로 들어갔다)
+	const bool bGuarding = VictimASC->HasMatchingGameplayTag(MyTags::Souls::Status_Guard_Active)
+		|| VictimASC->HasMatchingGameplayTag(MyTags::Souls::Status_Shield_Active);
+	const float Scale = bGuarding ? Params.GuardScale : 1.0f;
 	if (Scale <= 0.0f)
 	{
 		return;
