@@ -7,6 +7,7 @@
 #include "LeeGameplayAbility_MagicShield.generated.h"
 
 class UGameplayEffect;
+class UAnimMontage;
 
 /**
  * 마법 쉴드 어빌리티.
@@ -53,7 +54,22 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Lee|Shield|Effect")
 	TSubclassOf<UGameplayEffect> ShieldCooldownEffect;
 
+	/**
+	 * 26.11.26 추가 - 쉴드 동안 재생할 상체 몽타주 (슬롯 UpperBody). 비워 두면 몽타주 없이 동작한다.
+	 * 섹션 규약: Start → Loop(자기 자신으로 반복 연결) → End. 작동 시간이 끝나면 End 섹션으로 넘어가고,
+	 * 깨지거나 취소되면 바로 멈춘다(깨짐은 이어서 HitReact 경직이 나온다).
+	 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Lee|Shield|Montage")
+	TObjectPtr<UAnimMontage> ShieldMontage;
+
+	/** 26.11.26 추가 - 쉴드가 정상 종료될 때 넘어갈 몽타주 섹션. 몽타주에 없으면 그냥 멈춘다 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Lee|Shield|Montage")
+	FName ShieldEndSection = TEXT("End");
+
 private:
+	/** 26.11.26 추가 - 쉴드 몽타주 마무리: bPlayEnd면 End 섹션으로, 아니면 바로 멈춘다 */
+	void FinishShieldMontage(bool bPlayEnd);
+
 	/** 쉴드 피격 이벤트 수신 → 쉴드 HP 감소 + 금 가는 Cue, 0이면 깨짐 */
 	UFUNCTION()
 	void OnShieldHitEventReceived(FGameplayEventData Payload);

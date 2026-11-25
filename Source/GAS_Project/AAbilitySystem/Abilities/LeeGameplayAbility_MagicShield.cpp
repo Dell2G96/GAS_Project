@@ -6,6 +6,9 @@
 #include "AbilitySystemComponent.h"
 #include "Abilities/Tasks/AbilityTask_WaitDelay.h"
 #include "Abilities/Tasks/AbilityTask_WaitGameplayEvent.h"
+#include "Abilities/Tasks/AbilityTask_PlayMontageAndWait.h"
+#include "Animation/AnimInstance.h"
+#include "Animation/AnimMontage.h"
 #include "GAS_Project/MyTags.h"
 
 // 생성자 — 서버 실행, 다른 공격과 함께 켜질 수 있게 Independent, 쉴드 태그는 활성 동안 자동 부여
@@ -61,6 +64,14 @@ void ULeeGameplayAbility_MagicShield::ActivateAbility(
 	UAbilityTask_WaitDelay* DurationTask = UAbilityTask_WaitDelay::WaitDelay(this, ShieldDuration);
 	DurationTask->OnFinish.AddDynamic(this, &ThisClass::OnShieldDurationFinished);
 	DurationTask->ReadyForActivation();
+
+	// 26.11.26 추가 - 상체 쉴드 몽타주 (Start → Loop 반복). 어빌리티가 끝나도 바로 멈추지 않게 해 End 섹션을 끝까지 보여 준다
+	if (ShieldMontage)
+	{
+		UAbilityTask_PlayMontageAndWait* MontageTask = UAbilityTask_PlayMontageAndWait::CreatePlayMontageAndWaitProxy(
+			this, NAME_None, ShieldMontage, /*Rate*/1.0f, /*StartSection*/NAME_None, /*bStopWhenAbilityEnds*/false);
+		MontageTask->ReadyForActivation();
+	}
 }
 
 // 종료 — 쉴드 표시 Cue 제거 + 재사용 대기 적용. 깨져서 끝났으면 종료 뒤 짧은 경직 이벤트를 보낸다
@@ -82,6 +93,9 @@ void ULeeGameplayAbility_MagicShield::EndAbility(
 	{
 		ASC->RemoveGameplayCue(MyTags::Souls::GameplayCue_Shield_Active);
 	}
+
+	// 26.11.26 추가 - 시간이 다 돼 끝나면 End 섹션, 깨지거나 취소되면 바로 멈춤
+	FinishShieldMontage(/*bPlayEnd*/!bShieldBroken && !bWasCancelled);
 
 	if (ShieldCooldown > 0.0f)
 	{
@@ -151,6 +165,44 @@ void ULeeGameplayAbility_MagicShield::OnShieldHitEventReceived(FGameplayEventDat
 	{
 		bShieldBroken = true;
 		EndAbility(CurrentSpecHandle, CurrentActorInfo, CurrentActivationInfo, /*Replicate*/true, /*WasCancelled*/false);
+	}
+}
+
+// 26.11.26 추가 - 쉴드 몽타주 마무리 (End 섹션으로 넘기거나 멈춤)
+// ASC가 지금 이 몽타주를 들고 있으면 ASC 함수로 처리해 다른 클라이언트에도 복제하고,
+// 쉴드 중 공격 몽타주가 재생돼 ASC가 다른 몽타주를 들고 있으면 이 화면의 AnimInstance로 직접 처리한다
+void ULeeGameplayAbility_MagicShield::FinishShieldMontage(bool bPlayEnd)
+{
+	UAbilitySystemComponent* ASC = GetAbilitySystemComponentFromActorInfo();
+	UAnimInstance* AnimInstance = GetActorInfo().GetAnimInstance();
+	if (!ShieldMontage || !ASC || !AnimInstance || !AnimInstance->Montage_IsPlaying(ShieldMontage))
+	{
+		return;
+	}
+
+	const bool bTrackedByASC = (ASC->GetCurrentMontage() == ShieldMontage);
+	const bool bHasEndSection = ShieldMontage->GetSectionIndex(ShieldEndSection) != INDEX_NONE;
+
+	if (bPlayEnd && bHasEndSection)
+	{
+		if (bTrackedByASC)
+		{
+			ASC->CurrentMontageJumpToSection(ShieldEndSection);
+		}
+		else
+		{
+			AnimInstance->Montage_JumpToSection(ShieldEndSection, ShieldMontage);
+		}
+		return;
+	}
+
+	if (bTrackedByASC)
+	{
+		ASC->CurrentMontageStop();
+	}
+	else
+	{
+		AnimInstance->Montage_Stop(ShieldMontage->BlendOut.GetBlendTime(), ShieldMontage);
 	}
 }
 
